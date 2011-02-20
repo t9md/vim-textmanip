@@ -54,6 +54,11 @@ fun! s:mod.move_selection(direction) range dict
 	let action.up    = a:firstline. ",". a:lastline . "move " . (a:firstline - 2)
 	let action.right = "normal! gv>>"
 	let action.left  = "normal! gv<<"
+
+  if a:direction == 'down' && a:lastline == line('$')
+    call append(line('$'), "")
+  endif
+
 	execute action[a:direction]
 	normal! gv
 endfun
