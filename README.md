@@ -1,27 +1,45 @@
 What is this?
 ==================================
-text_manup.vim is minimal utility for
+textmanip.vim is minimal utility for
 
   * duplicate text easily
-  * move selected text easily
+  * move visually selected text easily
+
+Use case
+================================
+* Indent text block
+While editing markdown or vim help file.
+Indenting selected text more easily.
+
+* Duplicate selected text below.
+When you want to call same function multiple time with various
+arguments or create facially resemble code structure by yank and
+paste.
+It is bothersome to `visually select text block` then `yank` then
+`move cursor` then `paste`
+This mini-plugin enables you to simply select text and then `<M-d>` to
+duplicate selected text block to bottom direction.
+Of course, `<M-d>` is my choice, you can assign your favorite key map.
+
+Mapping Example
+==================================
 
 Duplicete selected text bellow
-================================
-Linux
------------
-
+--------------------------------
+### Linux
     vmap <M-d> <Plug>(TextManup.duplicate_selection_v)
     nmap <M-d> <Plug>(TextManup.duplicate_selection_n)
 
-Mac
------------
+    " for Terminal
+    vmap D        <Plug>(TextManup.duplicate_selection_v)
+    nmap <Space>d <Plug>(TextManup.duplicate_selection_n)
 
+### Mac
     vmap <D-d> <Plug>(TextManup.duplicate_selection_v)
     nmap <D-d> <Plug>(TextManup.duplicate_selection_n)
 
-
 Move visually selected text with Control and `hjkl`
-===================================================
+---------------------------------------------------
 
     vmap <C-j> <Plug>(TextManup.move_selection_down)
     vmap <C-k> <Plug>(TextManup.move_selection_up)
@@ -31,16 +49,25 @@ Move visually selected text with Control and `hjkl`
 
 Other keymap
 ===================================================
-I think following keymap fit well with this plugin
+I use following key map to select text block(paragraph) speedy.
+This mapping fit well with this `textmanip.vim` plugin
 
-Linux
-------------------------
+### Linux
     inoremap <M-l>  <Esc>V
     nnoremap <M-l>  V
     vnoremap <M-l>  ip
 
-Mac
-------------------------
+    " for Terminal
+    nnoremap <silent> L V
+    vnoremap <silent> L ip
+
+### Mac
     inoremap <D-l>  <Esc>V
     nnoremap <D-l>  V
     vnoremap <D-l>  ip
+
+Practice text block manipulation
+===================================================
+1. `<M-l>`: in normal-mode chose text-block.
+2. `<M-d>`: duplicate text-block bottom direction.
+3. `<C-l><C-l>`: right indent twice

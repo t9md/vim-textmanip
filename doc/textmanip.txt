@@ -1,0 +1,124 @@
+*textmanip.txt* Maniplate selected text easily
+
+Version: 0.1
+Author : t9md <taqumd@gmail.com>
+
+==============================================================================
+CONTENTS					*textmanip-contents*
+
+Introduction				    |textmanip-introduction|
+Mapping					    |textmanip-mapping|
+Configuration Examples			    |textmanip-examples|
+Use Case				    |textmanip-usecase|
+Practice				    |textmanip-practice|
+Changelog				    |textmanip-changelog|
+
+==============================================================================
+INTRODUCTION				      	*textmanip-introduction*
+
+*textmanip* is minimal utility for
+
+  * duplicate text easily
+  * move visually selected text easily
+
+Requirement:
+- Vim 7.0 or later
+
+Latest Version:
+http://github.com/t9md/vim-textmanip
+
+==============================================================================
+MAPPINGS					*textmanip-mappings*
+
+These key mappings are defined in Visual mode and Operator-pending mode.
+
+<Plug>(textobj-indent-a)			*<Plug>(textobj-indent-a)*
+			Select a block of lines which are similarly indented
+			to the current line.  More precisely, it selects lines
+			which are:
+			- adjacent to the current line, and
+			- indented the same or more amount
+			  as the current line, or empty line.
+
+<Plug>(Textmanip.duplicate_selection_v)
+			Copy visually selected area to bottom direction.
+
+<Plug>(Textmanip.duplicate_selection_n)
+			Copy current line text to bottom direction.
+
+<Plug>(Textmanip.move_selection_up)
+<Plug>(Textmanip.move_selection_down)
+<Plug>(Textmanip.move_selection_right)
+<Plug>(Textmanip.move_selection_left)
+			Move visually selected text to specified direction.
+			When down direction can across EOL.
+
+==============================================================================
+CONFIGURAATION EXAMPLE                               *textmanip-example*
+
+For mac user replace <M-*> to <D-*>. <D-> is mac COMMAND key.
+
+* Duplicate selected text bellow
+>
+	vmap <M-d> <Plug>(TextManup.duplicate_selection_v)
+	nmap <M-d> <Plug>(TextManup.duplicate_selection_n)
+
+	" ### for Terminal
+	vmap D	    <Plug>(TextManup.duplicate_selection_v)
+	nmap <Space>d <Plug>(TextManup.duplicate_selection_n)
+<
+* Move visually selected text with "C-h,j,k,l"
+>
+	vmap <C-j> <Plug>(TextManup.move_selection_down)
+	vmap <C-k> <Plug>(TextManup.move_selection_up)
+	vmap <C-h> <Plug>(TextManup.move_selection_left)
+	vmap <C-l> <Plug>(TextManup.move_selection_right)
+<
+
+* Ohter keymap I use
+
+  I use following key map to select text block(paragraph) speedy.
+  This mapping fit well with this `textmanip.vim` plugin
+>
+	inoremap <M-l>  <Esc>V
+	nnoremap <M-l>  V
+	vnoremap <M-l>  ip
+
+	" for Terminal
+	nnoremap <silent> L V
+	vnoremap <silent> L ip
+	" <CR> to exit visual mode
+	vnoremap <silent> <CR> <Esc>
+<
+------------------------------------------------------------------------------
+USE CASE						 *textmanip-usecase*
+
+* Indent text block
+  While editing markdown or vim help file.
+  Indenting selected text more easily.
+
+* Duplicate selected text below.
+  When you want to call same function multiple time with various
+  arguments or create facially resemble code structure by yank and
+  paste.
+  It is bothersome to "visually select text block" then "yank" then
+  "move cursor" then "paste".
+  This mini-plugin enables you to simply select text and then "<M-d>" to
+  duplicate selected text block to bottom direction.
+  Of course, "<M-d>" is my choice, you can assign your favorite key map.
+
+------------------------------------------------------------------------------
+PRACTICE						*textmanip-practice*
+
+  1. <M-l>		In normal-mode chose text-block.
+  2. <M-d>		Duplicate text-block bottom direction.
+  3. <C-l><C-l>		Right indent twice.
+  4. <CR>		Return to normal mode.
+
+==============================================================================
+CHANGELOG						*textmanip-changelog*
+
+0.1	2011-03-10
+	- First release
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:
