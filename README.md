@@ -27,24 +27,24 @@ Mapping Example
 Duplicete selected text bellow
 --------------------------------
 ### Linux
-    vmap <M-d> <Plug>(TextManup.duplicate_selection_v)
-    nmap <M-d> <Plug>(TextManup.duplicate_selection_n)
+    vmap <M-d> <Plug>(Textmanip.duplicate_selection_v)
+    nmap <M-d> <Plug>(Textmanip.duplicate_selection_n)
 
     " for Terminal
-    vmap D        <Plug>(TextManup.duplicate_selection_v)
-    nmap <Space>d <Plug>(TextManup.duplicate_selection_n)
+    vmap D        <Plug>(Textmanip.duplicate_selection_v)
+    nmap <Space>d <Plug>(Textmanip.duplicate_selection_n)
 
 ### Mac
-    vmap <D-d> <Plug>(TextManup.duplicate_selection_v)
-    nmap <D-d> <Plug>(TextManup.duplicate_selection_n)
+    vmap <D-d> <Plug>(Textmanip.duplicate_selection_v)
+    nmap <D-d> <Plug>(Textmanip.duplicate_selection_n)
 
 Move visually selected text with Control and `hjkl`
 ---------------------------------------------------
 
-    vmap <C-j> <Plug>(TextManup.move_selection_down)
-    vmap <C-k> <Plug>(TextManup.move_selection_up)
-    vmap <C-h> <Plug>(TextManup.move_selection_left)
-    vmap <C-l> <Plug>(TextManup.move_selection_right)
+    vmap <C-j> <Plug>(Textmanip.move_selection_down)
+    vmap <C-k> <Plug>(Textmanip.move_selection_up)
+    vmap <C-h> <Plug>(Textmanip.move_selection_left)
+    vmap <C-l> <Plug>(Textmanip.move_selection_right)
 
 
 Other keymap
