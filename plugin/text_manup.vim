@@ -3,7 +3,7 @@
 " Author: t9md <taqumd@gmail.com>
 " WebPage: http://github.com/t9md/textmanip.vim
 " License: BSD
-" Version: 0.1
+" Version: 0.2
 
 " GUARD: {{{
 "============================================================

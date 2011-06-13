@@ -1,6 +1,6 @@
 *textmanip.txt* Maniplate selected text easily
 
-Version: 0.1
+Version: 0.2
 Author : t9md <taqumd@gmail.com>
 
 ==============================================================================
