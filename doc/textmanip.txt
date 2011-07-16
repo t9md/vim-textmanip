@@ -1,6 +1,6 @@
 *textmanip.txt* Maniplate selected text easily
 
-Version: 0.2
+Version: 0.3
 Author : t9md <taqumd@gmail.com>
 
 ==============================================================================
@@ -32,14 +32,6 @@ MAPPINGS					*textmanip-mappings*
 
 These key mappings are defined in Visual mode and Operator-pending mode.
 
-<Plug>(textobj-indent-a)			*<Plug>(textobj-indent-a)*
-			Select a block of lines which are similarly indented
-			to the current line.  More precisely, it selects lines
-			which are:
-			- adjacent to the current line, and
-			- indented the same or more amount
-			  as the current line, or empty line.
-
 <Plug>(Textmanip.duplicate_selection_v)
 			Copy visually selected area to bottom direction.
 
@@ -64,7 +56,7 @@ For mac user replace <M-*> to <D-*>. <D-> is mac COMMAND key.
 	nmap <M-d> <Plug>(Textmanip.duplicate_selection_n)
 
 	" ### for Terminal
-	vmap D	    <Plug>(Textmanip.duplicate_selection_v)
+	xmap D	    <Plug>(Textmanip.duplicate_selection_v)
 	nmap <Space>d <Plug>(Textmanip.duplicate_selection_n)
 <
 * Move visually selected text with "C-h,j,k,l"
@@ -73,22 +65,7 @@ For mac user replace <M-*> to <D-*>. <D-> is mac COMMAND key.
 	vmap <C-k> <Plug>(Textmanip.move_selection_up)
 	vmap <C-h> <Plug>(Textmanip.move_selection_left)
 	vmap <C-l> <Plug>(Textmanip.move_selection_right)
-<
 
-* Ohter keymap I use
-
-  I use following key map to select text block(paragraph) speedy.
-  This mapping fit well with this `textmanip.vim` plugin
->
-	inoremap <M-l>  <Esc>V
-	nnoremap <M-l>  V
-	vnoremap <M-l>  ip
-
-	" for Terminal
-	nnoremap <silent> L V
-	vnoremap <silent> L ip
-	" <CR> to exit visual mode
-	vnoremap <silent> <CR> <Esc>
 <
 ------------------------------------------------------------------------------
 USE CASE						 *textmanip-usecase*
@@ -118,6 +95,8 @@ PRACTICE						*textmanip-practice*
 ==============================================================================
 CHANGELOG						*textmanip-changelog*
 
+0.3	2011-06-13
+	- Fix typo
 0.2	2011-06-13
 	- Fix typo
 0.1	2011-03-10

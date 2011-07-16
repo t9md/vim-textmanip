@@ -3,13 +3,13 @@
 " Author: t9md <taqumd@gmail.com>
 " WebPage: http://github.com/t9md/textmanip.vim
 " License: BSD
-" Version: 0.2
+" Version: 0.3
 
 " GUARD: {{{
 "============================================================
-" if exists('g:loaded_textmanip')
-  " finish
-" endif
+if exists('g:loaded_textmanip')
+  finish
+endif
 
 "for line continuation - i.e dont want C in &cpo
 let s:old_cpo = &cpo

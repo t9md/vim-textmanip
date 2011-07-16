@@ -31,7 +31,7 @@ Duplicete selected text bellow
     nmap <M-d> <Plug>(Textmanip.duplicate_selection_n)
 
     " for Terminal
-    vmap D        <Plug>(Textmanip.duplicate_selection_v)
+    xmap D        <Plug>(Textmanip.duplicate_selection_v)
     nmap <Space>d <Plug>(Textmanip.duplicate_selection_n)
 
 ### Mac
@@ -59,7 +59,7 @@ This mapping fit well with this `textmanip.vim` plugin
 
     " for Terminal
     nnoremap <silent> L V
-    vnoremap <silent> L ip
+    xnoremap <silent> L ip
 
 ### Mac
     inoremap <D-l>  <Esc>V
