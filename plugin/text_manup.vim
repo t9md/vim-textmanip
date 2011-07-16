@@ -20,31 +20,31 @@ set cpo&vim
 "=================================================================
 let s:mod = {}
 fun! s:mod.duplicate_selection(mode) range "{{{
-	let pos = getpos('.')
-	let cmd = a:firstline . ",". a:lastline . "copy " . a:lastline
-	execute cmd
+    let pos = getpos('.')
+    let cmd = a:firstline . ",". a:lastline . "copy " . a:lastline
+    execute cmd
 
-	if a:mode ==# 'v'
-		normal! `[V`]
-	elseif a:mode ==# 'n'
-		let pos[1] = line('.')
-		call setpos('.', pos)
-	endif
+    if a:mode ==# 'v'
+        normal! `[V`]
+    elseif a:mode ==# 'n'
+        let pos[1] = line('.')
+        call setpos('.', pos)
+    endif
 endfun "}}}
 
 fun! s:mod.move_selection(direction) range "{{{
-	let action       = {}
-	let action.down  = a:firstline. ",". a:lastline . "move " . (a:lastline  + 1)
-	let action.up    = a:firstline. ",". a:lastline . "move " . (a:firstline - 2)
-	let action.right = "normal! gv>>"
-	let action.left  = "normal! gv<<"
+    let action       = {}
+    let action.down  = a:firstline. ",". a:lastline . "move " . (a:lastline  + 1)
+    let action.up    = a:firstline. ",". a:lastline . "move " . (a:firstline - 2)
+    let action.right = "normal! gv>>"
+    let action.left  = "normal! gv<<"
 
-  if a:direction == 'down' && a:lastline == line('$')
-    call append(line('$'), "")
-  endif
+    if a:direction == 'down' && a:lastline == line('$')
+        call append(line('$'), "")
+    endif
 
-	execute action[a:direction]
-	normal! gv
+    execute action[a:direction]
+    normal! gv
 endfun "}}}
 
 let g:Textmanip= s:mod
