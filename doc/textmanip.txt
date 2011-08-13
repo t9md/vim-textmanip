@@ -11,6 +11,7 @@ Mapping					    |textmanip-mapping|
 Configuration Examples			    |textmanip-examples|
 Use Case				    |textmanip-usecase|
 Practice				    |textmanip-practice|
+Bug     				    |textmanip-bug|
 Changelog				    |textmanip-changelog|
 
 ==============================================================================
@@ -55,10 +56,10 @@ For mac user replace `<M-*>` to `<D-*>`. <D-> is mac COMMAND key.
 
 * gVim~
 >
-        xmap <M-d>    <Plug>(textmanip-duplicate-down)
-        nmap <M-d>    <Plug>(textmanip-duplicate-down)
-        xmap <M-D>    <Plug>(textmanip-duplicate-up)
-        nmap <M-D>    <Plug>(textmanip-duplicate-up)
+        xmap <M-d> <Plug>(textmanip-duplicate-down)
+        nmap <M-d> <Plug>(textmanip-duplicate-down)
+        xmap <M-D> <Plug>(textmanip-duplicate-up)
+        nmap <M-D> <Plug>(textmanip-duplicate-up)
 
         xmap <C-j> <Plug>(textmanip-move-down)
         xmap <C-k> <Plug>(textmanip-move-up)

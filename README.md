@@ -5,7 +5,7 @@ textmanip.vim is minimal utility for
   * duplicate text easily
   * move visually selected text easily
 
-Check the [Movie](http://www.youtube.com/watch?v=iJh7Z0Rp-rI)!!
+* [Movie](http://www.youtube.com/watch?v=iJh7Z0Rp-rI)
 
 How to Use
 ==================================
