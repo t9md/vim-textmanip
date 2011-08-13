@@ -16,6 +16,8 @@ let s:old_cpo = &cpo
 set cpo&vim
 "}}}
 
+let g:textmanip_debug = 0
+
 " KEYMAP: {{{
 "=================================================================
 vnoremap <silent> <Plug>(textmanip-duplicate-down) :<C-u>call textmanip#duplicate('down','v')<CR>

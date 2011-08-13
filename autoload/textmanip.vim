@@ -62,7 +62,6 @@ function! textmanip#duplicate(direction, mode) "{{{
   redraw
 endfun "}}}
 
-let g:textmanip_debug = 0
 function! textmanip#move(direction) "{{{
   if !exists('b:textmanip_status')
     let b:textmanip_status = [ -1, -1, -1 ]
@@ -74,40 +73,47 @@ function! textmanip#move(direction) "{{{
   endif
 
   let cnt = v:count1
+  let eol_extended = 0
 
   if a:direction == "up"
-    let where = line("'<") - cnt - 1
-    if where < 0
-      let where = 0
+    let address = line("'<") - cnt - 1
+    if address < 0
+      let address = 0
     endif
   elseif a:direction == "down"
-    let where = line("'>") + cnt
+    let address = line("'>") + cnt
 
-    if where > line('$')
-      let amount = where - line('$')
-      let list = map(range(amount), '""')
+    if address > line('$') " require EOL extention?
+      " OK. Let's build empty array to extend EOL
+      let list = map(range(address - line('$')), '""')
       if sequential_execution
         silent undojoin
       endif
       call append(line('$'), list)
+      let eol_extended = 1
     endif
   endif
 
   let cmd = 
-        \ a:direction == "down"  ? "'<,'>move " . where :
-        \ a:direction == "up"    ? "'<,'>move " . where :
+        \ a:direction == "down"  ? "'<,'>move " . address :
+        \ a:direction == "up"    ? "'<,'>move " . address :
         \ a:direction == "right" ? "'<,'>" . repeat(">>",cnt) :
         \ a:direction == "left"  ? "'<,'>" . repeat("<<",cnt) : ""
 
-
   if sequential_execution
-    try
+    if eol_extended
+      try
+        silent undojoin
+      catch /E790/
+        " [BUG] in situation , movement to down direction across the original EOL,
+        " E790 error raised. so I cant't delete this catch clause.
+        if g:textmanip_debug
+          echo "exception E790"
+        endif
+      endtry
+    else
       silent undojoin
-    catch /E790/
-      if g:textmanip_debug
-        echo "exception E790"
-      endif
-    endtry
+    end
   endif
 
   if g:textmanip_debug "{{{
@@ -123,10 +129,7 @@ function! textmanip#move(direction) "{{{
   endif"}}}
 
   silent execute cmd
-
   normal! gv
-  let cnt -= 1
-
   let b:textmanip_status = [line("'<"), line("'>"), col("'>") ]
 endfun "}}}
 " vim: foldmethod=marker
