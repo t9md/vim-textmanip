@@ -10,6 +10,7 @@
 if exists('g:loaded_textmanip')
   finish
 endif
+let g:loaded_textmanip = 1
 
 let s:old_cpo = &cpo
 set cpo&vim
