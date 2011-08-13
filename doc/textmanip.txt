@@ -1,6 +1,6 @@
 *textmanip.txt* Maniplate selected text easily
 
-Version: 0.3
+Version: 0.4dev
 Author : t9md <taqumd@gmail.com>
 
 ==============================================================================
@@ -30,42 +30,44 @@ http://github.com/t9md/vim-textmanip
 ==============================================================================
 MAPPINGS					*textmanip-mappings*
 
-These key mappings are defined in Visual mode and Operator-pending mode.
+v <Plug>(textmanip-duplicate-v)
+    Copy visually selected area to bottom direction.
 
-<Plug>(Textmanip.duplicate_selection_v)
-			Copy visually selected area to bottom direction.
+n <Plug>(textmanip-duplicate-n)
+    Copy current line text to bottom direction.
 
-<Plug>(Textmanip.duplicate_selection_n)
-			Copy current line text to bottom direction.
-
-<Plug>(Textmanip.move_selection_up)
-<Plug>(Textmanip.move_selection_down)
-<Plug>(Textmanip.move_selection_right)
-<Plug>(Textmanip.move_selection_left)
-			Move visually selected text to specified direction.
-			When down direction can across EOL.
+v <Plug>(textmanip-move-up)
+v <Plug>(textmanip-move-down)
+v <Plug>(textmanip-move-right)
+v <Plug>(textmanip-move-left)
+    Move visually selected text to specified direction.
+    When down direction can across EOL.
 
 ==============================================================================
-CONFIGURAATION EXAMPLE                               *textmanip-example*
+CONFIGURATION EXAMPLE                               *textmanip-example*
 
-For mac user replace <M-*> to <D-*>. <D-> is mac COMMAND key.
+For mac user replace `<M-*>` to `<D-*>`. <D-> is mac COMMAND key.
 
-* Duplicate selected text bellow
+* gVim~
 >
-	vmap <M-d> <Plug>(Textmanip.duplicate_selection_v)
-	nmap <M-d> <Plug>(Textmanip.duplicate_selection_n)
+        nmap <M-d>    <Plug>(textmanip-duplicate-n)
+        xmap <M-d>    <Plug>(textmanip-duplicate-v)
 
-	" ### for Terminal
-	xmap D	    <Plug>(Textmanip.duplicate_selection_v)
-	nmap <Space>d <Plug>(Textmanip.duplicate_selection_n)
+        xmap <C-j> <Plug>(textmanip-move-down)
+        xmap <C-k> <Plug>(textmanip-move-up)
+        xmap <C-h> <Plug>(textmanip-move-left)
+        xmap <C-l> <Plug>(textmanip-move-right)
 <
-* Move visually selected text with "C-h,j,k,l"
 >
-	vmap <C-j> <Plug>(Textmanip.move_selection_down)
-	vmap <C-k> <Plug>(Textmanip.move_selection_up)
-	vmap <C-h> <Plug>(Textmanip.move_selection_left)
-	vmap <C-l> <Plug>(Textmanip.move_selection_right)
+* vim on terminal~
+>
+        nmap <Space>d <Plug>(textmanip-duplicate-n)
+        xmap <Space>d <Plug>(textmanip-duplicate-v)
 
+        xmap <C-j> <Plug>(textmanip-move-down)
+        xmap <C-k> <Plug>(textmanip-move-up)
+        xmap <C-h> <Plug>(textmanip-move-left)
+        xmap <C-l> <Plug>(textmanip-move-right)
 <
 ------------------------------------------------------------------------------
 USE CASE						 *textmanip-usecase*
@@ -95,11 +97,14 @@ PRACTICE						*textmanip-practice*
 ==============================================================================
 CHANGELOG						*textmanip-changelog*
 
-0.3	2011-06-13
-	- Fix typo
-0.2	2011-06-13
-	- Fix typo
-0.1	2011-03-10
+2011-08-14:
+        - change keymap for consistency, sorry.
+        - autoloadize!
+2011-06-13: v0.3
+        - Fix typo
+2011-06-13: v0.2
+        - Fix typo
+2011-03-10: v0.1
 	- First release
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:
