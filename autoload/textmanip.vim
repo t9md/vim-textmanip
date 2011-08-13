@@ -1,30 +1,61 @@
-function! textmanip#duplicate(direction, mode) "{{{
-  let org_lazyredraw = &lazyredraw
-  set lazyredraw
+function! s:selected_amount()
+  return line("'>") - line("'<") + 1
+endfunction
 
+function! s:duplicate_visual(direction) "{{{
   let cnt = v:count1
+
+  if a:direction == "down"
+    let begin = line("'>") + 1
+    let end   = line("'>") + s:selected_amount() * cnt
+  else
+    let begin = line("'<")
+    let end   = begin - 1  + s:selected_amount() * cnt
+  endif
+  let pos = getpos('.')
+
   while cnt != 0
 
-    let pos = getpos('.')
-
-    if a:mode == 'n'
-      let first_line = line('.')
-      let last_line =  line('.')
-    elseif a:mode == 'v'
-      let first_line = line("'<")
-      let last_line =  line("'>")
-    endif
+    let first_line = line("'<")
+    let last_line =  line("'>")
 
     let copy_to = a:direction == "down" ? last_line : first_line - 1
     silent execute first_line . "," . last_line . "copy " . copy_to
     let cnt -= 1
   endwhile
 
-  if a:mode ==# 'v'
-    normal! `[V`]
-  elseif a:mode ==# 'n'
-    let pos[1] = line('.')
-    call setpos('.', pos)
+  let pos[1] = begin
+  call setpos('.', pos)
+  normal! V
+  let pos[1] = end
+  call setpos('.', pos)
+endfun "}}}
+
+function! s:duplicate_normal(direction)"{{{
+  let cnt = v:count1
+  while cnt != 0
+    let pos = getpos('.')
+
+    let first_line = line('.')
+    let last_line =  line('.')
+
+    let copy_to = a:direction == "down" ? last_line : first_line - 1
+    silent execute first_line . "," . last_line . "copy " . copy_to
+    let cnt -= 1
+  endwhile
+
+  let pos[1] = line('.')
+  call setpos('.', pos)
+endfunction"}}}
+
+function! textmanip#duplicate(direction, mode) "{{{
+  let org_lazyredraw = &lazyredraw
+  set lazyredraw
+
+  if a:mode == "n"
+    call s:duplicate_normal(a:direction)
+  else
+    call s:duplicate_visual(a:direction)
   endif
 
   let &lazyredraw = org_lazyredraw
@@ -52,12 +83,9 @@ function! textmanip#move(direction) "{{{
   elseif a:direction == "down"
     let where = line("'>") + cnt
 
-    let add_lines = where - line('$')
-    if add_lines > 0
-      let list = []
-      for i in range(add_lines)
-        call add(list, '')
-      endfor
+    if where > line('$')
+      let amount = where - line('$')
+      let list = map(range(amount), '""')
       if sequential_execution
         silent undojoin
       endif
@@ -73,11 +101,6 @@ function! textmanip#move(direction) "{{{
 
 
   if sequential_execution
-    if g:textmanip_debug
-      let b:textmanip_continue_count += 1
-      echo "Continue: " . b:textmanip_continue_count
-      echo "Continue: " . b:textmanip_continue_count
-    endif
     try
       silent undojoin
     catch /E790/
@@ -85,13 +108,19 @@ function! textmanip#move(direction) "{{{
         echo "exception E790"
       endif
     endtry
-  else
-    if g:textmanip_debug
+  endif
+
+  if g:textmanip_debug "{{{
+    if sequential_execution
+      let b:textmanip_continue_count += 1
+      echo "Continue: " . b:textmanip_continue_count
+      echo "Continue: " . b:textmanip_continue_count
+    else
       let b:textmanip_continue_count = 1
       echo "Start: " . b:textmanip_continue_count
       echo "Start: " . b:textmanip_continue_count
     endif
-  endif
+  endif"}}}
 
   silent execute cmd
 
