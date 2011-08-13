@@ -31,34 +31,73 @@ function! textmanip#duplicate(direction, mode) "{{{
   redraw
 endfun "}}}
 
+let g:textmanip_debug = 0
 function! textmanip#move(direction) "{{{
+  if !exists('b:textmanip_status')
+    let b:textmanip_status = [ -1, -1, -1 ]
+  endif
+
+  let sequential_execution = 0
+  if b:textmanip_status == [line("'<"), line("'>"), col("'>") ]
+    let sequential_execution = 1
+  endif
+
   let cnt = v:count1
 
-  while cnt != 0
-    let action       = {}
-    let action.down  = "'<,'>move " . (line("'>") + 1)
-    let action.up    = "'<,'>move " . (line("'<") - 2)
-    let action.right = "'<,'>>>"
-    let action.left  = "'<,'><<"
-
-    if a:direction == 'down' && line("'>") == line('$')
-      try
-        silent undojoin
-      catch /E790/
-      finally
-        call append(line('$'), "")
-      endtry
+  if a:direction == "up"
+    let where = line("'<") - cnt - 1
+    if where < 0
+      let where = 0
     endif
+  elseif a:direction == "down"
+    let where = line("'>") + cnt
 
+    let add_lines = where - line('$')
+    if add_lines > 0
+      let list = []
+      for i in range(add_lines)
+        call add(list, '')
+      endfor
+      if sequential_execution
+        silent undojoin
+      endif
+      call append(line('$'), list)
+    endif
+  endif
+
+  let cmd = 
+        \ a:direction == "down"  ? "'<,'>move " . where :
+        \ a:direction == "up"    ? "'<,'>move " . where :
+        \ a:direction == "right" ? "'<,'>" . repeat(">>",cnt) :
+        \ a:direction == "left"  ? "'<,'>" . repeat("<<",cnt) : ""
+
+
+  if sequential_execution
+    if g:textmanip_debug
+      let b:textmanip_continue_count += 1
+      echo "Continue: " . b:textmanip_continue_count
+      echo "Continue: " . b:textmanip_continue_count
+    endif
     try
       silent undojoin
     catch /E790/
-    finally
-      silent execute action[a:direction]
+      if g:textmanip_debug
+        echo "exception E790"
+      endif
     endtry
+  else
+    if g:textmanip_debug
+      let b:textmanip_continue_count = 1
+      echo "Start: " . b:textmanip_continue_count
+      echo "Start: " . b:textmanip_continue_count
+    endif
+  endif
 
-    normal! gv
-    let cnt -= 1
-  endwhile
+  silent execute cmd
+
+  normal! gv
+  let cnt -= 1
+
+  let b:textmanip_status = [line("'<"), line("'>"), col("'>") ]
 endfun "}}}
 " vim: foldmethod=marker
