@@ -15,7 +15,7 @@ let s:old_cpo = &cpo
 set cpo&vim
 "}}}
 
-" Configure virtual keymap "{{{
+" KEYMAP: {{{
 "=================================================================
 vnoremap <silent> <Plug>(textmanip-duplicate-v) :call textmanip#duplicate('v')<CR>
 nnoremap <silent> <Plug>(textmanip-duplicate-n) :call textmanip#duplicate('n')<CR>
@@ -26,7 +26,5 @@ vnoremap <silent> <Plug>(textmanip-move-right)  :call textmanip#move('right')<CR
 vnoremap <silent> <Plug>(textmanip-move-left)   :call textmanip#move('left')<CR>
 "}}}
 
-"reset &cpo back to users setting
 let &cpo = s:old_cpo
-
 " vim: foldmethod=marker

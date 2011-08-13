@@ -20,10 +20,21 @@ function! textmanip#move(direction) range "{{{
     let action.left  = "normal! gv<<"
 
     if a:direction == 'down' && a:lastline == line('$')
+      try
+        silent undojoin
+      catch /E790/
+      finally
         call append(line('$'), "")
+      endtry
     endif
 
-    execute action[a:direction]
+    try
+      silent undojoin
+    catch /E790/
+    finally
+      execute action[a:direction]
+    endtry
+
     normal! gv
 endfun "}}}
 " vim: foldmethod=marker
