@@ -30,11 +30,13 @@ http://github.com/t9md/vim-textmanip
 ==============================================================================
 MAPPINGS					*textmanip-mappings*
 
-v <Plug>(textmanip-duplicate-v)
-    Copy visually selected area to bottom direction.
+n <Plug>(textmanip-duplicate-down)
+v <Plug>(textmanip-duplicate-down)
+    Copy text of current line or visually selected area to `down` direction.
 
-n <Plug>(textmanip-duplicate-n)
-    Copy current line text to bottom direction.
+n <Plug>(textmanip-duplicate-up)
+v <Plug>(textmanip-duplicate-up)
+    Copy text of current line or visually selected area to `up` direction.
 
 v <Plug>(textmanip-move-up)
 v <Plug>(textmanip-move-down)
@@ -50,19 +52,22 @@ For mac user replace `<M-*>` to `<D-*>`. <D-> is mac COMMAND key.
 
 * gVim~
 >
-        nmap <M-d>    <Plug>(textmanip-duplicate-n)
-        xmap <M-d>    <Plug>(textmanip-duplicate-v)
+        xmap <M-d>    <Plug>(textmanip-duplicate-down)
+        nmap <M-d>    <Plug>(textmanip-duplicate-down)
+        xmap <M-D>    <Plug>(textmanip-duplicate-up)
+        nmap <M-D>    <Plug>(textmanip-duplicate-up)
 
         xmap <C-j> <Plug>(textmanip-move-down)
         xmap <C-k> <Plug>(textmanip-move-up)
         xmap <C-h> <Plug>(textmanip-move-left)
         xmap <C-l> <Plug>(textmanip-move-right)
-<
 >
 * vim on terminal~
 >
-        nmap <Space>d <Plug>(textmanip-duplicate-n)
-        xmap <Space>d <Plug>(textmanip-duplicate-v)
+        xmap <Space>d <Plug>(textmanip-duplicate-down)
+        nmap <Space>d <Plug>(textmanip-duplicate-down)
+        xmap <Space>D <Plug>(textmanip-duplicate-up)
+        nmap <Space>D <Plug>(textmanip-duplicate-up)
 
         xmap <C-j> <Plug>(textmanip-move-down)
         xmap <C-k> <Plug>(textmanip-move-up)
@@ -98,6 +103,7 @@ PRACTICE						*textmanip-practice*
 CHANGELOG						*textmanip-changelog*
 
 2011-08-14:
+        - refactoring,, support duplicate text to upper direction.
         - change keymap for consistency, sorry.
         - autoloadize!
 2011-06-13: v0.3

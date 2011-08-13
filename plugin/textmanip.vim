@@ -17,13 +17,16 @@ set cpo&vim
 
 " KEYMAP: {{{
 "=================================================================
-vnoremap <silent> <Plug>(textmanip-duplicate-v) :call textmanip#duplicate('v')<CR>
-nnoremap <silent> <Plug>(textmanip-duplicate-n) :call textmanip#duplicate('n')<CR>
+vnoremap <silent> <Plug>(textmanip-duplicate-down) :<C-u>call textmanip#duplicate('down','v')<CR>
+nnoremap <silent> <Plug>(textmanip-duplicate-down) :<C-u>call textmanip#duplicate('down','n')<CR>
+vnoremap <silent> <Plug>(textmanip-duplicate-up)   :<C-u>call textmanip#duplicate('up','v')<CR>
+nnoremap <silent> <Plug>(textmanip-duplicate-up)   :<C-u>call textmanip#duplicate('up','n')<CR>
 
-vnoremap <silent> <Plug>(textmanip-move-up)     :call textmanip#move('up')<CR>
-vnoremap <silent> <Plug>(textmanip-move-down)   :call textmanip#move('down')<CR>
-vnoremap <silent> <Plug>(textmanip-move-right)  :call textmanip#move('right')<CR>
-vnoremap <silent> <Plug>(textmanip-move-left)   :call textmanip#move('left')<CR>
+
+vnoremap <silent> <Plug>(textmanip-move-up)     :<C-u>call textmanip#move('up')<CR>
+vnoremap <silent> <Plug>(textmanip-move-down)   :<C-u>call textmanip#move('down')<CR>
+vnoremap <silent> <Plug>(textmanip-move-right)  :<C-u>call textmanip#move('right')<CR>
+vnoremap <silent> <Plug>(textmanip-move-left)   :<C-u>call textmanip#move('left')<CR>
 "}}}
 
 let &cpo = s:old_cpo
