@@ -15,9 +15,6 @@ let s:old_cpo = &cpo
 set cpo&vim
 "}}}
 
-" Main
-"=================================================================
-
 " Configure virtual keymap "{{{
 "=================================================================
 vnoremap <silent> <Plug>(textmanip-duplicate-v) :call textmanip#duplicate('v')<CR>
