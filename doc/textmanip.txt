@@ -1,6 +1,6 @@
 *textmanip.txt* Maniplate selected text easily
 
-Version: 0.4
+Version: 0.5
 Author : t9md <taqumd@gmail.com>
 
 ==============================================================================
@@ -109,11 +109,14 @@ BUG						          *textmanip-bug*
 When you movement visually selected text to right or left, then|:undo|, cursor
 position not restored to original position.
 
-When movement to down direction across the original EOL, |E790| error raised. 
-so I catch |E790|, only when eol_extention is needed.
 ==============================================================================
 CHANGELOG						*textmanip-changelog*
 
+2011-08-14: v0.5
+        - [bugfix] handle left and up movement limit.
+        - [bugfix] more strict check to determine continuous execution.
+        - [bugfix] remove unnecessarily `undojoin` twice, and remove
+          catch clause(E790)
 2011-08-14: v0.4
         - support count for duplicate and move
         - bug fix for `undojoin`

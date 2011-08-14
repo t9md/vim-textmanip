@@ -55,7 +55,7 @@ function! s:textmanip_status()"{{{
         \ }
 endfunction"}}}
 
-function! s:is_sequential_execution()"{{{
+function! s:is_continuous_execution()"{{{
   return b:textmanip_status == s:textmanip_status()
 endfunction"}}}
 
@@ -66,7 +66,7 @@ function! s:decho(msg) "{{{
 endfunction "}}}
 
 function! s:smart_undojoin()"{{{
-  if s:is_sequential_execution()
+  if s:is_continuous_execution()
     call s:decho("called undojoin")
     silent undojoin
   endif
