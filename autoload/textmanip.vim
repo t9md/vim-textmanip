@@ -54,38 +54,42 @@ function! s:textmanip_status()"{{{
   return  {
         \ 'line_start': line("'<"),
         \ 'line_end': line("'>"),
-        \ 'col': col("'>"),
+        \ 'lines': getline(line("'<"), line("'>")),
         \ }
-        " \ 'lines': getline(line("'<"), line("'>")),
 endfunction"}}}
 
 function! s:is_sequential_execution()"{{{
   return b:textmanip_status == s:textmanip_status()
 endfunction"}}}
 
+function! s:decho(msg) "{{{
+  if g:textmanip_debug
+    echo a:msg
+  endif
+endfunction "}}}
+
 function! s:smart_undojoin()"{{{
   if s:is_sequential_execution()
+    call s:decho("called undojoin")
     silent undojoin
   endif
 endfunction"}}}
 
-function! s:smart_extend_eol(address)"{{{
-  if a:address > line('$') " require EOL extention?
-    " OK. Let's build empty array to extend EOL
-    call s:smart_undojoin()
-    call append(line('$'), map(range(a:address - line('$')), '""'))
-    return 1
-  else
-    return 0
-  endif
+function! s:extend_eol(size)"{{{
+  call s:decho("  [extended_eol]")
+  call append(line('$'), map(range(a:size), '""'))
 endfunction"}}}
+
+function! s:left_movable() "{{{
+  let lines = getline(line("'<"), line("'>"))
+  return !empty(filter(lines,"v:val =~# '^\\s'"))
+endfunction "}}}
 
 let s:textmanip_status_default = {
       \ 'line_start': -1,
       \ 'line_end': -1,
-      \ 'col': col("'>"),
+      \ 'lines': [],
       \ }
-      " \ 'lines': [],
 " }}}
 
 " Public API: {{{
@@ -105,53 +109,38 @@ function! textmanip#duplicate(direction, mode) "{{{
 endfun "}}}
 
 function! textmanip#move(direction) "{{{
-  let amount               = v:count1
+  call s:decho(" ")
   if !exists('b:textmanip_status')
     let b:textmanip_status = s:textmanip_status_default
   endif
 
+  if a:direction == "left"
+    if ! s:left_movable()
+      call s:decho(" can't move left return")
+      normal! gv
+      return
+    endif
+  endif
+
+  call s:smart_undojoin()
   if a:direction == "up"
-    let address = line("'<") - amount - 1
+    let address = line("'<") - v:count1 - 1
     let address = address < 0 ? 0 : address
   elseif a:direction == "down"
-    let address = line("'>") + amount
-  endif
-
-  " extend_eol
-  if a:direction == "down"
-    let eol_extended = s:smart_extend_eol(address)
-  endif
-
-  if a:direction == "down" && eol_extended "{{{
-    try
-      call s:smart_undojoin()
-    catch /E790/
-        " [BUG] in situation , movement to down direction across the original EOL,
-        " E790 error raised. so I cant't delete this catch clause.
-        if g:textmanip_debug
-          echo "exception E790"
-        endif
-    endtry
-  else
-      call s:smart_undojoin()
-  endif "}}}
-  if g:textmanip_debug "{{{
-    if s:is_sequential_execution()
-      let b:textmanip_continue_count += 1
-      echo " "
-      echo "Continue: " . b:textmanip_continue_count
-    else
-      let b:textmanip_continue_count = 1
-      echo " "
-      echo "Start: " . b:textmanip_continue_count
+    let address = line("'>") + v:count1
+    let eol_extend_size = address > line('$')
+    if eol_extend_size > 0
+      call s:extend_eol(eol_extend_size)
     endif
-  endif"}}}
+  endif
 
   let cmd = 
         \ a:direction == "down"  ? "'<,'>move " . address :
         \ a:direction == "up"    ? "'<,'>move " . address :
-        \ a:direction == "right" ? "'<,'>" . repeat(">>", amount) :
-        \ a:direction == "left"  ? "'<,'>" . repeat("<<", amount) : ""
+        \ a:direction == "right" ? "'<,'>" . repeat(">>", v:count1) :
+        \ a:direction == "left"  ? "'<,'>" . repeat("<<", v:count1) : ""
+
+  call s:decho("  [executed] " . cmd)
   silent execute cmd
   normal! gv
   let b:textmanip_status = s:textmanip_status()
