@@ -1,35 +1,30 @@
 " Utility: {{{
 " =============================
-function! s:selected_amount()"{{{
-  return line("'>") - line("'<") + 1
-endfunction"}}}
-
 function! s:duplicate_visual(direction) "{{{
-  let cnt = v:count1
-
-  if a:direction == "down"
-    let begin = line("'>") + 1
-    let end   = line("'>") + s:selected_amount() * cnt
-  else
-    let begin = line("'<")
-    let end   = begin - 1  + s:selected_amount() * cnt
-  endif
   let pos = getpos('.')
+  let status = s:textmanip_status()
 
+  let cnt = v:count1
   while cnt != 0
-
-    let first_line = line("'<")
-    let last_line =  line("'>")
-
-    let copy_to = a:direction == "down" ? last_line : first_line - 1
-    silent execute first_line . "," . last_line . "copy " . copy_to
+    let copy_to = a:direction == "down"
+          \ ? status.end_linenr
+          \ : status.start_linenr - 1
+    silent execute status.start_linenr . "," . status.end_linenr . "copy " . copy_to
     let cnt -= 1
   endwhile
 
-  let pos[1] = begin
+  if a:direction == "down"
+    let begin_line = status.end_linenr + 1
+    let end_line   = status.end_linenr + (status.len * v:count1)
+  else
+    let begin_line = status.start_linenr
+    let end_line   = status.start_linenr - 1 + (status.len * v:count1)
+  endif
+
+  let pos[1] = begin_line
   call setpos('.', pos)
   normal! V
-  let pos[1] = end
+  let pos[1] = end_line
   call setpos('.', pos)
 endfun "}}}
 
@@ -51,10 +46,12 @@ function! s:duplicate_normal(direction)"{{{
 endfunction"}}}
 
 function! s:textmanip_status()"{{{
+  let lines = getline(line("'<"), line("'>"))
   return  {
-        \ 'line_start': line("'<"),
-        \ 'line_end': line("'>"),
-        \ 'lines': getline(line("'<"), line("'>")),
+        \ 'start_linenr': line("'<"),
+        \ 'end_linenr': line("'>"),
+        \ 'lines': lines,
+        \ 'len': len(lines),
         \ }
 endfunction"}}}
 
@@ -81,15 +78,15 @@ function! s:extend_eol(size)"{{{
 endfunction"}}}
 
 function! s:left_movable() "{{{
-  let lines = getline(line("'<"), line("'>"))
-  return !empty(filter(lines,"v:val =~# '^\\s'"))
+  return !empty(filter(
+        \  s:textmanip_status().lines,
+        \ "v:val =~# '^\\s'")
+        \ )
 endfunction "}}}
 
-let s:textmanip_status_default = {
-      \ 'line_start': -1,
-      \ 'line_end': -1,
-      \ 'lines': [],
-      \ }
+function! s:up_movable() "{{{
+  return s:textmanip_status().start_linenr != 1
+endfunction "}}}
 " }}}
 
 " Public API: {{{
@@ -111,15 +108,17 @@ endfun "}}}
 function! textmanip#move(direction) "{{{
   call s:decho(" ")
   if !exists('b:textmanip_status')
-    let b:textmanip_status = s:textmanip_status_default
+    let b:textmanip_status = {}
   endif
 
-  if a:direction == "left"
-    if ! s:left_movable()
-      call s:decho(" can't move left return")
+  let movable = 
+        \ a:direction == "left" ? s:left_movable() :
+        \ a:direction == "up"   ? s:up_movable()   :
+        \ 1
+  if !movable
+      call s:decho(" can't move " . a:direction . "; return")
       normal! gv
       return
-    endif
   endif
 
   call s:smart_undojoin()
@@ -135,10 +134,11 @@ function! textmanip#move(direction) "{{{
   endif
 
   let cmd = 
-        \ a:direction == "down"  ? "'<,'>move " . address :
-        \ a:direction == "up"    ? "'<,'>move " . address :
+        \ a:direction == "down"  ? "'<,'>move " . address           :
+        \ a:direction == "up"    ? "'<,'>move " . address           :
         \ a:direction == "right" ? "'<,'>" . repeat(">>", v:count1) :
-        \ a:direction == "left"  ? "'<,'>" . repeat("<<", v:count1) : ""
+        \ a:direction == "left"  ? "'<,'>" . repeat("<<", v:count1) :
+        \ ""
 
   call s:decho("  [executed] " . cmd)
   silent execute cmd
