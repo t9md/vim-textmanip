@@ -102,7 +102,7 @@ function! textmanip#duplicate(direction, mode) "{{{
   endif
 
   let &lazyredraw = org_lazyredraw
-  redraw
+  redraw!
 endfun "}}}
 
 function! textmanip#move(direction) "{{{
