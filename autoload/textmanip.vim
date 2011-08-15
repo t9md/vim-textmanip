@@ -9,7 +9,9 @@ function! s:duplicate_visual(direction) "{{{
     let copy_to = a:direction == "down"
           \ ? status.end_linenr
           \ : status.start_linenr - 1
-    silent execute status.start_linenr . "," . status.end_linenr . "copy " . copy_to
+    let cmd = status.start_linenr . "," . status.end_linenr . "copy " . copy_to
+    silent execute cmd
+    call s:decho("  [executed] " . cmd)
     let loop -= 1
   endwhile
 
@@ -56,9 +58,13 @@ function! s:textmanip_status()"{{{
         \ }
 endfunction"}}}
 
-function! s:is_continuous_execution()"{{{
-  return b:textmanip_status == s:textmanip_status()
-endfunction"}}}
+function! s:is_continuous_execution() "{{{
+  if !exists('b:textmanip_status')
+    return 0
+  else
+    return b:textmanip_status == s:textmanip_status()
+  endif
+endfunction "}}}
 
 function! s:decho(msg) "{{{
   if g:textmanip_debug
@@ -95,17 +101,13 @@ endfunction "}}}
 function! textmanip#duplicate(direction, mode) "{{{
   if a:mode == "n"
     call s:duplicate_normal(a:direction)
-  else
+  elseif a:mode == "v"
     call s:duplicate_visual(a:direction)
   endif
 endfun "}}}
 
 function! textmanip#move(direction) "{{{
   call s:decho(" ")
-  if !exists('b:textmanip_status')
-    let b:textmanip_status = {}
-  endif
-
   let movable = 
         \ a:direction == "left" ? s:left_movable() :
         \ a:direction == "up"   ? s:up_movable()   :
@@ -116,13 +118,14 @@ function! textmanip#move(direction) "{{{
       return
   endif
 
+  let status = s:textmanip_status()
   call s:smart_undojoin()
   if a:direction == "up"
-    let address = line("'<") - v:count1 - 1
+    let address = status.start_linenr - v:count1 - 1
     let address = address < 0 ? 0 : address
   elseif a:direction == "down"
-    let address = line("'>") + v:count1
-    let eol_extend_size = address > line('$')
+    let address = status.end_linenr + v:count1
+    let eol_extend_size = address - line('$')
     if eol_extend_size > 0
       call s:extend_eol(eol_extend_size)
     endif

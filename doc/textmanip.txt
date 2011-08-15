@@ -1,6 +1,6 @@
 *textmanip.txt* Maniplate selected text easily
 
-Version: 0.6
+Version: 0.7
 Author : t9md <taqumd@gmail.com>
 
 ==============================================================================
@@ -111,7 +111,8 @@ position not restored to original position.
 
 ==============================================================================
 CHANGELOG						*textmanip-changelog*
-
+2011-08-16: v0.7
+        - [bugfix] extend_eol not worked in some situation.
 2011-08-15: v0.6
         - [bugfix] better handling for redraw problem
 2011-08-14: v0.5
