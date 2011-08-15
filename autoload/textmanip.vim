@@ -17,7 +17,7 @@ function! s:duplicate_visual(direction) "{{{
   if a:direction == "down"
     let begin_line = status.end_linenr + 1
     let end_line   = status.end_linenr + (status.len * cnt)
-  else
+  elseif a:direction == "up"
     let begin_line = status.start_linenr
     let end_line   = status.start_linenr - 1 + (status.len * cnt)
   endif
