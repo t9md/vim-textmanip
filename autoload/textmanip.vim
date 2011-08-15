@@ -98,12 +98,6 @@ function! textmanip#duplicate(direction, mode) "{{{
   else
     call s:duplicate_visual(a:direction)
   endif
-  " if v:version >= 703
-    " let redraw_require = a:direction == 'up' && a:mode == 'v' ? 1 : 0
-    " if redraw_require
-      " redraw!
-    " endif
-  " end
 endfun "}}}
 
 function! textmanip#move(direction) "{{{
