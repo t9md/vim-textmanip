@@ -92,17 +92,11 @@ endfunction "}}}
 " Public API: {{{
 " =============================
 function! textmanip#duplicate(direction, mode) "{{{
-  let org_lazyredraw = &lazyredraw
-  set lazyredraw
-
   if a:mode == "n"
     call s:duplicate_normal(a:direction)
   else
     call s:duplicate_visual(a:direction)
   endif
-
-  let &lazyredraw = org_lazyredraw
-  redraw!
 endfun "}}}
 
 function! textmanip#move(direction) "{{{
