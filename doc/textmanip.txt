@@ -112,6 +112,8 @@ position not restored to original position.
 ==============================================================================
 CHANGELOG						*textmanip-changelog*
 
+2011-08-15: v0.6
+        - [bugfix] better handling for redraw problem
 2011-08-14: v0.5
         - [bugfix] handle left and up movement limit.
         - [bugfix] more strict check to determine continuous execution.
