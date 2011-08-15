@@ -4,21 +4,22 @@ function! s:duplicate_visual(direction) "{{{
   let pos = getpos('.')
   let status = s:textmanip_status()
 
-  let cnt = v:count1
-  while cnt != 0
+  let loop = v:prevcount ? v:prevcount : 1
+  while loop != 0
     let copy_to = a:direction == "down"
           \ ? status.end_linenr
           \ : status.start_linenr - 1
     silent execute status.start_linenr . "," . status.end_linenr . "copy " . copy_to
-    let cnt -= 1
+    let loop -= 1
   endwhile
 
+  let cnt = v:prevcount ? v:prevcount : 1
   if a:direction == "down"
     let begin_line = status.end_linenr + 1
-    let end_line   = status.end_linenr + (status.len * v:count1)
+    let end_line   = status.end_linenr + (status.len * cnt)
   else
     let begin_line = status.start_linenr
-    let end_line   = status.start_linenr - 1 + (status.len * v:count1)
+    let end_line   = status.start_linenr - 1 + (status.len * cnt)
   endif
 
   let pos[1] = begin_line
@@ -92,17 +93,18 @@ endfunction "}}}
 " Public API: {{{
 " =============================
 function! textmanip#duplicate(direction, mode) "{{{
-  let org_lazyredraw = &lazyredraw
-  set lazyredraw
-
   if a:mode == "n"
     call s:duplicate_normal(a:direction)
   else
     call s:duplicate_visual(a:direction)
   endif
 
-  let &lazyredraw = org_lazyredraw
-  redraw!
+  " if v:version >= 703
+    " let redraw_require = a:direction == 'up' && a:mode == 'v' ? 1 : 0
+    " if redraw_require
+      " redraw!
+    " endif
+  " end
 endfun "}}}
 
 function! textmanip#move(direction) "{{{
