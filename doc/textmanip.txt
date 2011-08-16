@@ -1,5 +1,12 @@
 *textmanip.txt* Maniplate selected text easily
 
+
+            .          .                          
+           -|- ,-. . , |- ,-,-. ,-. ,-. . ,-.  >
+            |  |-'  X  |  | | | ,-| | | | | | 
+            `' `-' ' ` `' ' ' ' `-^ ' ' ' |-' 
+                                          |   < easy manupilation >
+
 Version: 0.7
 Author : t9md <taqumd@gmail.com>
 

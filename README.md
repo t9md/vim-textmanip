@@ -1,3 +1,10 @@
+
+            .          .                          
+           -|- ,-. . , |- ,-,-. ,-. ,-. . ,-. 
+            |  |-'  X  |  | | | ,-| | | | | | 
+            `' `-' ' ` `' ' ' ' `-^ ' ' ' |-' 
+                                          |   < easy manupilation >
+
 What is this?
 ==================================
 textmanip.vim is minimal utility for
