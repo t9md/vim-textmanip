@@ -118,6 +118,8 @@ position not restored to original position.
 
 ==============================================================================
 CHANGELOG						*textmanip-changelog*
+2011-12-18:
+        - [bugfix] move right or left did '>' twice. should do once.
 2011-08-16: v0.7
         - [bugfix] extend_eol not worked in some situation.
 2011-08-15: v0.6
