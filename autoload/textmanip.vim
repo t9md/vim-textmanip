@@ -134,8 +134,8 @@ function! textmanip#move(direction) "{{{
   let cmd = 
         \ a:direction == "down"  ? "'<,'>move " . address           :
         \ a:direction == "up"    ? "'<,'>move " . address           :
-        \ a:direction == "right" ? "'<,'>" . repeat(">>", v:count1) :
-        \ a:direction == "left"  ? "'<,'>" . repeat("<<", v:count1) :
+        \ a:direction == "right" ? "'<,'>" . repeat(">", v:count1) :
+        \ a:direction == "left"  ? "'<,'>" . repeat("<", v:count1) :
         \ ""
 
   call s:decho("  [executed] " . cmd)
