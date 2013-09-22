@@ -31,7 +31,7 @@ function! s:duplicate_visual(direction) "{{{
   call setpos('.', pos)
 endfun "}}}
 
-function! s:duplicate_normal(direction)"{{{
+function! s:duplicate_normal(direction) "{{{
   let cnt = v:count1
   while cnt != 0
     let pos = getpos('.')
@@ -46,9 +46,9 @@ function! s:duplicate_normal(direction)"{{{
 
   let pos[1] = line('.')
   call setpos('.', pos)
-endfunction"}}}
+endfunction "}}}
 
-function! s:textmanip_status()"{{{
+function! s:textmanip_status() "{{{
   let lines = getline(line("'<"), line("'>"))
   return  {
         \ 'start_linenr': line("'<"),
@@ -56,7 +56,7 @@ function! s:textmanip_status()"{{{
         \ 'lines': lines,
         \ 'len': len(lines),
         \ }
-endfunction"}}}
+endfunction "}}}
 
 function! s:is_continuous_execution() "{{{
   if !exists('b:textmanip_status')
@@ -72,17 +72,17 @@ function! s:decho(msg) "{{{
   endif
 endfunction "}}}
 
-function! s:smart_undojoin()"{{{
+function! s:smart_undojoin() "{{{
   if s:is_continuous_execution()
     call s:decho("called undojoin")
     silent undojoin
   endif
-endfunction"}}}
+endfunction "}}}
 
-function! s:extend_eol(size)"{{{
+function! s:extend_eol(size) "{{{
   call s:decho("  [extended_eol]")
   call append(line('$'), map(range(a:size), '""'))
-endfunction"}}}
+endfunction "}}}
 
 function! s:left_movable() "{{{
   return !empty(filter(
@@ -143,6 +143,5 @@ function! textmanip#move(direction) "{{{
   normal! gv
   let b:textmanip_status = s:textmanip_status()
 endfun "}}}
-
 " }}}
 " vim: foldmethod=marker
