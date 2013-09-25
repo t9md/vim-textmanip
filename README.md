@@ -1,15 +1,3 @@
-
-            .          .                          
-           -|- ,-. . , |- ,-,-. ,-. ,-. . ,-. 
-            |  |-'  X  |  | | | ,-| | | | | | 
-            `' `-' ' ` `' ' ' ' `-^ ' ' ' |-' 
-                                          |   < easy manupilation >
-
-textmanip.vim is minimal utility for
-
-* duplicate text easily
-* move visually selected text easily
-
-### [ScreenCast](http://www.youtube.com/watch?v=rXeendPlUBA)
-
+# Move/Duplicate text in intuitively.
+![Example](https://github.com/t9md/t9md/blob/master/img/textmanip_anime.gif?raw=true)
 ### [help](https://github.com/t9md/vim-textmanip/blob/master/doc/textmanip.txt)
