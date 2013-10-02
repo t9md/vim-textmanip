@@ -1,28 +1,28 @@
 *textmanip.txt* Maniplate selected text easily
 
 
-            .          .                          
-           -|- ,-. . , |- ,-,-. ,-. ,-. . ,-.  >
-            |  |-'  X  |  | | | ,-| | | | | | 
-            `' `-' ' ` `' ' ' ' `-^ ' ' ' |-' 
-                                          |   < easy manupilation >
+	    .	       .			  
+	   -|- ,-. . , |- ,-,-. ,-. ,-. . ,-.  >
+	    |  |-'  X  |  | | | ,-| | | | | | 
+	    `' `-' ' ` `' ' ' ' `-^ ' ' ' |-' 
+					  |   < easy manupilation >
 
 Version: 0.7
 Author : t9md <taqumd@gmail.com>
 
 ==============================================================================
-CONTENTS					*textmanip-contents*
+CONTENTS						  *textmanip-contents*
 
-Introduction				    |textmanip-introduction|
-Mapping					    |textmanip-mapping|
-Configuration Examples			    |textmanip-examples|
-Use Case				    |textmanip-usecase|
-Practice				    |textmanip-practice|
-Bug     				    |textmanip-bug|
-Changelog				    |textmanip-changelog|
+Introduction					      |textmanip-introduction|
+Mapping							   |textmanip-mapping|
+Configuration Examples					  |textmanip-examples|
+Use Case						   |textmanip-usecase|
+Practice						  |textmanip-practice|
+Bug							       |textmanip-bug|
+Changelog						 |textmanip-changelog|
 
 ==============================================================================
-INTRODUCTION				      	*textmanip-introduction*
+INTRODUCTION						*textmanip-introduction*
 
 *textmanip* is minimal utility for
 
@@ -36,7 +36,7 @@ Latest Version:
 http://github.com/t9md/vim-textmanip
 
 ==============================================================================
-MAPPINGS					*textmanip-mappings*
+MAPPINGS						    *textmanip-mappings*
 
 all mappings accept |count| which specify number of `duplication` or 
 amount of `movement`.
@@ -57,36 +57,36 @@ v <Plug>(textmanip-move-left)
     When down direction can across EOL.
 
 ==============================================================================
-CONFIGURATION EXAMPLE                               *textmanip-example*
+CONFIGURATION EXAMPLE					   *textmanip-example*
 
 For mac user replace `<M-*>` to `<D-*>`. <D-> is mac COMMAND key.
 
 * gVim~
 >
-        xmap <M-d> <Plug>(textmanip-duplicate-down)
-        nmap <M-d> <Plug>(textmanip-duplicate-down)
-        xmap <M-D> <Plug>(textmanip-duplicate-up)
-        nmap <M-D> <Plug>(textmanip-duplicate-up)
+	xmap <M-d> <Plug>(textmanip-duplicate-down)
+	nmap <M-d> <Plug>(textmanip-duplicate-down)
+	xmap <M-D> <Plug>(textmanip-duplicate-up)
+	nmap <M-D> <Plug>(textmanip-duplicate-up)
 
-        xmap <C-j> <Plug>(textmanip-move-down)
-        xmap <C-k> <Plug>(textmanip-move-up)
-        xmap <C-h> <Plug>(textmanip-move-left)
-        xmap <C-l> <Plug>(textmanip-move-right)
+	xmap <C-j> <Plug>(textmanip-move-down)
+	xmap <C-k> <Plug>(textmanip-move-up)
+	xmap <C-h> <Plug>(textmanip-move-left)
+	xmap <C-l> <Plug>(textmanip-move-right)
 >
 * vim on terminal~
 >
-        xmap <Space>d <Plug>(textmanip-duplicate-down)
-        nmap <Space>d <Plug>(textmanip-duplicate-down)
-        xmap <Space>D <Plug>(textmanip-duplicate-up)
-        nmap <Space>D <Plug>(textmanip-duplicate-up)
+	xmap <Space>d <Plug>(textmanip-duplicate-down)
+	nmap <Space>d <Plug>(textmanip-duplicate-down)
+	xmap <Space>D <Plug>(textmanip-duplicate-up)
+	nmap <Space>D <Plug>(textmanip-duplicate-up)
 
-        xmap <C-j> <Plug>(textmanip-move-down)
-        xmap <C-k> <Plug>(textmanip-move-up)
-        xmap <C-h> <Plug>(textmanip-move-left)
-        xmap <C-l> <Plug>(textmanip-move-right)
+	xmap <C-j> <Plug>(textmanip-move-down)
+	xmap <C-k> <Plug>(textmanip-move-up)
+	xmap <C-h> <Plug>(textmanip-move-left)
+	xmap <C-l> <Plug>(textmanip-move-right)
 <
 ------------------------------------------------------------------------------
-USE CASE						 *textmanip-usecase*
+USE CASE						   *textmanip-usecase*
 
 * Indent text block
   While editing markdown or vim help file.
@@ -103,7 +103,7 @@ USE CASE						 *textmanip-usecase*
   Of course, "<M-d>" is my choice, you can assign your favorite key map.
 
 ------------------------------------------------------------------------------
-PRACTICE						*textmanip-practice*
+PRACTICE						  *textmanip-practice*
 
   1. <M-l>		In normal-mode chose text-block.
   2. <M-d>		Duplicate text-block bottom direction.
@@ -111,34 +111,36 @@ PRACTICE						*textmanip-practice*
   4. <CR>		Return to normal mode.
 
 ==============================================================================
-BUG						          *textmanip-bug*
+BUG							       *textmanip-bug*
 
 When you movement visually selected text to right or left, then|:undo|, cursor
 position not restored to original position.
 
 ==============================================================================
-CHANGELOG						*textmanip-changelog*
+CHANGELOG						 *textmanip-changelog*
+2013-10-02:
+	- just [experiment] new action textmanip-kickout.
 2011-12-18:
-        - [bugfix] move right or left did '>' twice. should do once.
+	- [bugfix] move right or left did '>' twice. should do once.
 2011-08-16: v0.7
-        - [bugfix] extend_eol not worked in some situation.
+	- [bugfix] extend_eol not worked in some situation.
 2011-08-15: v0.6
-        - [bugfix] better handling for redraw problem
+	- [bugfix] better handling for redraw problem
 2011-08-14: v0.5
-        - [bugfix] handle left and up movement limit.
-        - [bugfix] more strict check to determine continuous execution.
-        - [bugfix] remove unnecessarily `undojoin` twice, and remove
-          catch clause(E790)
+	- [bugfix] handle left and up movement limit.
+	- [bugfix] more strict check to determine continuous execution.
+	- [bugfix] remove unnecessarily `undojoin` twice, and remove
+	  catch clause(E790)
 2011-08-14: v0.4
-        - support count for duplicate and move
-        - bug fix for `undojoin`
-        - refactoring,, support duplicate text to upper direction.
-        - change keymap for consistency, sorry.
-        - autoloadize!
+	- support count for duplicate and move
+	- bug fix for `undojoin`
+	- refactoring,, support duplicate text to upper direction.
+	- change keymap for consistency, sorry.
+	- autoloadize!
 2011-06-13: v0.3
-        - Fix typo
+	- Fix typo
 2011-06-13: v0.2
-        - Fix typo
+	- Fix typo
 2011-03-10: v0.1
 	- First release
 ==============================================================================

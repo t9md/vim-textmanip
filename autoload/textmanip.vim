@@ -94,6 +94,19 @@ endfunction "}}}
 function! s:up_movable() "{{{
   return s:textmanip_status().start_linenr != 1
 endfunction "}}}
+
+
+
+function! s:_kickout(num, guide) "{{{
+  let orig_str = getline(a:num)
+  let s1 = strpart(orig_str, 0, col('.') - 1)
+  let s2 = strpart(orig_str, col('.') - 1)
+
+  let pad = &textwidth - len(orig_str)
+  let pad = ' ' . repeat(a:guide, pad - 2) . ' '
+  let new_str = join([s1, pad, s2],'')
+  return new_str
+endfunction "}}}
 " }}}
 
 " Public API: {{{
@@ -105,6 +118,19 @@ function! textmanip#duplicate(direction, mode) "{{{
     call s:duplicate_visual(a:direction)
   endif
 endfun "}}}
+
+function! textmanip#kickout(ask) range "{{{
+  let answer = a:ask ? input("guide?:") : ''
+  let guide = !empty(answer) ? answer : ' '
+  let orig_pos = getpos('.')
+  if !(a:firstline == a:lastline)
+    normal! gvv
+  endif
+  for n in range(a:firstline,a:lastline)
+    call setline(n, s:_kickout(n, guide))
+  endfor
+  call setpos('.', orig_pos)
+endfunction "}}}
 
 function! textmanip#move(direction) "{{{
   call s:decho(" ")

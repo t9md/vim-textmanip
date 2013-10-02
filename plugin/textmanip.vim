@@ -29,6 +29,9 @@ vnoremap <silent> <Plug>(textmanip-move-up)     :<C-u>call textmanip#move('up')<
 vnoremap <silent> <Plug>(textmanip-move-down)   :<C-u>call textmanip#move('down')<CR>
 vnoremap <silent> <Plug>(textmanip-move-right)  :<C-u>call textmanip#move('right')<CR>
 vnoremap <silent> <Plug>(textmanip-move-left)   :<C-u>call textmanip#move('left')<CR>
+
+nnoremap <silent> <Plug>(textmanip-kickout)  :<C-u>call textmanip#kickout(0)<CR>
+vnoremap <silent> <Plug>(textmanip-kickout)  :call textmanip#kickout(0)<CR>
 "}}}
 
 let &cpo = s:old_cpo
