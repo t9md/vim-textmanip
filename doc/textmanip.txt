@@ -58,12 +58,31 @@ v <Plug>(textmanip-move-left)
     When down ward move reach EOF, it automatically add empty line to be able
     to across the original EOF.
 
-v <Plug>(textmanip-move-b-right)
-v <Plug>(textmanip-move-b-left)
+    [NOTE] This virtual key map will be mapped to <Plug>(textmanip-move-smart-)
+    family. So behavior will be change in future version.
+    If you stick to current behavior, use <Plug>(textmanip-move-line-) faimly.
+
+v <Plug>(textmanip-move-line-up)
+v <Plug>(textmanip-move-line-down)
+v <Plug>(textmanip-move-line-right)
+v <Plug>(textmanip-move-line-left)
+    |linewise|
+    In future version, original <Plug>(textmanip-move-)
+    Move visually selected text to specified direction.
+    When down ward move reach EOF, it automatically add empty line to be able
+    to across the original EOF.
+
+v <Plug>(textmanip-move-block-right)
+v <Plug>(textmanip-move-block-left)
     |blockwise|
     Move visually selected text to specified direction.
     When right direction reach EOL it automatically add one space " " to be
     able to across original EOL.
+
+v <Plug>(textmanip-move-smart-right)
+v <Plug>(textmanip-move-smart-left)
+    Move visually selected text |linewise| or |blockwise| based on last
+    |visualmode()| you invoked.
 
 ==============================================================================
 CONFIGURATION EXAMPLE					   *textmanip-example*

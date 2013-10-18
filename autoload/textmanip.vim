@@ -132,7 +132,7 @@ function! textmanip#kickout(ask) range "{{{
   call setpos('.', orig_pos)
 endfunction "}}}
 
-function! textmanip#move_b(direction) "{{{
+function! textmanip#move_block(direction) "{{{
   if a:direction ==# "left" && col("'<") ==# 1
     normal! gv
     return
@@ -148,7 +148,12 @@ function! textmanip#move_b(direction) "{{{
     if a:direction ==# 'right'
       normal! p
     elseif a:direction ==# 'left'
-      normal! hP
+      if col('.') ==# col("'<")
+        " if col("'>") is the last printable char, we can't put cursor on same
+        " pos of col("'<") after delete. so we neeed ensure it.
+        normal! h
+      endif
+      normal! P
     endif
     execute "normal! `[" . visualmode() . "`]"
   finally
@@ -159,19 +164,19 @@ endfunction "}}}
 function! textmanip#move_smart(direction) "{{{
   let vmode =  visualmode()
   if vmode ==# 'V'
-    call textmanip#move_l(a:direction)
+    call textmanip#move_line(a:direction)
   elseif vmode == 'v'
     if line("'<") ==# line("'>")
-      call textmanip#move_b(a:direction)
+      call textmanip#move_block(a:direction)
     else
-      call textmanip#move_l(a:direction)
+      call textmanip#move_line(a:direction)
     endif
   else
-    call textmanip#move_b(a:direction)
+    call textmanip#move_block(a:direction)
   endif
 endfunction "}}}
 
-function! textmanip#move_l(direction) "{{{
+function! textmanip#move_line(direction) "{{{
   call s:decho(" ")
   let movable = 
         \ a:direction == "left" ? s:left_movable() :

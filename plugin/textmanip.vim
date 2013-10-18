@@ -30,16 +30,18 @@ vnoremap <silent> <Plug>(textmanip-move-down)   :<C-u>call textmanip#move_l('dow
 vnoremap <silent> <Plug>(textmanip-move-right)  :<C-u>call textmanip#move_l('right')<CR>
 vnoremap <silent> <Plug>(textmanip-move-left)   :<C-u>call textmanip#move_l('left')<CR>
 
-vnoremap <silent> <Plug>(textmanip-move-s-right)  :<C-u>call textmanip#move_smart('right')<CR>
-vnoremap <silent> <Plug>(textmanip-move-s-left)   :<C-u>call textmanip#move_smart('left')<CR>
+vnoremap <silent> <Plug>(textmanip-move-smart-up)     :<C-u>call textmanip#move_line('up')<CR>
+vnoremap <silent> <Plug>(textmanip-move-smart-down)   :<C-u>call textmanip#move_line('down')<CR>
+vnoremap <silent> <Plug>(textmanip-move-smart-right)  :<C-u>call textmanip#move_smart('right')<CR>
+vnoremap <silent> <Plug>(textmanip-move-smart-left)   :<C-u>call textmanip#move_smart('left')<CR>
 
-vnoremap <silent> <Plug>(textmanip-move-l-up)     :<C-u>call textmanip#move_l('up')<CR>
-vnoremap <silent> <Plug>(textmanip-move-l-down)   :<C-u>call textmanip#move_l('down')<CR>
-vnoremap <silent> <Plug>(textmanip-move-l-right)  :<C-u>call textmanip#move_l('right')<CR>
-vnoremap <silent> <Plug>(textmanip-move-l-left)   :<C-u>call textmanip#move_l('left')<CR>
+vnoremap <silent> <Plug>(textmanip-move-line-up)     :<C-u>call textmanip#move_line('up')<CR>
+vnoremap <silent> <Plug>(textmanip-move-line-down)   :<C-u>call textmanip#move_line('down')<CR>
+vnoremap <silent> <Plug>(textmanip-move-line-right)  :<C-u>call textmanip#move_line('right')<CR>
+vnoremap <silent> <Plug>(textmanip-move-line-left)   :<C-u>call textmanip#move_line('left')<CR>
 
-vnoremap <silent> <Plug>(textmanip-move-b-right)  :<C-u>call textmanip#move_b('right')<CR>
-vnoremap <silent> <Plug>(textmanip-move-b-left)   :<C-u>call textmanip#move_b('left')<CR>
+vnoremap <silent> <Plug>(textmanip-move-block-right)  :<C-u>call textmanip#move_block('right')<CR>
+vnoremap <silent> <Plug>(textmanip-move-block-left)   :<C-u>call textmanip#move_block('left')<CR>
 
 " Experimental
 nnoremap <silent> <Plug>(textmanip-kickout)  :<C-u>call textmanip#kickout(0)<CR>
