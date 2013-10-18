@@ -53,8 +53,17 @@ v <Plug>(textmanip-move-up)
 v <Plug>(textmanip-move-down)
 v <Plug>(textmanip-move-right)
 v <Plug>(textmanip-move-left)
+    |linewise|
     Move visually selected text to specified direction.
-    When down direction can across EOL.
+    When down ward move reach EOF, it automatically add empty line to be able
+    to across the original EOF.
+
+v <Plug>(textmanip-move-b-right)
+v <Plug>(textmanip-move-b-left)
+    |blockwise|
+    Move visually selected text to specified direction.
+    When right direction reach EOL it automatically add one space " " to be
+    able to across original EOL.
 
 ==============================================================================
 CONFIGURATION EXAMPLE					   *textmanip-example*
@@ -105,19 +114,19 @@ USE CASE						   *textmanip-usecase*
 ------------------------------------------------------------------------------
 PRACTICE						  *textmanip-practice*
 
-  1. <M-l>		In normal-mode chose text-block.
-  2. <M-d>		Duplicate text-block bottom direction.
-  3. <C-l><C-l>		Right indent twice.
-  4. <CR>		Return to normal mode.
-
 ==============================================================================
 BUG							       *textmanip-bug*
 
-When you movement visually selected text to right or left, then|:undo|, cursor
+When you movement visually selected text to right or left, then |:undo|, cursor
 position not restored to original position.
 
 ==============================================================================
 CHANGELOG						 *textmanip-changelog*
+2013-10-19:
+	- [experiment] 
+	- Added blockwise movement of right/left
+	-    <Plug>(textmanip-move-b-right)
+	-    <Plug>(textmanip-move-b-left)
 2013-10-02:
 	- just [experiment] new action textmanip-kickout.
 2011-12-18:

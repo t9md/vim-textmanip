@@ -132,7 +132,46 @@ function! textmanip#kickout(ask) range "{{{
   call setpos('.', orig_pos)
 endfunction "}}}
 
-function! textmanip#move(direction) "{{{
+function! textmanip#move_b(direction) "{{{
+  if a:direction ==# "left" && col("'<") ==# 1
+    normal! gv
+    return
+  endif
+  if ( a:direction ==# "right" ) && ( col("'>") == (col("$") - 1) )
+    substitute/\v$/ /
+  endif
+
+  let save_z = getreg('z', 1)
+  let save_z_type = getregtype('z')
+  try
+    normal! gv"zd
+    if a:direction ==# 'right'
+      normal! p
+    elseif a:direction ==# 'left'
+      normal! hP
+    endif
+    execute "normal! `[" . visualmode() . "`]"
+  finally
+    call setreg('z', save_z, save_z_type)
+  endtry
+endfunction "}}}
+
+function! textmanip#move_smart(direction) "{{{
+  let vmode =  visualmode()
+  if vmode ==# 'V'
+    call textmanip#move_l(a:direction)
+  elseif vmode == 'v'
+    if line("'<") ==# line("'>")
+      call textmanip#move_b(a:direction)
+    else
+      call textmanip#move_l(a:direction)
+    endif
+  else
+    call textmanip#move_b(a:direction)
+  endif
+endfunction "}}}
+
+function! textmanip#move_l(direction) "{{{
   call s:decho(" ")
   let movable = 
         \ a:direction == "left" ? s:left_movable() :
@@ -169,5 +208,8 @@ function! textmanip#move(direction) "{{{
   normal! gv
   let b:textmanip_status = s:textmanip_status()
 endfun "}}}
+
+" function! textmanip#move()
+" endfunction
 " }}}
 " vim: foldmethod=marker
