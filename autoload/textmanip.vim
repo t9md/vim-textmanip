@@ -133,12 +133,10 @@ function! textmanip#kickout(ask) range "{{{
 endfunction "}}}
 
 function! textmanip#move_block(direction) "{{{
+  call s:smart_undojoin()
   if a:direction ==# "left" && col("'<") ==# 1
     normal! gv
     return
-  endif
-  if ( a:direction ==# "right" ) && ( col("'>") == (col("$") - 1) )
-    substitute/\v$/ /
   endif
 
   let save_z = getreg('z', 1)
@@ -146,6 +144,10 @@ function! textmanip#move_block(direction) "{{{
   try
     normal! gv"zd
     if a:direction ==# 'right'
+      if col(".") ==# (col("$") - 1)
+        execute line(".") . 'substitute/\v$/ /'
+        normal! $
+      endif
       normal! p
     elseif a:direction ==# 'left'
       if col('.') ==# col("'<")
@@ -158,6 +160,7 @@ function! textmanip#move_block(direction) "{{{
     execute "normal! `[" . visualmode() . "`]"
   finally
     call setreg('z', save_z, save_z_type)
+    let b:textmanip_status = s:textmanip_status()
   endtry
 endfunction "}}}
 
@@ -178,7 +181,7 @@ endfunction "}}}
 
 function! textmanip#move_line(direction) "{{{
   call s:decho(" ")
-  let movable = 
+  let movable =
         \ a:direction == "left" ? s:left_movable() :
         \ a:direction == "up"   ? s:up_movable()   :
         \ 1
