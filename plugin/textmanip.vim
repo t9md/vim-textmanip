@@ -20,33 +20,72 @@ let g:textmanip_debug = 0
 
 " KEYMAP: {{{
 "=================================================================
-vnoremap <silent> <Plug>(textmanip-duplicate-down) <Esc>:<C-u>call textmanip#duplicate('down','v')<CR>
-nnoremap <silent> <Plug>(textmanip-duplicate-down)      :<C-u>call textmanip#duplicate('down','n')<CR>
-vnoremap <silent> <Plug>(textmanip-duplicate-up)   <Esc>:<C-u>call textmanip#duplicate('up','v')<CR>
-nnoremap <silent> <Plug>(textmanip-duplicate-up)        :<C-u>call textmanip#duplicate('up','n')<CR>
+vnoremap <Plug>(textmanip-duplicate-down) <Esc>:<C-u>call textmanip#duplicate('down','v')<CR>
+nnoremap <Plug>(textmanip-duplicate-down)      :<C-u>call textmanip#duplicate('down','n')<CR>
+vnoremap <Plug>(textmanip-duplicate-up)   <Esc>:<C-u>call textmanip#duplicate('up','v')<CR>
+nnoremap <Plug>(textmanip-duplicate-up)        :<C-u>call textmanip#duplicate('up','n')<CR>
 
-vnoremap <silent> <Plug>(textmanip-move-up)     :<C-u>call textmanip#move_l('up')<CR>
-vnoremap <silent> <Plug>(textmanip-move-down)   :<C-u>call textmanip#move_l('down')<CR>
-vnoremap <silent> <Plug>(textmanip-move-right)  :<C-u>call textmanip#move_l('right')<CR>
-vnoremap <silent> <Plug>(textmanip-move-left)   :<C-u>call textmanip#move_l('left')<CR>
 
-vnoremap <silent> <Plug>(textmanip-move-smart-up)     :<C-u>call textmanip#move_line('up')<CR>
-vnoremap <silent> <Plug>(textmanip-move-smart-down)   :<C-u>call textmanip#move_line('down')<CR>
-vnoremap <silent> <Plug>(textmanip-move-smart-right)  :<C-u>call textmanip#move_smart('right')<CR>
-vnoremap <silent> <Plug>(textmanip-move-smart-left)   :<C-u>call textmanip#move_smart('left')<CR>
 
-vnoremap <silent> <Plug>(textmanip-move-line-up)     :<C-u>call textmanip#move_line('up')<CR>
-vnoremap <silent> <Plug>(textmanip-move-line-down)   :<C-u>call textmanip#move_line('down')<CR>
-vnoremap <silent> <Plug>(textmanip-move-line-right)  :<C-u>call textmanip#move_line('right')<CR>
-vnoremap <silent> <Plug>(textmanip-move-line-left)   :<C-u>call textmanip#move_line('left')<CR>
+vnoremap <Plug>(textmanip-move-up)    :<C-u>call textmanip#move('up'   , 'smart')<CR>
+vnoremap <Plug>(textmanip-move-down)  :<C-u>call textmanip#move('down' , 'smart')<CR>
+vnoremap <Plug>(textmanip-move-right) :<C-u>call textmanip#move('right', 'smart')<CR>
+vnoremap <Plug>(textmanip-move-left)  :<C-u>call textmanip#move('left' , 'smart')<CR>
 
-vnoremap <silent> <Plug>(textmanip-move-block-right)  :<C-u>call textmanip#move_block('right')<CR>
-vnoremap <silent> <Plug>(textmanip-move-block-left)   :<C-u>call textmanip#move_block('left')<CR>
+vnoremap <Plug>(textmanip-move-line-up)     :<C-u>call textmanip#move('up'   , 'line')<CR>
+vnoremap <Plug>(textmanip-move-line-down)   :<C-u>call textmanip#move('down' , 'line')<CR>
+vnoremap <Plug>(textmanip-move-line-right)  :<C-u>call textmanip#move('right', 'line')<CR>
+vnoremap <Plug>(textmanip-move-line-left)   :<C-u>call textmanip#move('left' , 'line')<CR>
+
+vnoremap <Plug>(textmanip-move-block-up)     :<C-u>call textmanip#move('up'   , 'block')<CR>
+vnoremap <Plug>(textmanip-move-block-down)   :<C-u>call textmanip#move('down' , 'block')<CR>
+vnoremap <Plug>(textmanip-move-block-right)  :<C-u>call textmanip#move('right', 'block')<CR>
+vnoremap <Plug>(textmanip-move-block-left)   :<C-u>call textmanip#move('left' , 'block')<CR>
+
+nnoremap <Plug>(textmanip-debug)   :<C-u>echo textmanip#debug()<CR>
+
+
+
+
+
+
+
 
 " Experimental
 nnoremap <silent> <Plug>(textmanip-kickout)  :<C-u>call textmanip#kickout(0)<CR>
 vnoremap <silent> <Plug>(textmanip-kickout)  :call textmanip#kickout(0)<CR>
 "}}}
+"
+if exists("g:textmanip_enable_mappings")
+  let g:textmanip_enable_mappings = 0
+endif
+
+function! s:set_default_mapping() "{{{
+  if has('gui_macvim')
+    " '<D-' Command key
+    nmap <D-d> <Plug>(textmanip-duplicate-down)
+    nmap <D-D> <Plug>(textmanip-duplicate-up)
+
+    xmap <D-d> <Plug>(textmanip-duplicate-down)
+    xmap <D-D> <Plug>(textmanip-duplicate-up)
+  elseif ( has('win16') || has('win32') || has('win64') )
+    " '<M->' Alt key
+    nmap <M-d> <Plug>(textmanip-duplicate-down)
+    nmap <M-D> <Plug>(textmanip-duplicate-up)
+
+    xmap <M-d> <Plug>(textmanip-duplicate-down)
+    xmap <M-D> <Plug>(textmanip-duplicate-up)
+  endif
+
+  xmap <C-j> <Plug>(textmanip-move-line-down)
+  xmap <C-k> <Plug>(textmanip-move-line-up)
+  xmap <C-h> <Plug>(textmanip-move-smart-left)
+  xmap <C-l> <Plug>(textmanip-move-smart-right)
+endfunction "}}}
+
+if g:textmanip_enable_mappings
+  call s:set_default_mapping()
+endif
 
 let &cpo = s:old_cpo
 " vim: foldmethod=marker

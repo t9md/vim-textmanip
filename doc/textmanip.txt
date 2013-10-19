@@ -1,7 +1,7 @@
 *textmanip.txt* Maniplate selected text easily
 
 
-	    .	       .			  
+	    .	       .
 	   -|- ,-. . , |- ,-,-. ,-. ,-. . ,-.  >
 	    |  |-'  X  |  | | | ,-| | | | | | 
 	    `' `-' ' ` `' ' ' ' `-^ ' ' ' |-' 
@@ -14,6 +14,7 @@ Author : t9md <taqumd@gmail.com>
 CONTENTS						  *textmanip-contents*
 
 Introduction					      |textmanip-introduction|
+Variables						  |textmanip-variable|
 Mapping							   |textmanip-mapping|
 Configuration Examples					  |textmanip-examples|
 Use Case						   |textmanip-usecase|
@@ -34,6 +35,16 @@ Requirement:
 
 Latest Version:
 http://github.com/t9md/vim-textmanip
+
+==============================================================================
+VARIABLES						*textmanip-variables*
+
+*g:textmanip_no_default_key_mappings*
+	Default: 0
+
+	If this value is 1, textmanip don't setup any keymap.
+	You need to setup your favorite keymap.
+	See |textmanip-mapping|.
 
 ==============================================================================
 MAPPINGS						    *textmanip-mappings*
