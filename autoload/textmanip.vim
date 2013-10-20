@@ -42,14 +42,15 @@ function! s:varea.init(direction) "{{{
   let self.is_linewise =
         \ (self.mode ==# 'V' ) || (self.mode ==# 'v' && self.is_multiline)
 
+  let no_space = empty(filter(getline(self.start[0],self.end[0]),"v:val =~# '^\\s'"))
   let self.is_eol = self.end[0] ==# line('$')
   let self.cant_move =
         \ ( self._direction ==# 'up' && self.start[0] == 1) ||
-        \ ( self._direction ==# 'left' && 
-        \        (!self.is_linewise && self.start[1] == 1 ))
- "}}}
+        \ ( self._direction ==# 'left' && ( self.is_linewise && no_space )) ||
+        \ ( self._direction ==# 'left' &&
+        \       (!self.is_linewise && self.start[1] == 1 ))
+  "}}}
 endfunction "}}}
-
 function! s:varea.extend_eol() "{{{
   if self.is_eol && self._direction ==# 'down'
     call append(line('$'),"")
@@ -143,10 +144,25 @@ function! s:varea.move_block() "{{{
 endfunction "}}}
 function! s:varea.move_line() "{{{
   let dir = self._direction 
-  if     dir ==# "up"    | exe "'<,'>move " . (self.start[0] - 2)
-  elseif dir ==# "down"  | exe "'<,'>move " . (self.end[0] + 1)
-  elseif dir ==# "right" | normal! gv>
-  elseif dir ==# "left"  | normal! gv<
+
+  " [FIXME] move up/down performance get slow when big file.
+  " need improve to swap area so don't use move command!
+  if dir ==# 'up'
+    let address = self.start[0] - v:count1 - 1
+    let address = address < 0 ? 0 : address
+  elseif dir ==# 'down'
+    let address = self.end[0] + v:count1
+    " let eol_extend_size = address - line('$')
+    " if eol_extend_size > 0
+      " " [FIXME]
+      " " call s:extend_eol(eol_extend_size)
+    " endif
+  endif
+
+  if     dir ==# "up"    | exe "'<,'>move " . address
+  elseif dir ==# "down"  | exe "'<,'>move " . address
+  elseif dir ==# "right" | exe "'<,'>" . repeat(">",v:count1)
+  elseif dir ==# "left"  | exe "'<,'>" . repeat("<",v:count1)
   endif
   normal! gv
 endfunction "}}}
@@ -213,10 +229,19 @@ function! s:register.restore() "{{{
   let self._data = {}
 endfunction "}}}
 
-" OldObject:
+" OldObject: neeed rewrite
 "=================================================================
 let s:textmanip = {}
 " Duplicate:
+function! s:textmanip_status() "{{{
+  let lines = getline(line("'<"), line("'>"))
+  return  {
+        \ 'start_linenr': line("'<"),
+        \ 'end_linenr': line("'>"),
+        \ 'lines': lines,
+        \ 'len': len(lines),
+        \ }
+endfunction "}}}
 function! s:textmanip.duplicate_visual(direction) "{{{
   let pos = getpos('.')
   let status = s:textmanip_status()

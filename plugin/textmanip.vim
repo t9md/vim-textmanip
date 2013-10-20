@@ -28,7 +28,7 @@ nnoremap <Plug>(textmanip-duplicate-up)        :<C-u>call textmanip#duplicate('u
 vnoremap <Plug>(textmanip-move-up)    :<C-u>call textmanip#move('up')<CR>
 vnoremap <Plug>(textmanip-move-down)  :<C-u>call textmanip#move('down')<CR>
 vnoremap <Plug>(textmanip-move-right) :<C-u>call textmanip#move('right')<CR>
-vnoremap <Plug>(textmanip-move-left)  :<C-u>call textmanip#move('left')<CR>{
+vnoremap <Plug>(textmanip-move-left)  :<C-u>call textmanip#move('left')<CR>
 
 nnoremap <Plug>(textmanip-debug)   :<C-u>echo textmanip#debug()<CR>
 
