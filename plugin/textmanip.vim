@@ -25,31 +25,12 @@ nnoremap <Plug>(textmanip-duplicate-down)      :<C-u>call textmanip#duplicate('d
 vnoremap <Plug>(textmanip-duplicate-up)   <Esc>:<C-u>call textmanip#duplicate('up','v')<CR>
 nnoremap <Plug>(textmanip-duplicate-up)        :<C-u>call textmanip#duplicate('up','n')<CR>
 
-
-
-vnoremap <Plug>(textmanip-move-up)    :<C-u>call textmanip#move('up'   , 'smart')<CR>
-vnoremap <Plug>(textmanip-move-down)  :<C-u>call textmanip#move('down' , 'smart')<CR>
-vnoremap <Plug>(textmanip-move-right) :<C-u>call textmanip#move('right', 'smart')<CR>
-vnoremap <Plug>(textmanip-move-left)  :<C-u>call textmanip#move('left' , 'smart')<CR>
-
-vnoremap <Plug>(textmanip-move-line-up)     :<C-u>call textmanip#move('up'   , 'line')<CR>
-vnoremap <Plug>(textmanip-move-line-down)   :<C-u>call textmanip#move('down' , 'line')<CR>
-vnoremap <Plug>(textmanip-move-line-right)  :<C-u>call textmanip#move('right', 'line')<CR>
-vnoremap <Plug>(textmanip-move-line-left)   :<C-u>call textmanip#move('left' , 'line')<CR>
-
-vnoremap <Plug>(textmanip-move-block-up)     :<C-u>call textmanip#move('up'   , 'block')<CR>
-vnoremap <Plug>(textmanip-move-block-down)   :<C-u>call textmanip#move('down' , 'block')<CR>
-vnoremap <Plug>(textmanip-move-block-right)  :<C-u>call textmanip#move('right', 'block')<CR>
-vnoremap <Plug>(textmanip-move-block-left)   :<C-u>call textmanip#move('left' , 'block')<CR>
+vnoremap <Plug>(textmanip-move-up)    :<C-u>call textmanip#move('up')<CR>
+vnoremap <Plug>(textmanip-move-down)  :<C-u>call textmanip#move('down')<CR>
+vnoremap <Plug>(textmanip-move-right) :<C-u>call textmanip#move('right')<CR>
+vnoremap <Plug>(textmanip-move-left)  :<C-u>call textmanip#move('left')<CR>{
 
 nnoremap <Plug>(textmanip-debug)   :<C-u>echo textmanip#debug()<CR>
-
-
-
-
-
-
-
 
 " Experimental
 nnoremap <silent> <Plug>(textmanip-kickout)  :<C-u>call textmanip#kickout(0)<CR>

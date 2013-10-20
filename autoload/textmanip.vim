@@ -1,142 +1,204 @@
-" Utility:
-"=================================================================
-function! s:textmanip_status() "{{{
-  let lines = getline(line("'<"), line("'>"))
-  return  {
-        \ 'start_linenr': line("'<"),
-        \ 'end_linenr': line("'>"),
-        \ 'lines': lines,
-        \ 'len': len(lines),
-        \ }
+let g:textmanip_debug = 0
+
+" VisualArea:
+"=====================
+let s:varea = {}
+function! s:varea.init(direction) "{{{
+  let self._direction = a:direction
+  let self.mode = visualmode()
+  let self._select_mode = self.mode ==# 'v' ? "\<C-v>" : self.mode
+
+  " [lnum, col]
+  let pos1 = getpos("'<")[1:2]
+  let pos2 = getpos("'>")[1:2]
+  " original "{{{
+  if pos1[1] >= pos2[1]
+    let self.start = [pos1[0], pos2[1]]
+    let self.end   = [pos2[0], pos1[1]]
+  else
+    let self.start = pos1
+    let self.end   = pos2
+  endif "}}}
+  " up "{{{
+  let self.up_start = [self.start[0] - 1 , self.start[1]]
+  let self.up_end   = [ self.end[0]  - 1 , self.end[1]]
+ "}}}
+  " down "{{{
+  let self.down_start       = [ self.start[0] + 1 , self.start[1]]
+  let self.down_end         = [  self.end[0]  + 1 , self.end[1]]
+  let self.down_bottom_left = [  self.end[0]  + 1 , self.start[1]]
+ "}}}
+  " right  "{{{
+  let self.right_start = [  self.start[0], self.start[1] + 1]
+  let self.right_end   = [  self.end[0], self.end[1] + 1]
+  " }}}
+  " left "{{{
+  let self.left_start = [  self.start[0], self.start[1] - 1]
+  let self.left_end   = [  self.end[0], self.end[1] - 1]
+ "}}}
+  " other "{{{
+  let self.width      = (self.end[1] -  self.start[1]) + 1
+  let self.is_multiline = (self.start[0] !=# self.end[0])
+  let self.is_linewise =
+        \ (self.mode ==# 'V' ) || (self.mode ==# 'v' && self.is_multiline)
+
+  let self.is_eol = self.end[0] ==# line('$')
+  let self.cant_move =
+        \ ( self._direction ==# 'up' && self.start[0] == 1) ||
+        \ ( self._direction ==# 'left' && 
+        \        (!self.is_linewise && self.start[1] == 1 ))
+ "}}}
 endfunction "}}}
 
-function! s:is_continuous_execution() "{{{
-  if !exists('b:textmanip_status')
-    return 0
-  else
-    return b:textmanip_status == s:textmanip_status()
+function! s:varea.extend_eol() "{{{
+  if self.is_eol && self._direction ==# 'down'
+    call append(line('$'),"")
   endif
 endfunction "}}}
+function! s:varea.visualmode_restore() "{{{
+  if self.mode !=# self._select_mode
+    exe "normal! " . self.mode
+  endif
+endfunction "}}}
+function! s:varea.virtualedit_start() "{{{
+  let self._virtualedit = &virtualedit
+  let &virtualedit = 'all'
+endfunction "}}}
+function! s:varea.virtualedit_restore() "{{{
+  let &virtualedit = self._virtualedit
+endfunction "}}}
 
-let g:textmanip_debug = 0
+function! s:varea.goto(key) "{{{
+  let pos = self[a:key] + [0]
+  call cursor(pos)
+endfunction "}}}
+" select area table {{{
+let s:select_ara_table = {
+      \ "selected"       : ["start"      , "end"       ] ,
+      \ "up_replace"     : ["up_start"   , "end"       ] ,
+      \ "up_original"    : ["up_start"   , "up_end"    ] ,
+      \ "down_replace"   : ["start"      , "down_end"  ] ,
+      \ "down_original"  : ["down_start" , "down_end"  ] ,
+      \ "right_replace"  : ["start"      , "right_end" ] ,
+      \ "right_original" : ["right_start", "right_end" ] ,
+      \ "left_replace"   : ["left_start" , "end"       ] ,
+      \ "left_original"  : ["left_start" , "left_end"  ] ,
+      \ }
+"}}}
+function! s:varea.select(area) "{{{
+  " ex) up_replace, up_original
+  let area = a:area ==# "selected" ? "selected": self._direction ."_". a:area
+  let [s, e] = s:select_ara_table[area]
+  call self.goto(s)
+  execute "normal! " . self._select_mode
+  call self.goto(e)
+endfunction "}}}
+
+function! s:varea.move(direction) "{{{
+  call self.init(a:direction)
+
+  if self.cant_move
+    normal! gv
+    return
+  endif
+  call s:undo.join()
+  call self.virtualedit_start()
+  call self.extend_eol()
+
+  if self.is_linewise
+    call self.move_line()
+  else
+    call s:register.save("x","z")
+    call self.move_block()
+  " [FIXME] dirty hack for status management yanking let '< , '> refresh
+    normal! "zygv
+
+    call s:register.restore()
+  endif
+
+  call self.virtualedit_restore()
+  call s:undo.update_status()
+endfunction "}}}
+function! s:varea._replace_text() "{{{
+  call self.select("replace")
+  normal! "xy
+  let selected = split(getreg("x"), "\n")
+
+  let dir = self._direction
+  if     dir ==# 'up'   | let s = selected[1:] + [selected[0]]
+  elseif dir ==# 'down' | let s = [selected[-1]] + selected[:-2]
+  elseif dir ==# 'right'| let s = map(selected,
+        \ 'v:val[self.width] . v:val[: self.width-1]')
+  elseif dir ==# 'left' | let s = map(selected,
+        \ 'v:val[1: self.width] . v:val[0]')
+  endif
+  return join(s, "\n")
+endfunction "}}}
+function! s:varea.move_block() "{{{
+  call setreg("z", self._replace_text(), getregtype("x"))
+  call self.select("replace")
+  normal! "zp
+  call self.select("original")
+  call self.visualmode_restore()
+endfunction "}}}
+function! s:varea.move_line() "{{{
+  let dir = self._direction 
+  if     dir ==# "up"    | exe "'<,'>move " . (self.start[0] - 2)
+  elseif dir ==# "down"  | exe "'<,'>move " . (self.end[0] + 1)
+  elseif dir ==# "right" | normal! gv>
+  elseif dir ==# "left"  | normal! gv<
+  endif
+  normal! gv
+endfunction "}}}
+
 function! s:decho(msg) "{{{
   if g:textmanip_debug
     echo a:msg
   endif
 endfunction "}}}
+function! s:varea.dump() "{{{
+  echo PP(self)
+endfunction "}}}
 
-function! s:smart_undojoin() "{{{
-  if s:is_continuous_execution()
-    call s:decho("called undojoin")
-    silent undojoin
+" Undo:
+"=====================
+let s:undo = {}
+function! s:undo.join() "{{{
+  if exists("b:textmanip_undo") &&
+        \ b:textmanip_undo == self.selected()
+    " echo "UNDO JOIN"
+    try
+      silent undojoin
+    catch /E790/
+      " after move and exit at the same position(actully at cosmetic level no
+      " change you made), and 'u'(undo), then restart move.
+      " This read to situation 'undojoin is not allowed after undo' error.
+      " But this cannot detect, so simply suppress this error.
+    endtry
   endif
 endfunction "}}}
-
-function! s:extend_eol(size) "{{{
-  call s:decho("  [extended_eol]")
-  call append(line('$'), map(range(a:size), '""'))
+function! s:undo.update_status() "{{{
+  let b:textmanip_undo = self.selected()
 endfunction "}}}
-
-function! s:left_movable() "{{{
-  return !empty(filter(
-        \  s:textmanip_status().lines,
-        \ "v:val =~# '^\\s'")
-        \ )
-endfunction "}}}
-
-function! s:vblock_workaround() "{{{
-  " [FIXME] darty workaround. When virtualedit='all' "`[" pos is one char right of
-  " actuall changed, so need to adjust with 'h'.
-  return char2nr(visualmode()) ==# char2nr("\<C-v>") ? "h" : ""
-endfunction "}}}
-
-function! s:up_movable() "{{{
-  return s:textmanip_status().start_linenr != 1
-endfunction "}}}
-
-function! s:is_linewise() "{{{
-  let vmode = visualmode()
-  return vmode ==# 'V' ||
-        \ vmode ==# 'v' && ( line("'<") !=# line("'>") ) 
-endfunction "}}}
-
-" Object:
-"=================================================================
-let s:textmanip = {}
-
-" Move:
-function! s:textmanip.move_smart(direction) "{{{
-  " [FIXME] need imprement blockwise movement for up/down
-  " if a:direction ==# "up"
-  " " if a:direction ==# "up" || a:direction ==# "down"
-    " call self.move_line(a:direction)
-    " return
-  " endif
-
-  if s:is_linewise()
-    call self.move_line(a:direction)
-  else
-    call self.move_block(a:direction)
+function! s:undo.selected() "{{{
+  let content = getline(line("'<"), line("'>"))
+  if char2nr(visualmode()) ==# char2nr("\<C-v>")
+    let s = col("'<")
+    let e = col("'>")
+    let content = map(content, 'v:val[s-1:e-1]')
   endif
+  let v =  {
+        \ 'start_linenr': line("'<"),
+        \ 'end_linenr': line("'>"),
+        \ 'len': len(content),
+        \ 'content': content,
+        \ }
+  " echo PP(v)
+  return v
 endfunction "}}}
-
-function! s:textmanip.move_line(direction) "{{{
-  call s:decho(" ")
-  let movable =
-        \ a:direction == "left" ? s:left_movable() :
-        \ a:direction == "up"   ? s:up_movable()   :
-        \ 1
-  if !movable
-      call s:decho(" can't move " . a:direction . "; return")
-      normal! gv
-      return
-  endif
-
-  let status = s:textmanip_status()
-  call s:smart_undojoin()
-  if a:direction == "up"
-    let address = status.start_linenr - v:count1 - 1
-    let address = address < 0 ? 0 : address
-  elseif a:direction == "down"
-    let address = status.end_linenr + v:count1
-    let eol_extend_size = address - line('$')
-    if eol_extend_size > 0
-      call s:extend_eol(eol_extend_size)
-    endif
-  endif
-
-  let cmd =
-        \ a:direction == "down"  ? "'<,'>move " . address           :
-        \ a:direction == "up"    ? "'<,'>move " . address           :
-        \ a:direction == "right" ? "'<,'>" . repeat(">", v:count1) :
-        \ a:direction == "left"  ? "'<,'>" . repeat("<", v:count1) :
-        \ ""
-
-  call s:decho("  [executed] " . cmd)
-  silent execute cmd
-  normal! gv
-  let b:textmanip_status = s:textmanip_status()
-endfun "}}}
-
-function! s:textmanip.virtualedit() "{{{
-  let self._virtualedit = &virtualedit
-  let &virtualedit = 'all'
-endfunction "}}}
-
-function! s:textmanip.restore_virtualedit() "{{{
-  let &virtualedit = self._virtualedit
-endfunction "}}}
-
-function! s:textmanip.move_block(direction) "{{{
-  if a:direction ==# 'left' || a:direction ==# 'right'
-    call s:textmanip.move_block_hl(a:direction)
-  elseif a:direction ==# 'up' || a:direction ==# 'down'
-    call s:textmanip.move_block_jk(a:direction)
-  endif
-endfunction "}}}
-
 
 " RegisterManagement:
+"=====================
 let s:register = {}
 let s:register._data = {}
 function! s:register.save(...) "{{{
@@ -144,7 +206,6 @@ function! s:register.save(...) "{{{
     let s:register._data[r] = { "content": getreg(r, 1), "type": getregtype(r) }
   endfor
 endfunction "}}}
-
 function! s:register.restore() "{{{
   for [r, val] in items(self._data)
     call setreg(r, val.content, val.type)
@@ -152,72 +213,9 @@ function! s:register.restore() "{{{
   let self._data = {}
 endfunction "}}}
 
-function! s:register.dump() "{{{
-  echo PP(self._save)
-endfunction "}}}
-
-function! s:textmanip.move_block_hl(direction) "{{{
-  if a:direction ==# "left" && col("'<") ==# 1
-    normal! gv
-    return
-  endif
-
-  call s:smart_undojoin()
-  call s:register.save("z")
-  try
-    call self.virtualedit()
-    execute 'normal! gv"zd' . (a:direction ==# "right" ? "p" : "hP" )
-    execute "normal! `[" .
-          \ ( a:direction ==# 'left' ? s:vblock_workaround() : '' ) .
-          \ visualmode() . "`]"
-  finally
-    let b:textmanip_status = s:textmanip_status() "{{{
-    call s:register.restore()
-    call self.restore_virtualedit() "}}}
-  endtry
-endfunction "}}}
-
-function! s:textmanip.move_block_jk(direction) "{{{
-  " call s:smart_undojoin()
-  call s:register.save("w", "x", "y", "z")
-  try
-    " call self.virtualedit()
-    if visualmode() ==# 'v' && line("'<") ==# line("'>")
-      normal! my
-      normal! gv"zd
-      let num = len(@z) - 1
-      exe "normal! " . (a:direction ==# "down" ? "j" : "k" ) . "P"
-      exe "normal! lv" . num . "l"
-      normal! "zd`yP
-      exe "normal! ". (a:direction ==# "down" ? "j" : "k") . "v" .num ."ho"
-    else
-      let height = line("'>") - line("'<") + 1
-      let width = col("'>") - col("'<") + 1
-      if a:direction ==# "up"
-        normal! gv"xy
-        exe 'normal! k"yy' . width . "l"
-        call setreg("z", @x . "\n" . @y, getregtype("x"))
-        exe "normal! " . visualmode() . '`>"zp'
-        normal! gvk
-      elseif a:direction ==# "down"
-        normal! gv"xy
-        exe "normal! " . height . "j"
-        exe 'normal! "yy' . width . "l"
-        call setreg("z", @y . "\n" . @x, getregtype("x"))
-        exe 'normal! ' . (width-1). "l"
-        exe 'normal! `<' . visualmode() . "`>j"
-        normal! "zp
-        exe 'normal! `<j' . visualmode() . "`>"
-      endif
-    endif
-  finally
-    " let b:textmanip_status = s:textmanip_status()
-    " echo s:textmanip_status()
-    call s:register.restore()
-    " call self.restore_virtualedit()
-  endtry
-endfunction "}}}
-
+" OldObject:
+"=================================================================
+let s:textmanip = {}
 " Duplicate:
 function! s:textmanip.duplicate_visual(direction) "{{{
   let pos = getpos('.')
@@ -249,7 +247,6 @@ function! s:textmanip.duplicate_visual(direction) "{{{
   let pos[1] = end_line
   call setpos('.', pos)
 endfun "}}}
-
 function! s:textmanip.duplicate_normal(direction) "{{{
   let cnt = v:count1
   while cnt != 0
@@ -266,7 +263,6 @@ function! s:textmanip.duplicate_normal(direction) "{{{
   let pos[1] = line('.')
   call setpos('.', pos)
 endfunction "}}}
-
 function! s:textmanip.duplicate(direction, mode) "{{{
   if a:mode     ==# "n"
     call self.duplicate_normal(a:direction)
@@ -290,14 +286,8 @@ endfunction "}}}
 " PlublicInterface:
 "=================================================================
 " Move:
-function! textmanip#move(direction, wise) "{{{
-  if a:wise ==# 'line'
-    call s:textmanip.move_line(a:direction)
-  elseif a:wise ==# 'block'
-    call s:textmanip.move_block(a:direction)
-  elseif a:wise ==# 'smart'
-    call s:textmanip.move_smart(a:direction)
-  endif
+function! textmanip#move(direction) "{{{
+  call s:varea.move(a:direction)
 endfunction "}}}
 
 " Duplicate:
@@ -322,5 +312,20 @@ endfunction "}}}
 function! textmanip#debug()
   return PP(s:textmanip)
 endfunction
+
+" Test
+" 111111|BBBBBB|111111
+" 000000|AAAAAA|000000
+" 666665|FFFFFF|666666
+" 777777|CCCCCC|777777
+" 888888|DDDDDD|888888
+" 222222|000000|222222
+" 555556|000000|555555
+" 333333|000000|333333
+" 444444|EEEEEE|444444
+" 000000|HHHHHH|000000
+" 111111|LLLLLL|111111
+" 333333|NNNNNN|333333
+" 444444|OOOOOO|444444
 
 " vim: foldmethod=marker

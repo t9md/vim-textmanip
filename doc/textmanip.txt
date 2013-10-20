@@ -152,11 +152,11 @@ position not restored to original position.
 
 ==============================================================================
 CHANGELOG						 *textmanip-changelog*
-2013-10-19:
-	- [experiment] 
-	- Added blockwise movement of right/left
-	-    <Plug>(textmanip-move-b-right)
-	-    <Plug>(textmanip-move-b-left)
+2013-10-21:
+	- completely rewriten code, and now suppport blockwise movement
+	  all direction and undoable!!
+	  count support for movement deprecated
+	  (should be impremented near future)
 2013-10-02:
 	- just [experiment] new action textmanip-kickout.
 2011-12-18:
