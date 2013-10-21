@@ -31,30 +31,40 @@ function! s:varea.init(direction) "{{{
     let self.end   = pos2
   endif "}}}
   " up "{{{
-  let self.up_start = [ self.start[0] - 1 , self.start[1]]
-  let self.up_end   = [ self.end[0] - 1 , self.end[1]]
+  " let self.up_start = [ self.start[0] - 1 , self.start[1]]
+  " let self.up_end   = [ self.end[0] - 1 , self.end[1]]
+  let self.up_start = copy(self.start)
+  let self.up_end = copy(self.end)
+  let self.up_start[0] -= 1
+  let self.up_end[0] -= 1
 
   let self.up_fr    = [ self.cursor_fr[0] - 1 , self.cursor_fr[1]]
   let self.up_to    = [ self.cursor_to[0] - 1 , self.cursor_to[1]]
   "}}}
   " down "{{{
-  let self.down_start       = [ self.start[0] + 1 , self.start[1]]
-  let self.down_end         = [ self.end[0]  + 1 , self.end[1]]
+  let self.down_start = copy(self.start)
+  let self.down_end = copy(self.end)
+  let self.down_start[0] += 1
+  let self.down_end[0] += 1
 
   let self.down_fr    = [ self.cursor_fr[0] + 1 , self.cursor_fr[1]]
   let self.down_to    = [ self.cursor_to[0] + 1 , self.cursor_to[1]]
 
   "}}}
   " right  "{{{
-  let self.right_start = [  self.start[0], self.start[1] + 1]
-  let self.right_end   = [  self.end[0], self.end[1] + 1]
+  let self.right_start = copy(self.start)
+  let self.right_end = copy(self.end)
+  let self.right_start[1] += 1
+  let self.right_end[1] += 1
 
   let self.right_fr = [ self.cursor_fr[0] , self.cursor_fr[1] + 1]
   let self.right_to = [ self.cursor_to[0] , self.cursor_to[1] + 1]
   " }}}
   " left "{{{
-  let self.left_start = [  self.start[0], self.start[1] - 1]
-  let self.left_end   = [  self.end[0], self.end[1] - 1]
+  let self.left_start = copy(self.start)
+  let self.left_end = copy(self.end)
+  let self.left_start[1] -= 1
+  let self.left_end[1]   -= 1
 
   let self.left_fr = [  self.cursor_fr[0] , self.cursor_fr[1] - 1]
   let self.left_to = [  self.cursor_to[0] , self.cursor_to[1] - 1]
@@ -428,11 +438,9 @@ endfunction "}}}
 function! textmanip#duplicate(direction, mode) "{{{
   call s:varea.init(a:direction)
   if a:mode     ==# "n"
-    " call s:duplicate_normal(a:direction)
     call s:varea.duplicate_normal()
   elseif a:mode ==# "v"
-    call s:textmanip.duplicate_visual(a:direction)
-    " call s:varea.duplicate_visual()
+    call s:varea.duplicate_visual()
   endif
 endfun "}}}
 
