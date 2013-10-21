@@ -1,9 +1,11 @@
 let g:textmanip_debug = 0
+let s:textmanip = {}
 
 " VisualArea:
 "=====================
 let s:varea = {}
 function! s:varea.init(direction) "{{{
+  let self._prevcount = v:prevcount
   let self._count = v:count1
   let self._direction = a:direction
   let self.mode = visualmode()
@@ -34,7 +36,7 @@ function! s:varea.init(direction) "{{{
 
   let self.up_fr    = [ self.cursor_fr[0] - 1 , self.cursor_fr[1]]
   let self.up_to    = [ self.cursor_to[0] - 1 , self.cursor_to[1]]
- "}}}
+  "}}}
   " down "{{{
   let self.down_start       = [ self.start[0] + 1 , self.start[1]]
   let self.down_end         = [ self.end[0]  + 1 , self.end[1]]
@@ -42,7 +44,7 @@ function! s:varea.init(direction) "{{{
   let self.down_fr    = [ self.cursor_fr[0] + 1 , self.cursor_fr[1]]
   let self.down_to    = [ self.cursor_to[0] + 1 , self.cursor_to[1]]
 
- "}}}
+  "}}}
   " right  "{{{
   let self.right_start = [  self.start[0], self.start[1] + 1]
   let self.right_end   = [  self.end[0], self.end[1] + 1]
@@ -56,7 +58,7 @@ function! s:varea.init(direction) "{{{
 
   let self.left_fr = [  self.cursor_fr[0] , self.cursor_fr[1] - 1]
   let self.left_to = [  self.cursor_to[0] , self.cursor_to[1] - 1]
- "}}}
+  "}}}
   " other "{{{
   let self.width      = (self.end[1] -  self.start[1]) + 1
   let self.height     = (self.end[0] -  self.start[0]) + 1
@@ -131,7 +133,7 @@ function! s:varea.select(area) "{{{
 endfunction "}}}
 
 " function! AreaList(A,L,P)
-  " return keys(s:varea._table)
+" return keys(s:varea._table)
 " endfunction
 
 " let Varea = s:varea
@@ -152,7 +154,7 @@ function! s:varea.move(direction) "{{{
     call self.move_line()
   else
     call self.move_block()
-  " [FIXME] dirty hack for status management yanking let '< , '> refresh
+    " [FIXME] dirty hack for status management yanking let '< , '> refresh
     normal! "zygv
 
   endif
@@ -209,16 +211,107 @@ function! s:varea.move_line() "{{{
   endif
 endfunction "}}}
 
-function! s:varea.duplicate() "{{{
+function! s:varea.duplicate_normal() "{{{
   let cnt = self._count
+  call setpos('.', self.cur_pos)
   while cnt != 0
-    let pos = self.cur_pos
-    let line = self.cur_pos[1]
+    let pos = getpos('.')
+    let line = line('.')
     let address = self._direction == "down" ? line : line - 1
     let cmd = line . "," . line . "copy " . address
     " echo cmd
     silent execute cmd
+    let cnt -= 1
+  endwhile
+  let pos[1] = line('.')
+  call setpos('.', pos)
+endfunction "}}}
 
+function! s:varea.duplicate() "{{{
+  let cnt = self._count
+  call setpos('.', self.cur_pos)
+  while cnt != 0
+    let pos = getpos('.')
+    let line = line('.')
+    let address = self._direction == "down" ? line : line - 1
+    let cmd = line . "," . line . "copy " . address
+    " echo cmd
+    silent execute cmd
+    let cnt -= 1
+  endwhile
+  let pos[1] = line('.')
+  call setpos('.', pos)
+endfunction "}}}
+function! s:varea.duplicate_visual() "{{{
+  call setpos('.', self.cur_pos)
+  let pos = getpos('.')
+  " let status = s:textmanip_status()
+  let loop = self._prevcount ? self._prevcount : 1
+  while loop != 0
+    let copy_to = self._direction == "down" ? self.end[0] : self.start[0] - 1
+    let cmd = self.start[0] . "," . self.end[0] . "copy " . copy_to
+    silent execute cmd
+    call s:decho("  [executed] " . cmd)
+    let loop -= 1
+  endwhile
+  let cnt = self._prevcount ? self._prevcount : 1
+  if self._direction == "down"
+    let begin_line = self.end[0] + 1
+    let end_line   = self.end[0] + (self.height * cnt)
+  elseif self._direction == "up"
+    let begin_line = self.start[0]
+    echo begin_line
+    let end_line   = self.start[0] - 1 + (self.height * cnt)
+  endif
+
+  let pos[1] = begin_line
+  call setpos('.', pos)
+  normal! V
+  let pos[1] = end_line
+  call setpos('.', pos)
+endfun "}}}
+
+function! s:textmanip.duplicate_visual(direction) "{{{
+  let pos = getpos('.')
+  let status = s:textmanip_status()
+
+  let loop = v:prevcount ? v:prevcount : 1
+  while loop != 0
+    let copy_to = a:direction == "down"
+          \ ? status.end_linenr
+          \ : status.start_linenr - 1
+    let cmd = status.start_linenr . "," . status.end_linenr . "copy " . copy_to
+    silent execute cmd
+    call s:decho("  [executed] " . cmd)
+    let loop -= 1
+  endwhile
+
+  let cnt = v:prevcount ? v:prevcount : 1
+  if a:direction == "down"
+    let begin_line = status.end_linenr + 1
+    let end_line   = status.end_linenr + (status.len * cnt)
+  elseif a:direction == "up"
+    let begin_line = status.start_linenr
+    let end_line   = status.start_linenr - 1 + (status.len * cnt)
+  endif
+
+  let pos[1] = begin_line
+  call setpos('.', pos)
+  normal! V
+  let pos[1] = end_line
+  call setpos('.', pos)
+endfun "}}}
+
+function! s:duplicate_normal(direction) "{{{
+  let cnt = v:count1
+  while cnt != 0
+    let pos = getpos('.')
+    let line = line('.')
+    let address = a:direction == "down" ? line : line - 1
+    let cmd = line . "," . line . "copy " . address
+    " echo cmd
+    silent execute cmd
+    " silent execute line . "," . line . "copy " . address
     let cnt -= 1
   endwhile
   let pos[1] = line('.')
@@ -235,33 +328,33 @@ function! s:varea.dump() "{{{
 endfunction "}}}
 
 " function! Varea.check_select(area, flg) "{{{
-  " if a:flg ==# 0
-    " " echo "normal"
-    " call cursor(getpos("'s")[1:])
-    " exe "normal! " . "\<C-v>"
-    " call cursor(getpos("'e")[1:])
-  " else
-    " " echo "opposite"
-    " call cursor(getpos("'e")[1:])
-    " exe "normal! " . "\<C-v>"
-    " call cursor(getpos("'s")[1:])
-  " end
-  " normal "_y
+" if a:flg ==# 0
+" " echo "normal"
+" call cursor(getpos("'s")[1:])
+" exe "normal! " . "\<C-v>"
+" call cursor(getpos("'e")[1:])
+" else
+" " echo "opposite"
+" call cursor(getpos("'e")[1:])
+" exe "normal! " . "\<C-v>"
+" call cursor(getpos("'s")[1:])
+" end
+" normal "_y
 
-  " call self.init("up")
-  " let [s, e] = self._table[a:area]
-  " echo [a:area, s, e]
-  " call self.goto(s)
-  " execute "normal! " . self._select_mode
-  " call self.goto(e)
-  " " redraw!
-  " " redraw!
+" call self.init("up")
+" let [s, e] = self._table[a:area]
+" echo [a:area, s, e]
+" call self.goto(s)
+" execute "normal! " . self._select_mode
+" call self.goto(e)
+" " redraw!
+" " redraw!
 " endfunction "}}}
 " command! -nargs=+ -complete=customlist,AreaList
-      " \ Check :call Varea.check_select(<f-args>)
+" \ Check :call Varea.check_select(<f-args>)
 
 " Undo:
-"=====================
+"===================== "{{{
 let s:undo = {}
 function! s:undo.join() "{{{
   if exists("b:textmanip_undo") &&
@@ -296,9 +389,9 @@ function! s:undo.selected() "{{{
   " echo PP(v)
   return v
 endfunction "}}}
-
+"}}}
 " RegisterManagement:
-"=====================
+"===================== "{{{
 let s:register = {}
 let s:register._data = {}
 function! s:register.save(...) "{{{
@@ -312,58 +405,7 @@ function! s:register.restore() "{{{
   endfor
   let self._data = {}
 endfunction "}}}
-
-" OldObject: neeed rewrite
-"=================================================================
-let s:textmanip = {}
-" Duplicate:
-function! s:textmanip_status() "{{{
-  let lines = getline(line("'<"), line("'>"))
-  return  {
-        \ 'start_linenr': line("'<"),
-        \ 'end_linenr': line("'>"),
-        \ 'lines': lines,
-        \ 'len': len(lines),
-        \ }
-endfunction "}}}
-function! s:textmanip.duplicate_visual(direction) "{{{
-  let pos = getpos('.')
-  let status = s:textmanip_status()
-
-  let loop = v:prevcount ? v:prevcount : 1
-  while loop != 0
-    let copy_to = a:direction == "down"
-          \ ? status.end_linenr
-          \ : status.start_linenr - 1
-    let cmd = status.start_linenr . "," . status.end_linenr . "copy " . copy_to
-    silent execute cmd
-    call s:decho("  [executed] " . cmd)
-    let loop -= 1
-  endwhile
-
-  let cnt = v:prevcount ? v:prevcount : 1
-  if a:direction == "down"
-    let begin_line = status.end_linenr + 1
-    let end_line   = status.end_linenr + (status.len * cnt)
-  elseif a:direction == "up"
-    let begin_line = status.start_linenr
-    let end_line   = status.start_linenr - 1 + (status.len * cnt)
-  endif
-
-  let pos[1] = begin_line
-  call setpos('.', pos)
-  normal! V
-  let pos[1] = end_line
-  call setpos('.', pos)
-endfun "}}}
-function! s:textmanip.duplicate(direction, mode) "{{{
-  call s:varea.init(a:direction)
-  if a:mode     ==# "n"
-    call s:varea.duplicate()
-  elseif a:mode ==# "v"
-    call self.duplicate_visual(a:direction)
-  endif
-endfunction "}}}
+"}}}
 
 " Other:
 function! s:textmanip.kickout(num, guide) "{{{
@@ -379,17 +421,21 @@ endfunction "}}}
 
 " PlublicInterface:
 "=================================================================
-" Move:
 function! textmanip#move(direction) "{{{
   call s:varea.move(a:direction)
 endfunction "}}}
 
-" Duplicate:
 function! textmanip#duplicate(direction, mode) "{{{
-  call s:textmanip.duplicate(a:direction, a:mode)
+  call s:varea.init(a:direction)
+  if a:mode     ==# "n"
+    " call s:duplicate_normal(a:direction)
+    call s:varea.duplicate_normal()
+  elseif a:mode ==# "v"
+    call s:textmanip.duplicate_visual(a:direction)
+    " call s:varea.duplicate_visual()
+  endif
 endfun "}}}
 
-" Other:
 function! textmanip#kickout(ask) range "{{{
   let answer = a:ask ? input("guide?:") : ''
   let guide = !empty(answer) ? answer : ' '
@@ -403,9 +449,9 @@ function! textmanip#kickout(ask) range "{{{
   call setpos('.', orig_pos)
 endfunction "}}}
 
-function! textmanip#debug()
-  return PP(s:textmanip)
-endfunction
+function! textmanip#debug() "{{{
+  return PP(s:varea)
+endfunction "}}}
 
 " Test
 " 111111|BBBBBB|111111
