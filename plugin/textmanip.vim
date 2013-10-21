@@ -8,7 +8,7 @@
 " GUARD: {{{
 "============================================================
 if exists('g:loaded_textmanip')
-  finish
+  " finish
 endif
 let g:loaded_textmanip = 1
 
@@ -36,7 +36,7 @@ nnoremap <Plug>(textmanip-debug)   :<C-u>echo textmanip#debug()<CR>
 nnoremap <silent> <Plug>(textmanip-kickout)  :<C-u>call textmanip#kickout(0)<CR>
 vnoremap <silent> <Plug>(textmanip-kickout)  :call textmanip#kickout(0)<CR>
 "}}}
-"
+
 if exists("g:textmanip_enable_mappings")
   let g:textmanip_enable_mappings = 0
 endif

@@ -4,9 +4,18 @@ let g:textmanip_debug = 0
 "=====================
 let s:varea = {}
 function! s:varea.init(direction) "{{{
+  let self._count = v:count1
   let self._direction = a:direction
   let self.mode = visualmode()
-  let self._select_mode = self.mode ==# 'v' ? "\<C-v>" : self.mode
+
+  let self.cur_pos = getpos('.')
+  " current pos
+  normal! gv
+  let self.cursor_to = getpos('.')[1:2]
+  normal! o
+  let self.cursor_fr = getpos('.')[1:2]
+  normal! o
+  exe "normal! " . self.mode
 
   " [lnum, col]
   let pos1 = getpos("'<")[1:2]
@@ -20,24 +29,37 @@ function! s:varea.init(direction) "{{{
     let self.end   = pos2
   endif "}}}
   " up "{{{
-  let self.up_start = [self.start[0] - 1 , self.start[1]]
-  let self.up_end   = [ self.end[0]  - 1 , self.end[1]]
+  let self.up_start = [ self.start[0] - 1 , self.start[1]]
+  let self.up_end   = [ self.end[0] - 1 , self.end[1]]
+
+  let self.up_fr    = [ self.cursor_fr[0] - 1 , self.cursor_fr[1]]
+  let self.up_to    = [ self.cursor_to[0] - 1 , self.cursor_to[1]]
  "}}}
   " down "{{{
   let self.down_start       = [ self.start[0] + 1 , self.start[1]]
-  let self.down_end         = [  self.end[0]  + 1 , self.end[1]]
-  let self.down_bottom_left = [  self.end[0]  + 1 , self.start[1]]
+  let self.down_end         = [ self.end[0]  + 1 , self.end[1]]
+
+  let self.down_fr    = [ self.cursor_fr[0] + 1 , self.cursor_fr[1]]
+  let self.down_to    = [ self.cursor_to[0] + 1 , self.cursor_to[1]]
+
  "}}}
   " right  "{{{
   let self.right_start = [  self.start[0], self.start[1] + 1]
   let self.right_end   = [  self.end[0], self.end[1] + 1]
+
+  let self.right_fr = [ self.cursor_fr[0] , self.cursor_fr[1] + 1]
+  let self.right_to = [ self.cursor_to[0] , self.cursor_to[1] + 1]
   " }}}
   " left "{{{
   let self.left_start = [  self.start[0], self.start[1] - 1]
   let self.left_end   = [  self.end[0], self.end[1] - 1]
+
+  let self.left_fr = [  self.cursor_fr[0] , self.cursor_fr[1] - 1]
+  let self.left_to = [  self.cursor_to[0] , self.cursor_to[1] - 1]
  "}}}
   " other "{{{
   let self.width      = (self.end[1] -  self.start[1]) + 1
+  let self.height     = (self.end[0] -  self.start[0]) + 1
   let self.is_multiline = (self.start[0] !=# self.end[0])
   let self.is_linewise =
         \ (self.mode ==# 'V' ) || (self.mode ==# 'v' && self.is_multiline)
@@ -49,7 +71,17 @@ function! s:varea.init(direction) "{{{
         \ ( self._direction ==# 'left' && ( self.is_linewise && no_space )) ||
         \ ( self._direction ==# 'left' &&
         \       (!self.is_linewise && self.start[1] == 1 ))
+  if self.mode ==# 'v'
+    if self.is_linewise
+      let self._select_mode = "V"
+    else
+      let self._select_mode = "\<C-v>"
+    endif
+  else
+    let self._select_mode = self.mode
+  endif
   "}}}
+
 endfunction "}}}
 function! s:varea.extend_eol() "{{{
   if self.is_eol && self._direction ==# 'down'
@@ -74,26 +106,35 @@ function! s:varea.goto(key) "{{{
   call cursor(pos)
 endfunction "}}}
 " select area table {{{
-let s:select_ara_table = {
-      \ "selected"       : ["start"      , "end"       ] ,
-      \ "up_replace"     : ["up_start"   , "end"       ] ,
-      \ "up_original"    : ["up_start"   , "up_end"    ] ,
-      \ "down_replace"   : ["start"      , "down_end"  ] ,
-      \ "down_original"  : ["down_start" , "down_end"  ] ,
-      \ "right_replace"  : ["start"      , "right_end" ] ,
-      \ "right_original" : ["right_start", "right_end" ] ,
-      \ "left_replace"   : ["left_start" , "end"       ] ,
-      \ "left_original"  : ["left_start" , "left_end"  ] ,
+let s:select_area_table = {
+      \ "selected"       : ["cursor_fr"  , "cursor_to" ] ,
+      \ "up_change"      : ["up_start"   , "end"       ] ,
+      \ "up_original"    : ["up_fr"      , "up_to"     ] ,
+      \ "down_change"    : ["start"  , "down_end"   ] ,
+      \ "down_original"  : ["down_fr"    , "down_to"   ] ,
+      \ "right_change"   : ["start"      , "right_end" ] ,
+      \ "right_original" : ["right_fr"   , "right_to"  ] ,
+      \ "left_change"    : ["left_start" , "end"       ] ,
+      \ "left_original"  : ["left_fr"    , "left_to"   ] ,
+      \ "up_move"        : ["up_fr"      , "up_to"     ] ,
+      \ "down_move"      : ["down_fr"    , "down_to"   ] ,
       \ }
 "}}}
+let s:varea._table = s:select_area_table
 function! s:varea.select(area) "{{{
-  " ex) up_replace, up_original
+  " ex) up_change, up_original
   let area = a:area ==# "selected" ? "selected": self._direction ."_". a:area
-  let [s, e] = s:select_ara_table[area]
+  let [s, e] = s:select_area_table[area]
   call self.goto(s)
   execute "normal! " . self._select_mode
   call self.goto(e)
 endfunction "}}}
+
+" function! AreaList(A,L,P)
+  " return keys(s:varea._table)
+" endfunction
+
+" let Varea = s:varea
 
 function! s:varea.move(direction) "{{{
   call self.init(a:direction)
@@ -105,23 +146,23 @@ function! s:varea.move(direction) "{{{
   call s:undo.join()
   call self.virtualedit_start()
   call self.extend_eol()
+  call s:register.save("x","z")
 
   if self.is_linewise
     call self.move_line()
   else
-    call s:register.save("x","z")
     call self.move_block()
   " [FIXME] dirty hack for status management yanking let '< , '> refresh
     normal! "zygv
 
-    call s:register.restore()
   endif
+  call s:register.restore()
 
   call self.virtualedit_restore()
   call s:undo.update_status()
 endfunction "}}}
 function! s:varea._replace_text() "{{{
-  call self.select("replace")
+  call self.select("change")
   normal! "xy
   let selected = split(getreg("x"), "\n")
 
@@ -137,7 +178,7 @@ function! s:varea._replace_text() "{{{
 endfunction "}}}
 function! s:varea.move_block() "{{{
   call setreg("z", self._replace_text(), getregtype("x"))
-  call self.select("replace")
+  call self.select("change")
   normal! "zp
   call self.select("original")
   call self.visualmode_restore()
@@ -145,26 +186,43 @@ endfunction "}}}
 function! s:varea.move_line() "{{{
   let dir = self._direction 
 
-  " [FIXME] move up/down performance get slow when big file.
-  " need improve to swap area so don't use move command!
-  if dir ==# 'up'
-    let address = self.start[0] - v:count1 - 1
-    let address = address < 0 ? 0 : address
-  elseif dir ==# 'down'
-    let address = self.end[0] + v:count1
-    " let eol_extend_size = address - line('$')
-    " if eol_extend_size > 0
-      " " [FIXME]
-      " " call s:extend_eol(eol_extend_size)
-    " endif
-  endif
+  if     dir ==# "up" || dir ==# "down"
+    call self.select("change")
+    normal! "xy
+    let selected = split(getreg("x"), "\n")
 
-  if     dir ==# "up"    | exe "'<,'>move " . address
-  elseif dir ==# "down"  | exe "'<,'>move " . address
-  elseif dir ==# "right" | exe "'<,'>" . repeat(">",v:count1)
-  elseif dir ==# "left"  | exe "'<,'>" . repeat("<",v:count1)
+    if dir ==# 'up'
+      let replace = selected[1:] + selected[0:0]
+      call setline(self.start[0] - 1, replace)
+    elseif dir ==# 'down'
+      let replace = selected[-1:-1] + selected[:-2]
+      call setline(self.start[0], replace)
+    endif
+    call self.select("move")
+    call self.visualmode_restore()
+  elseif dir ==# "right"
+    exe "'<,'>" . repeat(">",self._count)
+    normal! gv
+  elseif dir ==# "left"
+    exe "'<,'>" . repeat("<",self._count)
+    normal! gv
   endif
-  normal! gv
+endfunction "}}}
+
+function! s:varea.duplicate() "{{{
+  let cnt = self._count
+  while cnt != 0
+    let pos = self.cur_pos
+    let line = self.cur_pos[1]
+    let address = self._direction == "down" ? line : line - 1
+    let cmd = line . "," . line . "copy " . address
+    " echo cmd
+    silent execute cmd
+
+    let cnt -= 1
+  endwhile
+  let pos[1] = line('.')
+  call setpos('.', pos)
 endfunction "}}}
 
 function! s:decho(msg) "{{{
@@ -175,6 +233,32 @@ endfunction "}}}
 function! s:varea.dump() "{{{
   echo PP(self)
 endfunction "}}}
+
+" function! Varea.check_select(area, flg) "{{{
+  " if a:flg ==# 0
+    " " echo "normal"
+    " call cursor(getpos("'s")[1:])
+    " exe "normal! " . "\<C-v>"
+    " call cursor(getpos("'e")[1:])
+  " else
+    " " echo "opposite"
+    " call cursor(getpos("'e")[1:])
+    " exe "normal! " . "\<C-v>"
+    " call cursor(getpos("'s")[1:])
+  " end
+  " normal "_y
+
+  " call self.init("up")
+  " let [s, e] = self._table[a:area]
+  " echo [a:area, s, e]
+  " call self.goto(s)
+  " execute "normal! " . self._select_mode
+  " call self.goto(e)
+  " " redraw!
+  " " redraw!
+" endfunction "}}}
+" command! -nargs=+ -complete=customlist,AreaList
+      " \ Check :call Varea.check_select(<f-args>)
 
 " Undo:
 "=====================
@@ -272,25 +356,10 @@ function! s:textmanip.duplicate_visual(direction) "{{{
   let pos[1] = end_line
   call setpos('.', pos)
 endfun "}}}
-function! s:textmanip.duplicate_normal(direction) "{{{
-  let cnt = v:count1
-  while cnt != 0
-    let pos = getpos('.')
-
-    let first_line = line('.')
-    let last_line =  line('.')
-
-    let copy_to = a:direction == "down" ? last_line : first_line - 1
-    silent execute first_line . "," . last_line . "copy " . copy_to
-    let cnt -= 1
-  endwhile
-
-  let pos[1] = line('.')
-  call setpos('.', pos)
-endfunction "}}}
 function! s:textmanip.duplicate(direction, mode) "{{{
+  call s:varea.init(a:direction)
   if a:mode     ==# "n"
-    call self.duplicate_normal(a:direction)
+    call s:varea.duplicate()
   elseif a:mode ==# "v"
     call self.duplicate_visual(a:direction)
   endif
