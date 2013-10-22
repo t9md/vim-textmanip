@@ -23,9 +23,9 @@ function! s:varea.init(direction, mode) "{{{
   exe "normal! " . "\<Esc>"
   let e = getpos('.')[1:]                             
 
-  if     ((s[0] <= e[0]) && (s[1] <  e[1])) | let case = 1
-  elseif ((s[0] >= e[0]) && (s[1] >  e[1])) | let case = 2
-  elseif ((s[0] <= e[0]) && (s[1] >  e[1])) | let case = 3
+  if     ((s[0] <= e[0]) && (s[1] <=  e[1])) | let case = 1
+  elseif ((s[0] >= e[0]) && (s[1] >=  e[1])) | let case = 2
+  elseif ((s[0] <= e[0]) && (s[1] >=  e[1])) | let case = 3
   elseif ((s[0] >= e[0]) && (s[1] <= e[1])) | let case = 4
   endif
 
@@ -42,8 +42,10 @@ function! s:varea.init(direction, mode) "{{{
   let dr = [ d[0], r[1]]
   " let ur = [ u[0], r[1]]
   " let dl = [ d[0], l[1]]
-  let self.width  = abs(e[1] - s[1]) + 1
-  let self.height = abs(e[0] - s[0]) + 1
+  let w = abs(e[1] - s[1]) + 1
+  let h = abs(e[0] - s[0]) + 1
+  let self.width  = w
+  let self.height = h
 
   let c = 1
   let self.__c = c
@@ -57,87 +59,22 @@ function! s:varea.init(direction, mode) "{{{
         \ "d_org": [ [ s[0]+c, s[1]   ], [  e[0]+c,  e[1]   ]],
         \ "r_org": [ [ s[0]  , s[1]+c ], [  e[0]  ,  e[1]+c ]],
         \ "l_org": [ [ s[0]  , s[1]-c ], [  e[0]  ,  e[1]-c ]],
+        \ "d_mov": [ [ s[0]  , s[1]   ], [  e[0]+h,  e[1]   ]],
+        \ "u_mov": [ [ s[0]  , s[1]   ], [  e[0]+h,  e[1]   ]],
         \ }
         " \ "u_mov": [ [ s[0]  , s[1]-c ], [  e[0]  ,  e[1]-c ]],
         " \ "u_mov": [ [ s[0]  , s[1]-c ], [  e[0]  ,  e[1]-c ]],
 
-  " echo PP(self.__table)
-  "--------------------------------------------------------------
-
-  " let self.cursor_to = e
-  " let self.cursor_fr = s
-  " exe "normal! " . self.mode
-
-  " " [lnum, col]
-  " let pos1 = getpos("'<")[1:2]
-  " let pos2 = getpos("'>")[1:2]
-
-  " " original "{{{
-  " if pos1[1] >= pos2[1]
-    " let self.start = [pos1[0], pos2[1]]
-    " let self.end   = [pos2[0], pos1[1]]
-  " else
-    " let self.start = pos1
-    " let self.end   = pos2
-  " endif
-  let self.start = ul
-  let self.end = dr
-  " " up "{{{
-  " " let self.up_start = [ self.start[0] - 1 , self.start[1]]
-  " " let self.up_end   = [ self.end[0] - 1 , self.end[1]]
-  " let self.up_start = copy(self.start)
-  " let self.up_end = copy(self.end)
-  " let self.up_start[0] -= 1
-  " let self.up_end[0] -= 1
-
-  " let self.up_fr    = [ self.cursor_fr[0] - 1 , self.cursor_fr[1]]
-  " let self.up_to    = [ self.cursor_to[0] - 1 , self.cursor_to[1]]
-  " "}}}
-  " " down "{{{
-  " let self.down_start = copy(self.start)
-  " let self.down_end = copy(self.end)
-  " let self.down_start[0] += 1
-  " let self.down_end[0] += 1
-
-  " let self.down_fr    = [ self.cursor_fr[0] + 1 , self.cursor_fr[1]]
-  " let self.down_to    = [ self.cursor_to[0] + 1 , self.cursor_to[1]]
-
-  " "}}}
-  " " right  "{{{
-  " let self.right_start = copy(self.start)
-  " let self.right_end = copy(self.end)
-  " let self.right_start[1] += 1
-  " let self.right_end[1] += 1
-
-  " let self.right_fr = [ self.cursor_fr[0] , self.cursor_fr[1] + 1]
-  " let self.right_to = [ self.cursor_to[0] , self.cursor_to[1] + 1]
-  " " }}}
-  " " left "{{{
-  " let self.left_start = copy(self.start)
-  " let self.left_end = copy(self.end)
-  " let self.left_start[1] -= 1
-  " let self.left_end[1]   -= 1
-
-  " let self.left_fr = [  self.cursor_fr[0] , self.cursor_fr[1] - 1]
-  " let self.left_to = [  self.cursor_to[0] , self.cursor_to[1] - 1]
-  " "}}}
-  " other "{{{
-  " let self.width      = (self.end[1] -  self.start[1]) + 1
-  " let self.height     = (self.end[0] -  self.start[0]) + 1
-  " let self.is_multiline = (self.start[0] !=# self.end[0])
-  "
   let self.is_multiline = (self.height > 1)
   let self.is_linewise =
         \ (self.mode ==# 'V' ) || (self.mode ==# 'v' && self.is_multiline)
-
   let no_space = empty(filter(getline(ul[0],dr[0]),"v:val =~# '^\\s'"))
-  let self.is_eol = self.end[0] ==# line('$')
+  let self.is_eol = dr[0] ==# line('$')
   let self.cant_move =
         \ ( self._direction ==# 'up' && ul[0] == 1) ||
         \ ( self._direction ==# 'left' && ( self.is_linewise && no_space )) ||
         \ ( self._direction ==# 'left' &&
         \       (!self.is_linewise && ul[1] == 1 ))
-
   if self.mode ==# 'v'
     if self.is_linewise
       let self._select_mode = "V"
@@ -166,53 +103,15 @@ endfunction "}}}
 function! s:varea.virtualedit_restore() "{{{
   let &virtualedit = self._virtualedit
 endfunction "}}}
-
-function! s:varea.goto(key) "{{{
-  let pos = self[a:key] + [0]
-  call cursor(pos)
-endfunction "}}}
-" select area table {{{
-let s:select_area_table = {
-      \ "selected"       : ["cursor_fr"  , "cursor_to" ] ,
-      \ "up_change"      : ["up_start"   , "end"       ] ,
-      \ "up_original"    : ["up_fr"      , "up_to"     ] ,
-      \ "down_change"    : ["start"  , "down_end"   ] ,
-      \ "down_original"  : ["down_fr"    , "down_to"   ] ,
-      \ "right_change"   : ["start"      , "right_end" ] ,
-      \ "right_original" : ["right_fr"   , "right_to"  ] ,
-      \ "left_change"    : ["left_start" , "end"       ] ,
-      \ "left_original"  : ["left_fr"    , "left_to"   ] ,
-      \ "up_move"        : ["up_fr"      , "up_to"     ] ,
-      \ "down_move"      : ["down_fr"    , "down_to"   ] ,
-      \ }
-"}}}
-let s:varea._table = s:select_area_table
-
-function! s:varea.select(area) "{{{
-  " ex) up_change, up_original
-  let area = a:area ==# "selected" ? "selected": self._direction ."_". a:area
-  echo area
-  echo area
-  let [s, e] = s:select_area_table[area]
-  call self.goto(s)
-  execute "normal! " . self._select_mode
-  call self.goto(e)
-endfunction "}}}
-
-function! s:varea.select_area2(area)
+function! s:varea.select_area2(area) "{{{
   let area = self._direction[0] . "_" . a:area
   let [s, e] = self.__table[area]
   call cursor(s+[0])
   execute "normal! " . self._select_mode
   call cursor(e+[0])
-endfunction
+endfunction "}}}
 
 let Varea = s:varea
-" function! AreaList(A,L,P)
-" return keys(s:varea._table)
-" endfunction
-
-" let Varea = s:varea
 
 function! s:varea.move(direction) "{{{
   call self.init(a:direction, 'v')
@@ -235,9 +134,8 @@ function! s:varea.move(direction) "{{{
 
   endif
   call s:register.restore()
-
   call self.virtualedit_restore()
-  " call s:undo.update_status()
+  call s:undo.update_status()
 endfunction "}}}
 function! s:varea._replace_text() "{{{
   call self.select_area2("chg")
@@ -255,7 +153,6 @@ function! s:varea._replace_text() "{{{
   return join(s, "\n")
 endfunction "}}}
 function! s:varea.move_block() "{{{
-  " echo self._replace_text()
   call setreg("z", self._replace_text(), getregtype("x"))
   call self.select_area2("chg")
   normal! "zp
@@ -273,10 +170,10 @@ function! s:varea.move_line() "{{{
 
     if dir ==# 'up'
       let replace = selected[1:] + selected[0:0]
-      call setline(self.start[0] - 1, replace)
+      call setline(self.__pos.ul[0] - 1, replace)
     elseif dir ==# 'down'
       let replace = selected[-1:-1] + selected[:-2]
-      call setline(self.start[0], replace)
+      call setline(self.__pos.ul[0], replace)
     endif
     call self.select_area2("org")
     
@@ -307,48 +204,28 @@ function! s:varea.duplicate_normal() "{{{
   call setpos('.', pos)
 endfunction "}}}
 
-function! s:varea.duplicate() "{{{
-  let cnt = self._count
-  call setpos('.', self.cur_pos)
-  while cnt != 0
-    let pos = getpos('.')
-    let line = line('.')
-    let address = self._direction == "down" ? line : line - 1
-    let cmd = line . "," . line . "copy " . address
-    " echo cmd
-    silent execute cmd
-    let cnt -= 1
-  endwhile
-  let pos[1] = line('.')
-  call setpos('.', pos)
-endfunction "}}}
 function! s:varea.duplicate_visual() "{{{
   call setpos('.', self.cur_pos)
-  let pos = getpos('.')
-  " let status = s:textmanip_status()
   let loop = self._prevcount ? self._prevcount : 1
   while loop != 0
-    let copy_to = self._direction == "down" ? self.end[0] : self.start[0] - 1
-    let cmd = self.start[0] . "," . self.end[0] . "copy " . copy_to
+    let copy_to = self._direction == "down"
+          \ ? self.__pos.dr[0]
+          \ : self.__pos.ul[0] - 1
+    let cmd = self.__pos.ul[0] . "," . self.__pos.dr[0] . "copy " . copy_to
     silent execute cmd
     call s:decho("  [executed] " . cmd)
     let loop -= 1
   endwhile
   let cnt = self._prevcount ? self._prevcount : 1
-  if self._direction == "down"
-    let begin_line = self.end[0] + 1
-    let end_line   = self.end[0] + (self.height * cnt)
-  elseif self._direction == "up"
-    let begin_line = self.start[0]
-    echo begin_line
-    let end_line   = self.start[0] - 1 + (self.height * cnt)
-  endif
+  " if self._direction == "down"
+    " let begin_line = self.__pos.dr[0] + 1
+    " let end_line   = self.__pos.dr[0] + (self.height * cnt)
+  " elseif self._direction == "up"
+    " let begin_line = self.__pos.ul[0]
+    " let end_line   = self.__pos.ul[0] - 1 + (self.height * cnt)
+  " endif
 
-  let pos[1] = begin_line
-  call setpos('.', pos)
-  normal! V
-  let pos[1] = end_line
-  call setpos('.', pos)
+  call self.select_area2("mov")
 endfun "}}}
 
 function! s:textmanip.duplicate_visual(direction) "{{{
@@ -406,32 +283,6 @@ endfunction "}}}
 function! s:varea.dump() "{{{
   echo PP(self.__table)
 endfunction "}}}
-
-" function! Varea.check_select(area, flg) "{{{
-" if a:flg ==# 0
-" " echo "normal"
-" call cursor(getpos("'s")[1:])
-" exe "normal! " . "\<C-v>"
-" call cursor(getpos("'e")[1:])
-" else
-" " echo "opposite"
-" call cursor(getpos("'e")[1:])
-" exe "normal! " . "\<C-v>"
-" call cursor(getpos("'s")[1:])
-" end
-" normal "_y
-
-" call self.init("up")
-" let [s, e] = self._table[a:area]
-" echo [a:area, s, e]
-" call self.goto(s)
-" execute "normal! " . self._select_mode
-" call self.goto(e)
-" " redraw!
-" " redraw!
-" endfunction "}}}
-" command! -nargs=+ -complete=customlist,AreaList
-" \ Check :call Varea.check_select(<f-args>)
 
 " Undo:
 "===================== "{{{
