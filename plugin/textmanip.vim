@@ -35,6 +35,9 @@ nnoremap <Plug>(textmanip-debug)   :<C-u>echo textmanip#debug()<CR>
 " Experimental
 nnoremap <silent> <Plug>(textmanip-kickout)  :<C-u>call textmanip#kickout(0)<CR>
 vnoremap <silent> <Plug>(textmanip-kickout)  :call textmanip#kickout(0)<CR>
+
+" Command
+command! -range -nargs=* TextmanipKickout  call textmanip#kickout(<q-args>)
 "}}}
 
 if exists("g:textmanip_enable_mappings")
@@ -49,6 +52,7 @@ function! s:set_default_mapping() "{{{
 
     xmap <D-d> <Plug>(textmanip-duplicate-down)
     xmap <D-D> <Plug>(textmanip-duplicate-up)
+
   elseif ( has('win16') || has('win32') || has('win64') )
     " '<M->' Alt key
     nmap <M-d> <Plug>(textmanip-duplicate-down)
