@@ -1,4 +1,4 @@
-let g:textmanip_debug = 1
+let g:textmanip_debug = 0
 " nnoremap <F9> :let g:textmanip_debug =
       " \ !g:textmanip_debug <bar>echo g:textmanip_debug<CR>
 
@@ -113,33 +113,53 @@ function! s:varea.move_block() "{{{
   call self.visualmode_restore()
 endfunction "}}}
 
+function! s:varea._selct_org()
+  call cursor(self.__pos.ul + [0])
+  execute "normal! " . self._select_mode
+  call cursor(self.__pos.dr + [0])
+endfunction
+
 function! s:varea.duplicate_block() "{{{
+  call self.virtualedit_start()
+  " call s:undo.join()
+  call s:register.save("x","z")
+
   let d = self._direction
   let c = self._prevcount
   let h = self.height
+  let s = copy(self.__pos.ul) + [0]
+  let e = copy(self.__pos.dr) + [0]
+
+  call self._selct_org()
+  normal! "xy
+
   let target_line = d ==# 'up'
         \ ? self.__pos.ul[0]-1
         \ : self.__pos.dr[0]
-  let blank_line = map(range(h), '""')
+
+  let blank_line = map(range(h*c), '""')
   call append(target_line, blank_line)
 
-  call cursor(self.__pos.s+[0])
-  execute "normal! " . self._select_mode
-  call cursor(self.__pos.e+[0])
-
-  normal! "xy
-  let _s = split(getreg("x"), "\n")
-  let replace = join( _s + _s , "\n")
-
+  let _str = split(getreg("x"), "\n")
+  let _replace = copy(_str)
+  for n in range(c)
+    let _replace += _str
+  endfor
+  let replace = join( _replace , "\n")
   call setreg("z", replace, getregtype("x"))
-  let s = copy(self.__pos.s) + [0]
-  let e = copy(self.__pos.e) + [0]
-  let e[0] += h
+
+  let _e = copy(e)
+  let _e[0] += h*c
   call cursor(s)
   execute "normal! " . self._select_mode
-  call cursor(e)
+  call cursor(_e)
+
   normal! "zp
   call self.select_area("dup")
+
+  call s:register.restore()
+  call self.virtualedit_restore()
+  " call s:undo.update_status()
 endfunction "}}}
 
 " BlockMoveSummary:
@@ -534,7 +554,8 @@ function! textmanip#do(action, direction, mode) "{{{
       call s:varea.duplicate_normal()
     elseif a:mode ==# "v"
       call s:varea.init(a:direction, 'v')
-      if char2nr(visualmode()) ==# char2nr("\<C-v>")
+      if char2nr(visualmode()) ==# char2nr("\<C-v>") ||
+            \ s:varea.mode ==# 'v' && !s:varea.is_linewise
         call s:varea.duplicate_block()
       else
         call s:varea.duplicate_visual()
