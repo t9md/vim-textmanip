@@ -1,4 +1,4 @@
-let g:textmanip_debug = 0
+let g:textmanip_debug = 1
 " nnoremap <F9> :let g:textmanip_debug =
       " \ !g:textmanip_debug <bar>echo g:textmanip_debug<CR>
 
@@ -111,6 +111,35 @@ function! s:varea.move_block() "{{{
   normal! "zp
   call self.select_area("org")
   call self.visualmode_restore()
+endfunction "}}}
+
+function! s:varea.duplicate_block() "{{{
+  let d = self._direction
+  let c = self._prevcount
+  let h = self.height
+  let target_line = d ==# 'up'
+        \ ? self.__pos.ul[0]-1
+        \ : self.__pos.dr[0]
+  let blank_line = map(range(h), '""')
+  call append(target_line, blank_line)
+
+  call cursor(self.__pos.s+[0])
+  execute "normal! " . self._select_mode
+  call cursor(self.__pos.e+[0])
+
+  normal! "xy
+  let _s = split(getreg("x"), "\n")
+  let replace = join( _s + _s , "\n")
+
+  call setreg("z", replace, getregtype("x"))
+  let s = copy(self.__pos.s) + [0]
+  let e = copy(self.__pos.e) + [0]
+  let e[0] += h
+  call cursor(s)
+  execute "normal! " . self._select_mode
+  call cursor(e)
+  normal! "zp
+  call self.select_area("dup")
 endfunction "}}}
 
 " BlockMoveSummary:
@@ -493,22 +522,26 @@ function! s:varea.kickout(num, guide) "{{{
   return new_str
 endfunction "}}}
 " }}}
+
 " PlublicInterface:
 "===================== {{{
-function! textmanip#move(direction) "{{{
-  call s:varea.move(a:direction)
-endfunction "}}}
-
-function! textmanip#duplicate(direction, mode) "{{{
-  " echo [v:count1, v:prevcount]
-  if a:mode ==# "n"
-    call s:varea.init(a:direction, 'n')
-    call s:varea.duplicate_normal()
-  elseif a:mode ==# "v"
-    call s:varea.init(a:direction, 'v')
-    call s:varea.duplicate_visual()
+function! textmanip#do(action, direction, mode) "{{{
+  if a:action ==# 'move'
+    call s:varea.move(a:direction)
+  elseif a:action ==# 'dup'
+    if a:mode ==# "n"
+      call s:varea.init(a:direction, 'n')
+      call s:varea.duplicate_normal()
+    elseif a:mode ==# "v"
+      call s:varea.init(a:direction, 'v')
+      if char2nr(visualmode()) ==# char2nr("\<C-v>")
+        call s:varea.duplicate_block()
+      else
+        call s:varea.duplicate_visual()
+      endif
+    endif
   endif
-endfun "}}}
+endfunction "}}}
 
 " [FIXME] very rough state.
 function! textmanip#kickout(guide) range "{{{
