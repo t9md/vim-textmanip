@@ -205,28 +205,40 @@ function! s:varea.duplicate_normal() "{{{
     echo PP(append)
     return
   endif "}}}
-  if     self._direction ==# 'up'   | call append(line-1, append)
-  elseif self._direction ==# 'down' | call append(line, append)
+  if     self._direction ==# 'up'
+    let target_line = line - 1
+  elseif self._direction ==# 'down'
+    let target_line = line
+    let line += c
   endif
+  call append(target_line, append)
+  call cursor(line, self.cur_pos[2])
 endfunction "}}}
 
 function! s:varea.duplicate_visual() "{{{
-  call setpos('.', self.cur_pos)
-  let loop = self._prevcount ? self._prevcount : 1
-  while loop != 0
-    let copy_to = self._direction == "down"
-          \ ? self.__pos.dr[0]
-          \ : self.__pos.ul[0] - 1
-    let cmd = self.__pos.ul[0] . "," . self.__pos.dr[0] . "copy " . copy_to
-    silent execute cmd
-    let loop -= 1
-  endwhile
-  let cnt = self._prevcount ? self._prevcount : 1
-  call self.select_area("mov")
+  " call self.select_area("mov")
+  let dir      = self._direction
+  let c        = self._prevcount
+  let selected = getline(self.__pos.ul[0], self.__pos.dr[0])
+  let append   = repeat(selected, c)
+  if g:textmanip_debug "{{{
+    echo PP(selected)
+    echo len(selected)
+    echo '--'
+    echo PP(append)
+    echo len(append)
+    return
+  endif "}}}
+  let target_line = dir ==# 'up'
+        \ ? self.__pos.ul[0]-1
+        \ : self.__pos.dr[0]
+  call append(target_line, append)
+  call self.select_area("dup")
+  call self.visualmode_restore()
 endfun "}}}
 
 function! s:varea.init(direction, mode) "{{{
-  let self._prevcount = v:prevcount
+  let self._prevcount = (v:prevcount ? v:prevcount : 1)
   let self._count = v:count1
   let self._direction = a:direction
   let self.mode = visualmode()
@@ -266,6 +278,7 @@ function! s:varea.init(direction, mode) "{{{
   let dr = [ d[0], r[1]]      " let dl = [ d[0], l[1]] 
 
   let c = self._count
+  let pc = self._prevcount
   let w = abs(e[1] - s[1]) + 1
   let h = abs(e[0] - s[0]) + 1
   let self.__pos = { "s": s, "e": e, "ul": ul, "dr": dr }
@@ -281,6 +294,16 @@ function! s:varea.init(direction, mode) "{{{
         \ "d_mov": [ [ s[0]+h, s[1]   ], [  e[0]+h,  e[1]   ]],
         \ "u_mov": [ [ s[0]  , s[1]   ], [  e[0]  ,  e[1]   ]],
         \ }
+  let u_dup = (s[0] <= e[0])
+        \ ? [ [ s[0], s[1]   ], [  e[0]+(h*pc)-h,  e[1]   ]]
+        \ : [ [ s[0]+(h*pc)-h, s[1]], [ e[0],  e[1]   ]]
+  let d_dup = (s[0] <= e[0])
+        \ ? [ [ s[0]+h, s[1]   ], [  e[0]+(h*pc),  e[1]   ]]
+        \ : [ [ s[0]+(h*pc), s[1]   ], [ e[0]+h,  e[1]   ]]
+
+  let self.__table.u_dup = u_dup
+  let self.__table.d_dup = d_dup
+
   let self.width  = w
   let self.height = h
   let self.is_linewise = (self.mode ==# 'V' ) || (self.mode ==# 'v' && h > 1)
