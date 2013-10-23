@@ -1,7 +1,37 @@
-let g:textmanip_debug = 1
+let g:textmanip_debug = 0
 " nnoremap <F9> :let g:textmanip_debug =
       " \ !g:textmanip_debug <bar>echo g:textmanip_debug<CR>
 
+" CeckList:
+"===================== {{{
+" restore original vim options
+" restore original visual mode
+" restore original cursor pos including where 'o'pposit pos in visual mode.
+" count reflect result.
+" undoable for continuous move by one 'undo' command.
+" care when move across corner( TOF,EOF, BOL, EOL )
+"  - by adjusting cursor to appropriate value
+"  u => TOF
+"  d => EOF
+"  r => EOL(but ve care this!)
+"  l => BOF
+"
+" Supported: [O: Finish][X: Not Yet][P: Partially impremented]
+" * normal_mode:
+" [O] duplicate line to above, below
+"
+" * visual_line('V', or multiline 'v':
+" [O] duplicate line to above, below
+" [O] move righ/left
+" [O] undoable/count
+"
+" * visual_block(C-v):
+" [O] move selected block to up/down/right/left.
+"   ( but not multibyte char aware ).
+" [X] count support, not undoable
+"  
+"}}}
+"
 " CusrsorPos Management:
 "===================== {{{
 " (s)tart  (e)end
@@ -60,6 +90,8 @@ function! s:varea.move(direction) "{{{
 
   if self.is_linewise
     call self.move_line()
+    " [FIXME] dirty hack for status management yanking let '< , '> refresh
+    normal! "zygv
   else
     call self.move_block()
     " [FIXME] dirty hack for status management yanking let '< , '> refresh
@@ -72,6 +104,8 @@ function! s:varea.move(direction) "{{{
 endfunction "}}}
 
 function! s:varea.move_block() "{{{
+  " call self.select_area("chg")
+  " return
   call setreg("z", self._replace_text(), getregtype("x"))
   call self.select_area("chg")
   normal! "zp
@@ -79,7 +113,7 @@ function! s:varea.move_block() "{{{
   call self.visualmode_restore()
 endfunction "}}}
 
-" Summary:
+" BlockMoveSummary:
 "======================= {{{
 "  c = 1
 "  a  = [1, 2, 3]
@@ -94,7 +128,7 @@ endfunction "}}}
 "  a[  -1 :     ] + a[   :   -2] = [3, 1, 2]
 "
 "}}}
-" Updirection: 
+" Up_or_Left: 
 "======================= {{{
 "
 "    Line                      index
@@ -122,7 +156,7 @@ endfunction "}}}
 "                                                        
 "
 " "}}}
-" Downdirection:
+" Down:
 "======================= {{{
 "    Line                      index
 "        +-----------------+   -+-               
@@ -161,7 +195,7 @@ function! s:varea.move_line() "{{{
     if dir ==# 'up'
       let selected = getline(self.__pos.ul[0]-c, self.__pos.dr[0])
       let replace = selected[ c : ] + selected[ : c-1 ]
-      if g:textmanip_debug "{{{
+      if g:textmanip_debug > 2  "{{{
         echo PP(selected)
         echo len(selected)
         echo '--'
@@ -173,7 +207,7 @@ function! s:varea.move_line() "{{{
     elseif dir ==# 'down'
       let selected = getline(self.__pos.ul[0], self.__pos.dr[0]+c)
       let replace = selected[ -c : ] + selected[ : -c-1 ]
-      if g:textmanip_debug "{{{
+      if g:textmanip_debug > 2  "{{{
         echo PP(selected)
         echo len(selected)
         echo '--'
@@ -199,7 +233,7 @@ function! s:varea.duplicate_normal() "{{{
   let line = self.cur_pos[1]
   let selected = getline(line)
   let append = map(range(c), 'selected')
-  if g:textmanip_debug "{{{
+  if g:textmanip_debug > 2 "{{{
     echo PP(selected)
     echo '--'
     echo PP(append)
@@ -221,7 +255,7 @@ function! s:varea.duplicate_visual() "{{{
   let c        = self._prevcount
   let selected = getline(self.__pos.ul[0], self.__pos.dr[0])
   let append   = repeat(selected, c)
-  if g:textmanip_debug "{{{
+  if g:textmanip_debug > 2 "{{{
     echo PP(selected)
     echo len(selected)
     echo '--'
@@ -239,11 +273,10 @@ endfun "}}}
 
 function! s:varea.init(direction, mode) "{{{
   let self._prevcount = (v:prevcount ? v:prevcount : 1)
-  let self._count = v:count1
   let self._direction = a:direction
   let self.mode = visualmode()
-
   let self.cur_pos = getpos('.')
+  let self._count = v:count1
   if a:mode ==# 'n'
     return
   endif
@@ -277,7 +310,16 @@ function! s:varea.init(direction, mode) "{{{
   let ul = [ u[0], l[1] ]     " let ur = [ u[0], r[1]] 
   let dr = [ d[0], r[1]]      " let dl = [ d[0], l[1]] 
 
+  let max = 1
+  if     self._direction ==# 'up'    | let max = ul[0]-1
+  elseif self._direction ==# 'down'    "noting, extend_EOL() care.
+  elseif self._direction ==# 'right'  "nothing virtual edit care.
+  elseif self._direction ==# 'left'  | let max = ul[1]-1
+  endif
   let c = self._count
+  let c = max < c ? max : c
+  let self._count = c
+
   let pc = self._prevcount
   let w = abs(e[1] - s[1]) + 1
   let h = abs(e[0] - s[0]) + 1
@@ -352,15 +394,22 @@ endfunction "}}}
 function! s:varea._replace_text() "{{{
   call self.select_area("chg")
   normal! "xy
-  let selected = split(getreg("x"), "\n")
+  let _s = split(getreg("x"), "\n")
 
-  let dir = self._direction
-  if     dir ==# 'up'   | let s = selected[1:] + [selected[0]]
-  elseif dir ==# 'down' | let s = [selected[-1]] + selected[:-2]
-  elseif dir ==# 'right'| let s = map(selected,
-        \ 'v:val[self.width] . v:val[: self.width-1]')
-  elseif dir ==# 'left' | let s = map(selected,
-        \ 'v:val[1: self.width] . v:val[0]')
+  let c = self._count
+  let d = self._direction
+  let w = self.width
+  if     d ==# 'up'   | let s = _s[c :] +  _s[: c-1]
+  elseif d ==# 'down' | let s = _s[-c :] + _s[: -c-1]
+  elseif d ==# 'right'| let s = map(_s,'v:val[-c :] . v:val[: -c-1]')
+  elseif d ==# 'left' | let s = map(_s,'v:val[c : ] . v:val[:  c-1]')
+  endif
+  if g:textmanip_debug > 0
+    echo c
+    echo "-- selected"
+    echo PP(_s)
+    echo "-- replace"
+    echo PP(s)
   endif
   return join(s, "\n")
 endfunction "}}}
@@ -379,6 +428,7 @@ endfunction "}}}
 "===================== {{{
 let s:undo = {}
 function! s:undo.join() "{{{
+  " echo "==in undo join"
   if exists("b:textmanip_undo") &&
         \ b:textmanip_undo == self.selected()
     " echo "UNDO JOIN"
@@ -393,6 +443,7 @@ function! s:undo.join() "{{{
   endif
 endfunction "}}}
 function! s:undo.update_status() "{{{
+  " echo "== in update_status"
   let b:textmanip_undo = self.selected()
 endfunction "}}}
 function! s:undo.selected() "{{{
@@ -408,7 +459,9 @@ function! s:undo.selected() "{{{
         \ 'len': len(content),
         \ 'content': content,
         \ }
-  " echo PP(v)
+  if g:textmanip_debug > 3
+    echo PP(v)
+  endif
   return v
 endfunction "}}}
 "}}}
