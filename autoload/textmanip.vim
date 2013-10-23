@@ -1,12 +1,17 @@
-" {{{  CusrsorPos Management
+let g:textmanip_debug = 1
+" nnoremap <F9> :let g:textmanip_debug =
+      " \ !g:textmanip_debug <bar>echo g:textmanip_debug<CR>
+
+" CusrsorPos Management:
+"===================== {{{
 " (s)tart  (e)end
 " (u)p, (d)own, (l)eft, (r)ight
-" (ul) u/l, (ur) u/r, 
+" (ul) u/l, (ur) u/r,
 " (dl) d/l, (dr) u/l
 "
 "           |--width--|
 "        (1,1) >   >
-"      (ul) s----+----c (ur) -+-
+"      (ul) s----+----+ (ur) -+-
 "           |    |    | V     |
 "   case1   +----+----+       | height
 "           |    |    | V     |
@@ -35,112 +40,13 @@
 "           s----+----+
 "        (3,1) >    >
 "
-"                       "}}}
-
-let g:textmanip_debug = 0
-let s:textmanip = {}
+"}}}
 " VisualArea:
-"=====================
+"===================== {{{
 let s:varea = {}
-function! s:varea.init(direction, mode) "{{{
-  let self._prevcount = v:prevcount
-  let self._count = v:count1
-  let self._direction = a:direction
-  let self.mode = visualmode()
-
-  let self.cur_pos = getpos('.')
-  if a:mode ==# 'n'
-    return
-  endif
-
-  " current pos
-  normal! gvo
-  let _s = getpos('.')
-  exe "normal! " . "\<Esc>"
-  let s = [_s[1], _s[2] + _s[3]]
-  normal! gvo
-  let _e = getpos('.')
-  exe "normal! " . "\<Esc>"
-  let e = [_e[1], _e[2] + _e[3]]
-
-  if     ((s[0] <= e[0]) && (s[1] <=  e[1])) | let case = 1
-  elseif ((s[0] >= e[0]) && (s[1] >=  e[1])) | let case = 2
-  elseif ((s[0] <= e[0]) && (s[1] >=  e[1])) | let case = 3
-  elseif ((s[0] >= e[0]) && (s[1] <=  e[1])) | let case = 4
-  endif
-
-  if     case ==# 1 | let [u, d, l, r ] = [ s, e, s, e]
-  elseif case ==# 2 | let [u, d, l, r ] = [ e, s, e, s]
-  elseif case ==# 3 | let [u, d, l, r ] = [ s, e, e, s]
-  elseif case ==# 4 | let [u, d, l, r ] = [ e, s, s, e]
-  endif
-
-  let ul = [ u[0], l[1] ]
-  let dr = [ d[0], r[1]]
-  " let ur = [ u[0], r[1]]
-  " let dl = [ d[0], l[1]]
-  
-  let c = self._count
-  let w = abs(e[1] - s[1]) + 1
-  let h = abs(e[0] - s[0]) + 1
-  let self.__pos = { "s": s, "e": e, "ul": ul, "dr": dr }
-  let self.__table = {
-        \ "u_chg": [       dr,           [ ul[0]-c, ul[1]   ]],
-        \ "d_chg": [       ul,           [ dr[0]+c, dr[1]   ]],
-        \ "r_chg": [       ul,           [ dr[0]  , dr[1]+c ]],
-        \ "l_chg": [       dr,           [ ul[0]  , ul[1]-c ]],
-        \ "u_org": [ [ s[0]-c, s[1]   ], [  e[0]-c,  e[1]   ]],
-        \ "d_org": [ [ s[0]+c, s[1]   ], [  e[0]+c,  e[1]   ]],
-        \ "r_org": [ [ s[0]  , s[1]+c ], [  e[0]  ,  e[1]+c ]],
-        \ "l_org": [ [ s[0]  , s[1]-c ], [  e[0]  ,  e[1]-c ]],
-        \ "d_mov": [ [ s[0]+h, s[1]   ], [  e[0]+h,  e[1]   ]],
-        \ "u_mov": [ [ s[0]  , s[1]   ], [  e[0]  ,  e[1]   ]],
-        \ }
-  let self.width  = w
-  let self.height = h
-  let self.is_linewise = (self.mode ==# 'V' ) || (self.mode ==# 'v' && h > 1)
-  let no_space = empty(filter(getline(ul[0], dr[0]),"v:val =~# '^\\s'"))
-  let self.is_eol = dr[0] ==# line('$')
-  let self.cant_move =
-        \ ( self._direction ==# 'up' && ul[0] ==# 1) ||
-        \ ( self._direction ==# 'left' && ( self.is_linewise && no_space )) ||
-        \ ( self._direction ==# 'left' && (!self.is_linewise && ul[1] == 1 ))
-  let self._select_mode = self.mode
-  if self.mode ==# 'v'
-    let self._select_mode = (self.is_linewise) ? "V" : "\<C-v>"
-  endif
-  "}}}
-endfunction "}}}
-
-function! s:varea.extend_eol() "{{{
-  if self.is_eol && self._direction ==# 'down'
-    call append(line('$'),"")
-  endif
-endfunction "}}}
-
-function! s:varea.visualmode_restore() "{{{
-  if self.mode !=# self._select_mode
-    exe "normal! " . self.mode
-  endif
-endfunction "}}}
-function! s:varea.virtualedit_start() "{{{
-  let self._virtualedit = &virtualedit
-  let &virtualedit = 'all'
-endfunction "}}}
-function! s:varea.virtualedit_restore() "{{{
-  let &virtualedit = self._virtualedit
-endfunction "}}}
-function! s:varea.select_area(area) "{{{
-  let area = self._direction[0] . "_" . a:area
-  let [s, e] = self.__table[area]
-  call cursor(s+[0])
-  execute "normal! " . self._select_mode
-  call cursor(e+[0])
-endfunction "}}}
-
 function! s:varea.move(direction) "{{{
   call self.virtualedit_start()
-  call s:undo.join()   
+  call s:undo.join()
   call self.init(a:direction, 'v')
 
   if self.cant_move
@@ -148,8 +54,8 @@ function! s:varea.move(direction) "{{{
     normal! gv
     return
   endif
-                       
-  call self.extend_eol()
+
+  call self.extend_EOF()
   call s:register.save("x","z")
 
   if self.is_linewise
@@ -165,25 +71,7 @@ function! s:varea.move(direction) "{{{
   call s:undo.update_status()
 endfunction "}}}
 
-function! s:varea._replace_text() "{{{
-  call self.select_area("chg")
-  normal! "xy
-  let selected = split(getreg("x"), "\n")
-
-  let dir = self._direction
-  if     dir ==# 'up'   | let s = selected[1:] + [selected[0]]
-  elseif dir ==# 'down' | let s = [selected[-1]] + selected[:-2]
-  elseif dir ==# 'right'| let s = map(selected,
-        \ 'v:val[self.width] . v:val[: self.width-1]')
-  elseif dir ==# 'left' | let s = map(selected,
-        \ 'v:val[1: self.width] . v:val[0]')
-  endif
-  return join(s, "\n")
-endfunction "}}}
-
 function! s:varea.move_block() "{{{
-  " echo  PP([self.__pos.s, self.__pos.e])
-  " echo PP(self._replace_text())
   call setreg("z", self._replace_text(), getregtype("x"))
   call self.select_area("chg")
   normal! "zp
@@ -191,10 +79,77 @@ function! s:varea.move_block() "{{{
   call self.visualmode_restore()
 endfunction "}}}
 
-" nnoremap <F9> :let D = !D <bar>echo D<CR>
-let g:D = 0
+" Summary:
+"======================= {{{
+"  c = 1
+"  a  = [1, 2, 3]
+" Up:
+"  a[     : c-1 ] = [1]
+"  a[   c :     ] = [2, 3]
+"  a[   c :     ] + a[   : c-1 ] = [2, 3, 1]
+"
+" Down:
+"  a[  -1 :     ] = [3]
+"  a[     : -2  ] = [1, 2]
+"  a[  -1 :     ] + a[   :   -2] = [3, 1, 2]
+"
+"}}}
+" Updirection: 
+"======================= {{{
+"
+"    Line                      index
+"        +-----------------+   -+-               
+"     1  |   Replaced      | 0  | count amount        
+"        +-----------------+   -+-(1 in this example) 
+"     2  |                 | 1  |                     
+"        +   Original      +    | height              
+"     3  |   Selection     | 2  |                                 
+"        +-----------------+   -+-                                
+"                |
+"                | let s = getline(1, 3)
+"                |
+"                V                                
+"  index    0      1      2            1      2      0   
+"  idx rev -3     -2     -1           -2     -1     -3   
+"       +======+------+------+     +------+------+======+            
+"       |  L1  |  L2  |  L3  | =>  |  L2  |  L3  |  L1  |
+"       +======+------+------+     +------+------+======+            
+"       |-count|--- height---|     |--- height---|-count|
+"       s[:c-1]|   s[c:]     |     |   s[c:]  +   s[:c-1]
+"       |  |   |      |      |     |      |      |  |   |
+"       |  V   |      V      |     |      V      |  V   |
+"       |s[:0] |    s[1:]    | =>  |    s[1:]    |s[:0] |
+"                                                        
+"
+" "}}}
+" Downdirection:
+"======================= {{{
+"    Line                      index
+"        +-----------------+   -+-               
+"     1  |   Original      | 0  | 
+"        +   Selection     +    | height         
+"     2  |                 | 1  | 
+"        +-----------------+   -+-               
+"     3  |   Replaced      | 2  | count amount                    
+"        +-----------------+   -+-(1 in this example)             
+"                |
+"                | let s = getline(1, 3)
+"                |
+"                V                                
+"  index    0      1      2           2      0      1      
+"  idx rev -3     -2     -1          -1     -3     -2      
+"       +------+------+======+    +======+------+------+                
+"       |  L1  |  L2  |  L3  | => |  L3  |  L1  |  L2  | 
+"       +------+------+======+    +======+------+------+                
+"       |--- height---|-count|    |-count|--- height---|  
+"       | s[0:-c-1]   |s[-c:]|    |s[-c:]|  s[ :-c-1]  |
+"       |      |      |  |   |    |      |             |
+"       |      V      |  V   |    |      |             |
+"       | s[0:-2]     |s[-1:]| => |s[-1:]+  s[ :-2]    |
+"}}}
+
 function! s:varea.move_line() "{{{
-  let dir = self._direction 
+  let dir = self._direction
 
   let c = self._count
   if     dir ==# "up" || dir ==# "down"
@@ -205,8 +160,8 @@ function! s:varea.move_line() "{{{
 
     if dir ==# 'up'
       let selected = getline(self.__pos.ul[0]-c, self.__pos.dr[0])
-      let replace = selected[ c : ] + selected[ : c-1 ]      
-      if g:D "{{{
+      let replace = selected[ c : ] + selected[ : c-1 ]
+      if g:textmanip_debug "{{{
         echo PP(selected)
         echo len(selected)
         echo '--'
@@ -217,8 +172,8 @@ function! s:varea.move_line() "{{{
       call setline(self.__pos.ul[0] - c, replace)
     elseif dir ==# 'down'
       let selected = getline(self.__pos.ul[0], self.__pos.dr[0]+c)
-      let replace = selected[ -c : ] + selected[ : -c-1 ]     
-      if g:D "{{{
+      let replace = selected[ -c : ] + selected[ : -c-1 ]
+      if g:textmanip_debug "{{{
         echo PP(selected)
         echo len(selected)
         echo '--'
@@ -240,19 +195,19 @@ function! s:varea.move_line() "{{{
 endfunction "}}}
 
 function! s:varea.duplicate_normal() "{{{
-  let cnt = self._count
-  call setpos('.', self.cur_pos)
-  while cnt != 0
-    let pos = getpos('.')
-    let line = line('.')
-    let address = self._direction == "down" ? line : line - 1
-    let cmd = line . "," . line . "copy " . address
-    " echo cmd
-    silent execute cmd
-    let cnt -= 1
-  endwhile
-  let pos[1] = line('.')
-  call setpos('.', pos)
+  let c    = self._count
+  let line = self.cur_pos[1]
+  let selected = getline(line)
+  let append = map(range(c), 'selected')
+  if g:textmanip_debug "{{{
+    echo PP(selected)
+    echo '--'
+    echo PP(append)
+    return
+  endif "}}}
+  if     self._direction ==# 'up'   | call append(line-1, append)
+  elseif self._direction ==# 'down' | call append(line, append)
+  endif
 endfunction "}}}
 
 function! s:varea.duplicate_visual() "{{{
@@ -264,58 +219,127 @@ function! s:varea.duplicate_visual() "{{{
           \ : self.__pos.ul[0] - 1
     let cmd = self.__pos.ul[0] . "," . self.__pos.dr[0] . "copy " . copy_to
     silent execute cmd
-    call s:decho("  [executed] " . cmd)
-    let loop -= 1                                               
-  endwhile                                                      
-  let cnt = self._prevcount ? self._prevcount : 1               
-  call self.select_area("mov")                                  
-endfun "}}}
-
-function! s:textmanip.duplicate_visual(direction) "{{{
-  let pos = getpos('.')
-  let status = s:textmanip_status()
-
-  let loop = v:prevcount ? v:prevcount : 1
-  while loop != 0
-    let copy_to = a:direction == "down"
-          \ ? status.end_linenr
-          \ : status.start_linenr - 1
-    let cmd = status.start_linenr . "," . status.end_linenr . "copy " . copy_to
-    silent execute cmd
-    call s:decho("  [executed] " . cmd)
     let loop -= 1
   endwhile
-
-  let cnt = v:prevcount ? v:prevcount : 1
-  if a:direction == "down"
-    let begin_line = status.end_linenr + 1
-    let end_line   = status.end_linenr + (status.len * cnt)
-  elseif a:direction == "up"
-    let begin_line = status.start_linenr
-    let end_line   = status.start_linenr - 1 + (status.len * cnt)
-  endif
-
-  let pos[1] = begin_line
-  call setpos('.', pos)
-  normal! V
-  let pos[1] = end_line
-  call setpos('.', pos)
+  let cnt = self._prevcount ? self._prevcount : 1
+  call self.select_area("mov")
 endfun "}}}
 
-function! s:duplicate_normal(direction) "{{{
-  let cnt = v:count1
-  while cnt != 0
-    let pos = getpos('.')
-    let line = line('.')
-    let address = a:direction == "down" ? line : line - 1
-    let cmd = line . "," . line . "copy " . address
-    " echo cmd
-    silent execute cmd
-    " silent execute line . "," . line . "copy " . address
-    let cnt -= 1
-  endwhile
-  let pos[1] = line('.')
-  call setpos('.', pos)
+function! s:varea.init(direction, mode) "{{{
+  let self._prevcount = v:prevcount
+  let self._count = v:count1
+  let self._direction = a:direction
+  let self.mode = visualmode()
+
+  let self.cur_pos = getpos('.')
+  if a:mode ==# 'n'
+    return
+  endif
+
+  " current pos
+  normal! gvo
+
+  let _s = getpos('.')
+  exe "normal! " . "\<Esc>"
+" getpos() return [bufnum, lnum, col, off]
+" off is offset from actual col when virtual edit(ve) mode,
+" so to respect ve position, we sum "col" + "off"
+  let s = [_s[1], _s[2] + _s[3]]
+  normal! gvo
+  let _e = getpos('.')
+  exe "normal! " . "\<Esc>"
+  let e = [_e[1], _e[2] + _e[3]]
+
+  if     ((s[0] <= e[0]) && (s[1] <=  e[1])) | let case = 1
+  elseif ((s[0] >= e[0]) && (s[1] >=  e[1])) | let case = 2
+  elseif ((s[0] <= e[0]) && (s[1] >=  e[1])) | let case = 3
+  elseif ((s[0] >= e[0]) && (s[1] <=  e[1])) | let case = 4
+  endif
+
+  if     case ==# 1 | let [u, d, l, r ] = [ s, e, s, e]
+  elseif case ==# 2 | let [u, d, l, r ] = [ e, s, e, s]
+  elseif case ==# 3 | let [u, d, l, r ] = [ s, e, e, s]
+  elseif case ==# 4 | let [u, d, l, r ] = [ e, s, s, e]
+  endif
+
+  let ul = [ u[0], l[1] ]     " let ur = [ u[0], r[1]] 
+  let dr = [ d[0], r[1]]      " let dl = [ d[0], l[1]] 
+
+  let c = self._count
+  let w = abs(e[1] - s[1]) + 1
+  let h = abs(e[0] - s[0]) + 1
+  let self.__pos = { "s": s, "e": e, "ul": ul, "dr": dr }
+  let self.__table = {
+        \ "u_chg": [       dr,           [ ul[0]-c, ul[1]   ]],
+        \ "d_chg": [       ul,           [ dr[0]+c, dr[1]   ]],
+        \ "r_chg": [       ul,           [ dr[0]  , dr[1]+c ]],
+        \ "l_chg": [       dr,           [ ul[0]  , ul[1]-c ]],
+        \ "u_org": [ [ s[0]-c, s[1]   ], [  e[0]-c,  e[1]   ]],
+        \ "d_org": [ [ s[0]+c, s[1]   ], [  e[0]+c,  e[1]   ]],
+        \ "r_org": [ [ s[0]  , s[1]+c ], [  e[0]  ,  e[1]+c ]],
+        \ "l_org": [ [ s[0]  , s[1]-c ], [  e[0]  ,  e[1]-c ]],
+        \ "d_mov": [ [ s[0]+h, s[1]   ], [  e[0]+h,  e[1]   ]],
+        \ "u_mov": [ [ s[0]  , s[1]   ], [  e[0]  ,  e[1]   ]],
+        \ }
+  let self.width  = w
+  let self.height = h
+  let self.is_linewise = (self.mode ==# 'V' ) || (self.mode ==# 'v' && h > 1)
+  let no_space = empty(filter(getline(ul[0], dr[0]),"v:val =~# '^\\s'"))
+  let self.cant_move =
+        \ ( self._direction ==# 'up' && ul[0] ==# 1) ||
+        \ ( self._direction ==# 'left' && ( self.is_linewise && no_space )) ||
+        \ ( self._direction ==# 'left' && (!self.is_linewise && ul[1] == 1 ))
+  let self._select_mode = self.mode
+  if self.mode ==# 'v'
+    let self._select_mode = (self.is_linewise) ? "V" : "\<C-v>"
+  endif
+endfunction "}}}
+
+function! s:varea.extend_EOF() "{{{
+  " even if set ve=all, dont automatically extend EOF
+  let amount = (self.__pos.dr[0] + self._count) - line('$')
+  if self._direction ==# 'down' && amount > 0 
+    call append(line('$'), map(range(amount), '""'))
+  endif
+endfunction "}}}
+
+function! s:varea.visualmode_restore() "{{{
+  if self.mode !=# self._select_mode
+    exe "normal! " . self.mode
+  endif
+endfunction "}}}
+
+function! s:varea.virtualedit_start() "{{{
+  let self._virtualedit = &virtualedit
+  let &virtualedit = 'all'
+endfunction "}}}
+
+function! s:varea.virtualedit_restore() "{{{
+  let &virtualedit = self._virtualedit
+endfunction "}}}
+
+function! s:varea.select_area(area) "{{{
+  let area = self._direction[0] . "_" . a:area
+  let [s, e] = self.__table[area]
+  call cursor(s+[0])
+  execute "normal! " . self._select_mode
+  call cursor(e+[0])
+endfunction "}}}
+
+function! s:varea._replace_text() "{{{
+  call self.select_area("chg")
+  normal! "xy
+  let selected = split(getreg("x"), "\n")
+
+  let dir = self._direction
+  if     dir ==# 'up'   | let s = selected[1:] + [selected[0]]
+  elseif dir ==# 'down' | let s = [selected[-1]] + selected[:-2]
+  elseif dir ==# 'right'| let s = map(selected,
+        \ 'v:val[self.width] . v:val[: self.width-1]')
+  elseif dir ==# 'left' | let s = map(selected,
+        \ 'v:val[1: self.width] . v:val[0]')
+  endif
+  return join(s, "\n")
 endfunction "}}}
 
 function! s:decho(msg) "{{{
@@ -323,12 +347,13 @@ function! s:decho(msg) "{{{
     echo a:msg
   endif
 endfunction "}}}
+
 function! s:varea.dump() "{{{
   echo PP(self.__table)
 endfunction "}}}
-
+" }}}
 " Undo:
-"===================== "{{{
+"===================== {{{
 let s:undo = {}
 function! s:undo.join() "{{{
   if exists("b:textmanip_undo") &&
@@ -365,7 +390,7 @@ function! s:undo.selected() "{{{
 endfunction "}}}
 "}}}
 " RegisterManagement:
-"===================== "{{{
+"===================== {{{
 let s:register = {}
 let s:register._data = {}
 function! s:register.save(...) "{{{
@@ -380,8 +405,8 @@ function! s:register.restore() "{{{
   let self._data = {}
 endfunction "}}}
 "}}}
-
 " Other:
+"===================== {{{
 function! s:varea.kickout(num, guide) "{{{
   let orig_str = getline(a:num)
   let s1 = orig_str[ : col('.')- 2 ]
@@ -391,9 +416,9 @@ function! s:varea.kickout(num, guide) "{{{
   let new_str = join([s1, pad, s2],'')
   return new_str
 endfunction "}}}
-
+" }}}
 " PlublicInterface:
-"=================================================================
+"===================== {{{
 function! textmanip#move(direction) "{{{
   " echo [v:count1, v:prevcount]
   " echo [v:count1, v:prevcount]
@@ -429,6 +454,7 @@ endfunction "}}}
 function! textmanip#debug() "{{{
   return PP(s:varea)
 endfunction "}}}
+" }}}
 
 " Test
 " 111111|BBBBBB|111111
