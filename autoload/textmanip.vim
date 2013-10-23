@@ -496,14 +496,10 @@ endfunction "}}}
 " PlublicInterface:
 "===================== {{{
 function! textmanip#move(direction) "{{{
-  " echo [v:count1, v:prevcount]
-  " echo [v:count1, v:prevcount]
-  " echo v:count1
   call s:varea.move(a:direction)
 endfunction "}}}
 
 function! textmanip#duplicate(direction, mode) "{{{
-  " echo [v:count1, v:prevcount]
   " echo [v:count1, v:prevcount]
   if a:mode ==# "n"
     call s:varea.init(a:direction, 'n')
@@ -514,6 +510,7 @@ function! textmanip#duplicate(direction, mode) "{{{
   endif
 endfun "}}}
 
+" [FIXME] very rough state.
 function! textmanip#kickout(guide) range "{{{
   " let answer = a:ask ? input("guide?:") : ''
   let guide = !empty(a:guide) ? a:guide : ' '
