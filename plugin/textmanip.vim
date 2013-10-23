@@ -31,12 +31,11 @@ vnoremap <Plug>(textmanip-move-right) :<C-u>call textmanip#move('right')<CR>
 vnoremap <Plug>(textmanip-move-left)  :<C-u>call textmanip#move('left')<CR>
 
 nnoremap <Plug>(textmanip-debug)   :<C-u>echo textmanip#debug()<CR>
-
 " Experimental
 nnoremap <silent> <Plug>(textmanip-kickout)  :<C-u>call textmanip#kickout(0)<CR>
 vnoremap <silent> <Plug>(textmanip-kickout)  :call textmanip#kickout(0)<CR>
 
-" Command
+" Command [FIXME]
 command! -range -nargs=* TextmanipKickout  call textmanip#kickout(<q-args>)
 "}}}
 
@@ -49,7 +48,6 @@ function! s:set_default_mapping() "{{{
     " '<D-' Command key
     nmap <D-d> <Plug>(textmanip-duplicate-down)
     nmap <D-D> <Plug>(textmanip-duplicate-up)
-
     xmap <D-d> <Plug>(textmanip-duplicate-down)
     xmap <D-D> <Plug>(textmanip-duplicate-up)
 
@@ -57,7 +55,6 @@ function! s:set_default_mapping() "{{{
     " '<M->' Alt key
     nmap <M-d> <Plug>(textmanip-duplicate-down)
     nmap <M-D> <Plug>(textmanip-duplicate-up)
-
     xmap <M-d> <Plug>(textmanip-duplicate-down)
     xmap <M-D> <Plug>(textmanip-duplicate-up)
   endif

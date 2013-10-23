@@ -7,7 +7,7 @@
 	    `' `-' ' ` `' ' ' ' `-^ ' ' ' |-' 
 					  |   < easy manupilation >
 
-Version: 0.7
+Version: 1.0
 Author : t9md <taqumd@gmail.com>
 
 ==============================================================================
@@ -31,7 +31,7 @@ INTRODUCTION						*textmanip-introduction*
   * move visually selected text easily
 
 Requirement:
-- Vim 7.0 or later
+- Vim 7.3 or later
 
 Latest Version:
 http://github.com/t9md/vim-textmanip
@@ -54,46 +54,32 @@ amount of `movement`.
 
 n <Plug>(textmanip-duplicate-down)
 v <Plug>(textmanip-duplicate-down)
+    |count| support.
     Copy text of current line or visually selected area to `down` direction.
+
 
 n <Plug>(textmanip-duplicate-up)
 v <Plug>(textmanip-duplicate-up)
+    |count| support.
     Copy text of current line or visually selected area to `up` direction.
 
 v <Plug>(textmanip-move-up)
 v <Plug>(textmanip-move-down)
 v <Plug>(textmanip-move-right)
 v <Plug>(textmanip-move-left)
-    |linewise|
+
     Move visually selected text to specified direction.
-    When down ward move reach EOF, it automatically add empty line to be able
+
+    |linewise| (|v_V| or |v_v| expand multi line)
+    move line up/down/left/right.
+    When downward move reach EOF, it automatically add empty line to be able
     to across the original EOF.
 
-    [NOTE] This virtual key map will be mapped to <Plug>(textmanip-move-smart-)
-    family. So behavior will be change in future version.
-    If you stick to current behavior, use <Plug>(textmanip-move-line-) faimly.
-
-v <Plug>(textmanip-move-line-up)
-v <Plug>(textmanip-move-line-down)
-v <Plug>(textmanip-move-line-right)
-v <Plug>(textmanip-move-line-left)
-    |linewise|
-    In future version, original <Plug>(textmanip-move-)
-    Move visually selected text to specified direction.
-    When down ward move reach EOF, it automatically add empty line to be able
-    to across the original EOF.
-
-v <Plug>(textmanip-move-block-right)
-v <Plug>(textmanip-move-block-left)
-    |blockwise|
-    Move visually selected text to specified direction.
+    |characterwise-visual| (|v_v|)
+    |blockwise-visual| (|v_CTRL-V|)
+    Move visual selected word or block to up/down/left/right.
     When right direction reach EOL it automatically add one space " " to be
     able to across original EOL.
-
-v <Plug>(textmanip-move-smart-right)
-v <Plug>(textmanip-move-smart-left)
-    Move visually selected text |linewise| or |blockwise| based on last
-    |visualmode()| you invoked.
 
 ==============================================================================
 CONFIGURATION EXAMPLE					   *textmanip-example*
@@ -152,11 +138,10 @@ position not restored to original position.
 
 ==============================================================================
 CHANGELOG						 *textmanip-changelog*
-2013-10-21:
+2013-10-24: v1.0
 	- completely rewriten code, and now suppport blockwise movement
 	  all direction and undoable!!
-	  count support for movement deprecated
-	  (should be impremented near future)
+	  keep cursor pos for all movement.
 2013-10-02:
 	- just [experiment] new action textmanip-kickout.
 2011-12-18:
