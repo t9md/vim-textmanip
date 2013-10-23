@@ -7,7 +7,7 @@
 " GUARD: {{{
 "============================================================
 if exists('g:loaded_textmanip')
-  " finish
+  finish
 endif
 let g:loaded_textmanip = 1
 
