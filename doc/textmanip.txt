@@ -27,8 +27,10 @@ INTRODUCTION						*textmanip-introduction*
 
 *textmanip* is minimal utility for
 
-  * duplicate text easily
-  * move visually selected text easily
+  * move visually selected text easily ( linewise / blockwise )
+  * duplicate text easily ( linewise / blockwise )
+  * count support / keep original cursor pos while moving / duplicating.
+  * undo with one 'u' by undojoining.
 
 Requirement:
 - Vim 7.3 or later
@@ -138,6 +140,8 @@ position not restored to original position.
 
 ==============================================================================
 CHANGELOG						 *textmanip-changelog*
+2013-10-24:
+	- support blockwise duplication.
 2013-10-24: v1.0
 	- completely rewriten code, and now suppport blockwise movement
 	  all direction and undoable!!
