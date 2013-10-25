@@ -84,7 +84,6 @@ function! s:varea.move(direction) "{{{
     normal! gv
     return
   endif
-
   call self.extend_EOF()
   call s:register.save("x","z")
 
@@ -272,7 +271,9 @@ function! s:varea.move_line() "{{{
     exe "'<,'>" . repeat(">",c)
     normal! gv
   elseif dir ==# "left"
-    exe "'<,'>" . repeat("<",c)
+    echo "CALLED"
+    let cmd = "'<,'>" . repeat("<",c)
+    exe cmd
     normal! gv
   endif
 endfunction "}}}
@@ -399,16 +400,21 @@ function! s:varea.init(direction, mode) "{{{
   let self.height = h
   let self.is_linewise = (self.mode ==# 'V' ) || (self.mode ==# 'v' && h > 1)
   let no_space = empty(filter(getline(ul[0], dr[0]),"v:val =~# '^\\s'"))
+  " if no_space
+    " throw self.is_linewise
+  " endif
   let self.cant_move =
         \ ( self._direction ==# 'up' && ul[0] ==# 1) ||
         \ ( self._direction ==# 'left' && ( self.is_linewise && no_space )) ||
-        \ ( self._direction ==# 'left' && (!self.is_linewise && ul[1] == 1 ))
+        \ ( self._direction ==# 'left' &&
+        \    (!self.is_linewise && ul[1] == 1 && self.mode ==# "\<C-v>" ))
+  " throw self.cant_move
   let self._select_mode = self.mode
   if self.mode ==# 'v'
     let self._select_mode = (self.is_linewise) ? "V" : "\<C-v>"
   endif
 endfunction "}}}
-
+ 
 function! s:varea.extend_EOF() "{{{
   " even if set ve=all, dont automatically extend EOF
   let amount = (self.__pos.dr[0] + self._count) - line('$')
