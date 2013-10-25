@@ -271,9 +271,7 @@ function! s:varea.move_line() "{{{
     exe "'<,'>" . repeat(">",c)
     normal! gv
   elseif dir ==# "left"
-    echo "CALLED"
-    let cmd = "'<,'>" . repeat("<",c)
-    exe cmd
+    exe "'<,'>" . repeat("<",c)
     normal! gv
   endif
 endfunction "}}}
@@ -324,9 +322,9 @@ endfun "}}}
 function! s:varea.init(direction, mode) "{{{
   let self._prevcount = (v:prevcount ? v:prevcount : 1)
   let self._direction = a:direction
-  let self.mode = visualmode()
-  let self.cur_pos = getpos('.')
-  let self._count = v:count1
+  let self.mode       = visualmode()
+  let self.cur_pos    = getpos('.')
+  let self._count     = v:count1
   if a:mode ==# 'n'
     return
   endif
@@ -360,19 +358,27 @@ function! s:varea.init(direction, mode) "{{{
   let ul = [ u[0], l[1] ]     " let ur = [ u[0], r[1]] 
   let dr = [ d[0], r[1]]      " let dl = [ d[0], l[1]] 
 
-  let max = 1
-  if     self._direction ==# 'up'    | let max = ul[0]-1
-  elseif self._direction ==# 'down'    "noting, extend_EOL() care.
-  elseif self._direction ==# 'right'  "nothing virtual edit care.
-  elseif self._direction ==# 'left'  | let max = ul[1]-1
-  endif
-  let c = self._count
-  let c = max < c ? max : c
-  let self._count = c
-
   let pc = self._prevcount
   let w = abs(e[1] - s[1]) + 1
   let h = abs(e[0] - s[0]) + 1
+
+  " adjust count
+  let max = 1
+  let c   = self._count
+  if self._direction ==# 'up'
+    let max = ul[0]-1
+  endif
+
+  let self.width  = w
+  let self.height = h
+  let self.is_linewise = (self.mode ==# 'V' ) || (self.mode ==# 'v' && h > 1)
+  if !self.is_linewise && self._direction ==# 'left'
+    let max = ul[1]-1
+  endif
+  let c = min([max, c])
+  let self._count = c
+
+  " define movement/selection table
   let self.__pos = { "s": s, "e": e, "ul": ul, "dr": dr }
   let self.__table = {
         \ "u_chg": [       dr,           [ ul[0]-c, ul[1]   ]],
@@ -396,13 +402,8 @@ function! s:varea.init(direction, mode) "{{{
   let self.__table.u_dup = u_dup
   let self.__table.d_dup = d_dup
 
-  let self.width  = w
-  let self.height = h
-  let self.is_linewise = (self.mode ==# 'V' ) || (self.mode ==# 'v' && h > 1)
+  " set useful attribute
   let no_space = empty(filter(getline(ul[0], dr[0]),"v:val =~# '^\\s'"))
-  " if no_space
-    " throw self.is_linewise
-  " endif
   let self.cant_move =
         \ ( self._direction ==# 'up' && ul[0] ==# 1) ||
         \ ( self._direction ==# 'left' && ( self.is_linewise && no_space )) ||
