@@ -328,7 +328,7 @@ function! s:varea.init(direction, mode) "{{{
   if a:mode ==# 'n'
     return
   endif
-  echo "pre: " . self._count
+  " echo "pre: " . self._count
 
   " current pos
   normal! gvo
@@ -383,7 +383,7 @@ function! s:varea.init(direction, mode) "{{{
   let self._count = min([max, self._count])
   let c = self._count
 
-  echo "aft: " . self._count
+  " echo "aft: " . self._count
 
   " define movement/selection table
   let self.__pos = { "s": s, "e": e, "ul": ul, "dr": dr }
