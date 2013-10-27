@@ -3,8 +3,8 @@
 
 	    .	       .
 	   -|- ,-. . , |- ,-,-. ,-. ,-. . ,-.  >
-	    |  |-'  X  |  | | | ,-| | | | | | 
-	    `' `-' ' ` `' ' ' ' `-^ ' ' ' |-' 
+	    |  |-'  X  |  | | | ,-| | | | | |
+	    `' `-' ' ` `' ' ' ' `-^ ' ' ' |-'
 					  |   < easy manupilation >
 
 Version: 1.2
@@ -19,6 +19,7 @@ Mapping							   |textmanip-mapping|
 Configuration Examples					  |textmanip-examples|
 Use Case						   |textmanip-usecase|
 Practice						  |textmanip-practice|
+Detail							    |textmanip-detail|
 Todo							      |textmanip-todo|
 Bug							       |textmanip-bug|
 Changelog						 |textmanip-changelog|
@@ -52,7 +53,7 @@ VARIABLES						*textmanip-variables*
 ==============================================================================
 MAPPINGS						    *textmanip-mappings*
 
-all mappings accept |count| which specify number of `duplication` or 
+all mappings accept |count| which specify number of `duplication` or
 amount of `movement`.
 
 n <Plug>(textmanip-duplicate-down)
@@ -133,13 +134,56 @@ USE CASE						   *textmanip-usecase*
 ==============================================================================
 PRACTICE						  *textmanip-practice*
 
+
+==============================================================================
+DETAIL							     *textmanip-detail*
+
+Linewise or Blockwise is vary from how you invoked
+
+     * vim-mode - wise map >
+     +--------------+--------------+
+     | vim-mode     | wise	   |
+     +--------------+--------------|
+     | n	    | line	   |
+     | v oneline    | block	   |
+     | v multiline  | block	   |
+     | C-v	    | block	   |
+     +--------------+--------------+
+<
+Textmanip support 2 mode: insert, replace
+
+   * INSERT - action table >
+   +-----------------+--------------+--------------+
+   |  action	     | linewise     | blockwise    |
+   +-----------------+--------------|--------------|
+   | move-up/down    |	    O	    |	   O	   |
+   | move-right/left |	    O	    |	   O	   |
+   | dup-up/down     |	    O	    |	   O	   |
+   | dup-righ/left   |	   TODO     |	TODO	   |
+   +-----------------+--------------+--------------+
+<
+   * REPLACE - action table >
+   +-----------------+--------------+--------------+
+   |  action	     | linewise     | blockwise    |
+   +-----------------+--------------|--------------|
+   | move-up/down    |	    O	    |	   O	   |
+   | move-right/left |	   N/A	    |	   O	   |
+   | dup-up/down     |	   TODO     |	   O	   |
+   | dup-righ/left   |	   TODO     |	TODO	   |
+   +-----------------+--------------+--------------+
+<
 ==============================================================================
 TODO							      *textmanip-todo*
 
-- support replace mode
-- stabilize, kickout action 
+- support replace mode [up/down => o] [right/left => x ]
+- duplicate right
+- duplicate replacemode
+- refactoring( file separate, further oop style)
+- ?? option to automatically delete trailing space?
+- ?? option to automatically indent( I'm not in mood ).
+- fix? tab is counted as 1 char so blockwise movement destroy layout.
+- stabilize, kickout action
 - ?? move block or line to ^,$ with one command.
-
 
 ==============================================================================
 BUG							       *textmanip-bug*

@@ -35,9 +35,11 @@ nnoremap <silent> <Plug>(textmanip-kickout) :<C-u>call textmanip#kickout(0)<CR>
 vnoremap <silent> <Plug>(textmanip-kickout) :call textmanip#kickout(0)<CR>
 
 nnoremap <Plug>(textmanip-toggle-mode) :<C-u>call textmanip#toggle_mode()<CR>
+xnoremap <Plug>(textmanip-toggle-mode) :<C-u>call textmanip#toggle_mode()<CR>gv
 
 " Command [FIXME]
 command! -range -nargs=* TextmanipKickout call textmanip#kickout(<q-args>)
+command! -range -nargs=* TextmanipToggleMode call textmanip#toggle_mode()
 "}}}
 
 

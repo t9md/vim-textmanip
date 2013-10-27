@@ -38,7 +38,7 @@ let g:textmanip_move = 'replace'
 " [O] move selected block to up/down/right/left.
 "   ( but not multibyte char aware ).
 " [X] count support, not undoable
-"  
+"
 "}}}
 "
 " CusrsorPos Management:
@@ -89,7 +89,7 @@ function! s:varea.move(direction) "{{{
 
   call self.init(a:direction, 'v')
   if !self._continue
-    let b:textmanip_replaced = s:replaced.new(self.height)
+    let b:textmanip_replaced = s:replaced.new(self)
   endif
   let self._replaced = b:textmanip_replaced
 
@@ -119,11 +119,50 @@ endfunction "}}}
 function! s:varea.move_block() "{{{
   " call self.select_area("chg")
   " return
-  call setreg("z", self._replace_text(), getregtype("x"))
-  call self.select_area("chg")
-  normal! "zp
-  call self.select_area("org")
-  call self.visualmode_restore()
+  if g:textmanip_current_mode ==# "insert"
+    call setreg("z", self._replace_text(), getregtype("x"))
+    call self.select_area("chg")
+    normal! "zp
+    call self.select_area("org")
+    call self.visualmode_restore()
+  elseif g:textmanip_current_mode ==# "replace"
+    let c = self._count
+    let d = self._direction
+    let w = self.width
+
+    call self.select_area("chg")
+    normal! "xy
+    let _s = split(getreg("x"), "\n")
+               
+    if     d ==# 'up'
+      let eat = _s[: c-1]
+      let orig = _s[c :]
+      let rest = self._replaced.up(eat[0])
+      let replace   = orig + rest
+    elseif d ==# 'down'                                  
+      let eat = _s[-c :]                                 
+      let orig =_s[: -c-1]                               
+      let rest = self._replaced.down(eat[0])             
+      " throw string(rest + orig)                        
+      let replace = rest + orig                          
+    elseif d ==# 'right'                                 
+      let eat = map(copy(_s), 'v:val[-c :]')                  
+      let orig = map(copy(_s), 'v:val[ : -c-1]')              
+      let rest = self._replaced.right(eat)                    
+      let replace = map(orig, 'rest[v:key] . v:val')          
+    elseif d ==# 'left'                                       
+      let eat = map(copy(_s), 'v:val[: c-1]')                 
+      let orig = map(copy(_s), 'v:val[c : ]')                 
+      let rest = self._replaced.left(eat)                     
+      let replace = map(orig, 'v:val . rest[v:key]')          
+    endif                                                     
+                                                         
+    call setreg("z", join(replace,"\n"), getregtype("x"))
+    call self.select_area("chg")                         
+    normal! "zp                                          
+    call self.select_area("org")                         
+    call self.visualmode_restore()                       
+  endif                                                  
 endfunction "}}}
 
 function! s:varea._selct_org()
@@ -142,32 +181,57 @@ function! s:varea.duplicate_block() "{{{
   let s = copy(self.__pos.ul) + [0]
   let e = copy(self.__pos.dr) + [0]
 
-  call self._selct_org()
-  normal! "xy
+  if g:textmanip_current_mode ==# "insert"
+    call self._selct_org()
+    normal! "xy
 
-  let target_line = d ==# 'up'
-        \ ? self.__pos.ul[0]-1
-        \ : self.__pos.dr[0]
+    let target_line = d ==# 'up'
+          \ ? self.__pos.ul[0]-1
+          \ : self.__pos.dr[0]
 
-  let blank_line = map(range(h*c), '""')
-  call append(target_line, blank_line)
+    let blank_line = map(range(h*c), '""')
+    call append(target_line, blank_line)
 
-  let _str = split(getreg("x"), "\n")
-  let _replace = copy(_str)
-  for n in range(c)
-    let _replace += _str
-  endfor
-  let replace = join( _replace , "\n")
-  call setreg("z", replace, getregtype("x"))
+    let _str = split(getreg("x"), "\n")
+    let _replace = copy(_str)
+    for n in range(c)
+      let _replace += _str
+    endfor
+    let replace = join( _replace , "\n")
+    call setreg("z", replace, getregtype("x"))
 
-  let _e = copy(e)
-  let _e[0] += h*c
-  call cursor(s)
-  execute "normal! " . self._select_mode
-  call cursor(_e)
+    let e[0] += h*c
+    call cursor(s)
+    execute "normal! " . self._select_mode
+    call cursor(e)
 
-  normal! "zp
-  call self.select_area("dup")
+    normal! "zp
+    call self.select_area("dup")
+  elseif g:textmanip_current_mode ==# "replace"
+    call self._selct_org()
+    normal! "xy
+    let _str = split(getreg("x"), "\n")
+
+    let _replace = copy(_str)
+    for n in range(c)
+      let _replace += _str
+    endfor
+    let replace = join( _replace , "\n")
+    call setreg("z", replace, getregtype("x"))
+
+    if d ==# 'up'
+      let s[0] -= h*c
+    elseif d ==# 'down'
+      let e[0] += h*c
+    endif
+
+    call cursor(s)
+    execute "normal! " . self._select_mode
+    call cursor(e)
+
+    normal! "zp
+    call self.select_area("dup_replace")
+  endif
 
   call s:register.restore()
   call self.virtualedit_restore()
@@ -188,54 +252,54 @@ endfunction "}}}
 "  a[  -1 :     ] + a[   :   -2] = [3, 1, 2]
 "
 "}}}
-" Up_or_Left: 
+" Up_or_Left:
 "======================= {{{
 "
 "    Line                      index
-"        +-----------------+   -+-               
-"     1  |   Replaced      | 0  | count amount        
-"        +-----------------+   -+-(1 in this example) 
-"     2  |                 | 1  |                     
-"        +   Original      +    | height              
-"     3  |   Selection     | 2  |                                 
-"        +-----------------+   -+-                                
+"        +-----------------+   -+-
+"     1  |   Replaced      | 0  | count amount
+"        +-----------------+   -+-(1 in this example)
+"     2  |                 | 1  |
+"        +   Original      +    | height
+"     3  |   Selection     | 2  |
+"        +-----------------+   -+-
 "                |
 "                | let s = getline(1, 3)
 "                |
-"                V                                
-"  index    0      1      2            1      2      0   
-"  idx rev -3     -2     -1           -2     -1     -3   
-"       +======+------+------+     +------+------+======+            
+"                V
+"  index    0      1      2            1      2      0
+"  idx rev -3     -2     -1           -2     -1     -3
+"       +======+------+------+     +------+------+======+
 "       |  L1  |  L2  |  L3  | =>  |  L2  |  L3  |  L1  |
-"       +======+------+------+     +------+------+======+            
+"       +======+------+------+     +------+------+======+
 "       |-count|--- height---|     |--- height---|-count|
 "       s[:c-1]|   s[c:]     |     |   s[c:]  +   s[:c-1]
 "       |  |   |      |      |     |      |      |  |   |
 "       |  V   |      V      |     |      V      |  V   |
 "       |s[:0] |    s[1:]    | =>  |    s[1:]    |s[:0] |
-"                                                        
+"
 "
 " "}}}
 " Down:
 "======================= {{{
 "    Line                      index
-"        +-----------------+   -+-               
-"     1  |   Original      | 0  | 
-"        +   Selection     +    | height         
-"     2  |                 | 1  | 
-"        +-----------------+   -+-               
-"     3  |   Replaced      | 2  | count amount                    
-"        +-----------------+   -+-(1 in this example)             
+"        +-----------------+   -+-
+"     1  |   Original      | 0  |
+"        +   Selection     +    | height
+"     2  |                 | 1  |
+"        +-----------------+   -+-
+"     3  |   Replaced      | 2  | count amount
+"        +-----------------+   -+-(1 in this example)
 "                |
 "                | let s = getline(1, 3)
 "                |
-"                V                                
-"  index    0      1      2           2      0      1      
-"  idx rev -3     -2     -1          -1     -3     -2      
-"       +------+------+======+    +======+------+------+                
-"       |  L1  |  L2  |  L3  | => |  L3  |  L1  |  L2  | 
-"       +------+------+======+    +======+------+------+                
-"       |--- height---|-count|    |-count|--- height---|  
+"                V
+"  index    0      1      2           2      0      1
+"  idx rev -3     -2     -1          -1     -3     -2
+"       +------+------+======+    +======+------+------+
+"       |  L1  |  L2  |  L3  | => |  L3  |  L1  |  L2  |
+"       +------+------+======+    +======+------+------+
+"       |--- height---|-count|    |-count|--- height---|
 "       | s[0:-c-1]   |s[-c:]|    |s[-c:]|  s[ :-c-1]  |
 "       |      |      |  |   |    |      |             |
 "       |      V      |  V   |    |      |             |
@@ -379,8 +443,8 @@ function! s:varea.init(direction, mode) "{{{
   elseif case ==# 4 | let [u, d, l, r ] = [ e, s, s, e]
   endif
 
-  let ul = [ u[0], l[1] ]     " let ur = [ u[0], r[1]] 
-  let dr = [ d[0], r[1]]      " let dl = [ d[0], l[1]] 
+  let ul = [ u[0], l[1] ]     " let ur = [ u[0], r[1]]
+  let dr = [ d[0], r[1]]      " let dl = [ d[0], l[1]]
 
   let pc = self._prevcount
   let w = abs(e[1] - s[1]) + 1
@@ -428,9 +492,14 @@ function! s:varea.init(direction, mode) "{{{
   let d_dup = (s[0] <= e[0])
         \ ? [ [ s[0]+h, s[1]   ], [  e[0]+(h*pc),  e[1]   ]]
         \ : [ [ s[0]+(h*pc), s[1]   ], [ e[0]+h,  e[1]   ]]
+  let u_dup_replace = (s[0] <= e[0])
+        \ ? [ [ s[0]-(h*c), s[1]   ], [  e[0]-h,  e[1]   ]]
+        \ : [ [ s[0]-h, s[1]], [ e[0]-(h*c),  e[1]   ]]
 
   let self.__table.u_dup = u_dup
   let self.__table.d_dup = d_dup
+  let self.__table.u_dup_replace = u_dup_replace
+  let self.__table.d_dup_replace = d_dup
 
   " set useful attribute
   let no_space = empty(filter(getline(ul[0], dr[0]),"v:val =~# '^\\s'"))
@@ -447,11 +516,11 @@ function! s:varea.init(direction, mode) "{{{
   " throw string([self._count, self._prevcount])
   " let g:V = self._
 endfunction "}}}
- 
+
 function! s:varea.extend_EOF() "{{{
   " even if set ve=all, dont automatically extend EOF
   let amount = (self.__pos.dr[0] + self._count) - line('$')
-  if self._direction ==# 'down' && amount > 0 
+  if self._direction ==# 'down' && amount > 0
     call append(line('$'), map(range(amount), '""'))
   endif
 endfunction "}}}
@@ -560,86 +629,122 @@ endfunction "}}}
 
 " ReplaceManagement:
 "===================== {{{
+" 
+"         l_cut/add           r_cut/add 
+"                 |           |
+"                 V           V        _.data idx
+"                +-+---------+-+----      0
+"   u_cut/add -> +-+         +-+   ^      |
+"                |             |   |      |
+"                |             |  height  |
+"                |             |   |      |
+"                +-+         +-+   V      |
+"   d_cut/add -> +-+---------+-+ ---   len(_.data)
+"                |             |     
+"                +<-- width -->+     
+"
+             
+
 let s:replaced = {}
-function! s:replaced.new(max)
-  let o = deepcopy(self)
-  let o._data = []
-  let o._max = a:max
+function! s:replaced.new(owner) "{{{
+  let o        = deepcopy(self)
+  let o.parent = a:owner
+  let o._data  = []
+  " let o.height = o.parent.height
+  " let o.width  = o.parent.width
   return o
-endfunction
-
-function! s:replaced.up(val) "{{{
-  call self.push(a:val)
-  let c = self.len() - self._max
-  if c > 0
-    return self.shift()
-  else
-    return ['']
-  endif
 endfunction "}}}
-
-function! s:replaced.down(val) "{{{
-  call self.unshift(a:val)
-  let c = self.len() - self._max
-  " return c > 0
-  if c > 0
-    return self.pop()
-  else
-    return ['']
-  endif
-endfunction "}}}
-
-function! s:replaced.push(val) "{{{
-  call add(self._data, a:val)
-endfunction "}}}
-
-function! s:replaced.unshift(val) "{{{
-  call self.insert(a:val, 0)
-endfunction "}}}
-
-function! s:replaced.pop() "{{{
-  return remove(self._data, -1, -1)
-endfunction "}}}
-
-function! s:replaced.insert(val, idx) "{{{
-  call insert(self._data, a:val, a:idx)
-endfunction "}}}
-
-let g:R = s:replaced
-function! s:replaced.shift(...) "{{{
-  if     a:0 ==# 0 | let [from, to] = [0, 0]
-  elseif a:0 ==# 1 | let [from, to] = [a:1, a:1]
-  elseif a:0 ==# 2 | let [from, to] = a:000
-  endif
-  return remove(self._data, from, to)
-endfunction "}}}
-function! s:replaced.len() "{{{
+function! s:replaced.height() "{{{
   return len(self._data)
 endfunction "}}}
-
+function! s:replaced.width() "{{{
+  return len(self._data[0])
+endfunction "}}}
 function! s:replaced.reset() "{{{
   let self._data = []
 endfunction "}}}
-
 function! s:replaced.dump() "{{{
   echo PP(self._data)
 endfunction "}}}
 
+function! s:replaced.up(val) "{{{
+  call self.u_add(a:val)
+  let c = self.height() - self.parent.height
+  if c > 0
+    " visual area moved over height need un-eat
+    return [self.d_cut()]
+  else
+    return self.parent.is_linewise ? [''] : [repeat(' ', self.parent.width)]
+  endif
+endfunction "}}}
+function! s:replaced.down(val) "{{{
+  call self.d_add(a:val)
+  let c = self.height() - self.parent.height
+  echo string([self._data, self.height(), self.parent.height, c ])
 
+  if c > 0
+    return [self.u_cut()]
+  else
+    return self.parent.is_linewise ? [''] : [repeat(' ', self.parent.width)]
+  endif
+endfunction "}}}
+function! s:replaced.left(val) "{{{
+  call self.l_add(a:val)
+  let c = self.width() - self.parent.width
+  if c > 0
+    " visual area moved over width need un-eat
+    return self.r_cut()
+  else
+    return map(range(self.parent.height), '" "')
+  endif
+endfunction "}}}
+function! s:replaced.right(val) "{{{
+  call self.r_add(a:val)
+  let c = self.width() - self.parent.width
+  if c > 0
+    return self.l_cut()
+    " visual area moved over width need un-eat
+  else
+    return map(range(self.parent.height), '" "')
+  endif
+endfunction "}}}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+function! s:replaced.u_cut() "{{{
+  return remove(self._data, 0)
+endfunction "}}}
+function! s:replaced.u_add(val) "{{{
+  call insert(self._data, a:val, 0)
+endfunction "}}}
+function! s:replaced.d_cut() "{{{
+  return remove(self._data, -1)
+endfunction "}}}
+function! s:replaced.d_add(val) "{{{
+  call add(self._data, a:val)
+endfunction "}}}
+function! s:replaced.r_cut() "{{{
+  let r = map(copy(self._data), 'v:val[-1:-1]')
+  call map(self._data, 'v:val[:-2]')
+  return r
+endfunction "}}}
+function! s:replaced.r_add(val) "{{{
+  if empty(self._data)
+    let self._data = map(copy(a:val), 'v:val')
+  else
+    call map(self._data, 'v:val . a:val[v:key]')
+  endif
+endfunction "}}}
+function! s:replaced.l_cut() "{{{
+  let r = map(copy(self._data), 'v:val[0]')
+  call map(self._data, 'v:val[1:]')
+  return r
+endfunction "}}}
+function! s:replaced.l_add(val) "{{{
+  if empty(self._data)
+    let self._data = map(copy(a:val), 'v:val')
+  else
+    cal map(self._data, 'a:val[v:key] . v:val')
+  endif
+endfunction "}}}
 
 
 
@@ -717,6 +822,10 @@ function! textmanip#toggle_mode()
         \ g:textmanip_current_mode ==# 'insert'
         \ ? 'replace' : 'insert'
   echo "textmanip-mode: " . g:textmanip_current_mode
+endfunction
+
+function! textmanip#mode()
+  return g:textmanip_current_mode
 endfunction
 
 function! textmanip#debug() "{{{
