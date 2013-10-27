@@ -328,6 +328,7 @@ function! s:varea.init(direction, mode) "{{{
   if a:mode ==# 'n'
     return
   endif
+  echo "pre: " . self._count
 
   " current pos
   normal! gvo
@@ -363,20 +364,26 @@ function! s:varea.init(direction, mode) "{{{
   let h = abs(e[0] - s[0]) + 1
 
   " adjust count
-  let max = 1
-  let c   = self._count
-  if self._direction ==# 'up'
-    let max = ul[0]-1
-  endif
-
   let self.width  = w
   let self.height = h
   let self.is_linewise = (self.mode ==# 'V' ) || (self.mode ==# 'v' && h > 1)
-  if !self.is_linewise && self._direction ==# 'left'
-    let max = ul[1]-1
+
+  let max = self._count
+  if self._direction ==# 'up'
+    let max = ul[0]-1
+  elseif self._direction ==# 'down'
+    " nothing to care
+  elseif self._direction ==# 'right'
+    " nothing to care
+  elseif self._direction ==# 'left'
+    if !self.is_linewise
+      let max = ul[1]-1
+    endif
   endif
-  let c = min([max, c])
-  let self._count = c
+  let self._count = min([max, self._count])
+  let c = self._count
+
+  echo "aft: " . self._count
 
   " define movement/selection table
   let self.__pos = { "s": s, "e": e, "ul": ul, "dr": dr }
@@ -414,6 +421,8 @@ function! s:varea.init(direction, mode) "{{{
   if self.mode ==# 'v'
     let self._select_mode = (self.is_linewise) ? "V" : "\<C-v>"
   endif
+  " throw string([self._count, self._prevcount])
+  " let g:V = self._
 endfunction "}}}
  
 function! s:varea.extend_EOF() "{{{

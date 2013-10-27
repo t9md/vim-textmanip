@@ -140,6 +140,8 @@ position not restored to original position.
 
 ==============================================================================
 CHANGELOG						 *textmanip-changelog*
+2013-10-27: v1.2
+	- [bugfix] count not properly handled.
 2013-10-26:
 	- fix bug when cusuros at BOL and move to left with linewise.
 2013-10-24:
