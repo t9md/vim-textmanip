@@ -1,4 +1,13 @@
+" nnoremap <F9> :<C-u>echo textmanip#debug()["_data"]<CR>
+nnoremap <F9> :<C-u>echo PP(textmanip#debug()._data)<CR>
+xnoremap <F9> <Esc>:<C-u>echo PP(textmanip#debug()._data)<CR>
+nnoremap <F9> :<C-u>echo PP(textmanip#debug())<CR>
+xnoremap <F9> <Esc>:<C-u>echo PP(textmanip#debug())<CR>
+" xnoremap <F9> <Esc>
+" xnoremap <F9> :<C-u>echo "HOGEHOGE" <bar>echo "HOGEHOG"<CR>
+
 let g:textmanip_debug = 0
+let g:textmanip_move = 'replace'
 " nnoremap <F9> :let g:textmanip_debug =
       " \ !g:textmanip_debug <bar>echo g:textmanip_debug<CR>
 
@@ -76,8 +85,13 @@ let g:textmanip_debug = 0
 let s:varea = {}
 function! s:varea.move(direction) "{{{
   call self.virtualedit_start()
-  call s:undo.join()
+  let self._continue = s:status.undojoin()
+
   call self.init(a:direction, 'v')
+  if !self._continue
+    let b:textmanip_replaced = s:replaced.new(self.height)
+  endif
+  let self._replaced = b:textmanip_replaced
 
   if self.cant_move
     call self.virtualedit_restore()
@@ -99,7 +113,7 @@ function! s:varea.move(direction) "{{{
 
   call s:register.restore()
   call self.virtualedit_restore()
-  call s:undo.update_status()
+  call s:status.update()
 endfunction "}}}
 
 function! s:varea.move_block() "{{{
@@ -120,7 +134,6 @@ endfunction
 
 function! s:varea.duplicate_block() "{{{
   call self.virtualedit_start()
-  " call s:undo.join()
   call s:register.save("x","z")
 
   let d = self._direction
@@ -158,7 +171,6 @@ function! s:varea.duplicate_block() "{{{
 
   call s:register.restore()
   call self.virtualedit_restore()
-  " call s:undo.update_status()
 endfunction "}}}
 
 " BlockMoveSummary:
@@ -235,35 +247,46 @@ function! s:varea.move_line() "{{{
 
   let c = self._count
   if     dir ==# "up" || dir ==# "down"
-    " since y cant yank empty line if topmost line is empty
-    " call self.select_area("chg")
-    " normal! "xy
-    " let selected = split(getreg("x"), "\n")
 
     if dir ==# 'up'
-      let selected = getline(self.__pos.ul[0]-c, self.__pos.dr[0])
-      let replace = selected[ c : ] + selected[ : c-1 ]
-      if g:textmanip_debug > 2  "{{{
-        echo PP(selected)
-        echo len(selected)
-        echo '--'
-        echo PP(replace)
-        echo len(replace)
-        return
-      endif "}}}
-      call setline(self.__pos.ul[0] - c, replace)
+      if g:textmanip_current_mode ==# "insert"
+        let selected = getline(self.__pos.ul[0]-c, self.__pos.dr[0])
+        let replace = selected[ c : ] + selected[ : c-1 ]
+        if g:textmanip_debug > 2  "{{{
+          echo PP(selected)
+          echo len(selected)
+          echo '--'
+          echo PP(replace)
+          echo len(replace)
+          return
+        endif "}}}
+        call setline(self.__pos.ul[0] - c, replace)
+      elseif g:textmanip_current_mode ==# "replace"
+        let selected  = getline(self.__pos.ul[0], self.__pos.dr[0])
+        let rest = self._replaced.up(getline(self.__pos.ul[0]-c))
+        let replace   = selected + rest
+        call setline(self.__pos.ul[0] - c, replace)
+      endif
     elseif dir ==# 'down'
-      let selected = getline(self.__pos.ul[0], self.__pos.dr[0]+c)
-      let replace = selected[ -c : ] + selected[ : -c-1 ]
-      if g:textmanip_debug > 2  "{{{
-        echo PP(selected)
-        echo len(selected)
-        echo '--'
-        echo PP(replace)
-        echo len(replace)
-        return
-      endif "}}}
-      call setline(self.__pos.ul[0], replace)
+      if g:textmanip_current_mode ==# "insert"
+        let selected = getline(self.__pos.ul[0], self.__pos.dr[0]+c)
+        let replace = selected[ -c : ] + selected[ : -c-1 ]
+        if g:textmanip_debug > 2  "{{{
+          echo PP(selected)
+          echo len(selected)
+          echo '--'
+          echo PP(replace)
+          echo len(replace)
+          return
+        endif "}}}
+        call setline(self.__pos.ul[0], replace)
+
+      elseif g:textmanip_current_mode ==# "replace"
+        let selected  = getline(self.__pos.ul[0], self.__pos.dr[0])
+        let rest = self._replaced.down(getline(self.__pos.dr[0]+c))
+        let replace   = rest + selected
+        call setline(self.__pos.ul[0], replace)
+      endif
     endif
     call self.select_area("org")
     call self.visualmode_restore()
@@ -489,29 +512,32 @@ function! s:varea.dump() "{{{
   echo PP(self.__table)
 endfunction "}}}
 " }}}
-" Undo:
+
+" State:
 "===================== {{{
-let s:undo = {}
-function! s:undo.join() "{{{
-  " echo "==in undo join"
-  if exists("b:textmanip_undo") &&
-        \ b:textmanip_undo == self.selected()
-    " echo "UNDO JOIN"
-    try
-      silent undojoin
-    catch /E790/
-      " after move and exit at the same position(actully at cosmetic level no
-      " change you made), and 'u'(undo), then restart move.
-      " This read to situation 'undojoin is not allowed after undo' error.
-      " But this cannot detect, so simply suppress this error.
-    endtry
-  endif
+let s:status = {}
+function! s:status.undojoin() "{{{
+  if !exists("b:textmanip_status") | return 0 | endif
+  if b:textmanip_status != self.selected() | return 0 | endif
+
+  try
+    call s:decho("status JOIN")
+    silent undojoin
+  catch /E790/
+    " after move and exit at the same position(actully at cosmetic level no
+    " change you made), and 'u'(undo), then restart move.
+    " This read to situation 'undojoin is not allowed after undo' error.
+    " But this cannot detect, so simply suppress this error.
+  endtry
+  return 1
 endfunction "}}}
-function! s:undo.update_status() "{{{
-  " echo "== in update_status"
-  let b:textmanip_undo = self.selected()
+
+function! s:status.update() "{{{
+  " echo "== in update"
+  let b:textmanip_status = self.selected()
 endfunction "}}}
-function! s:undo.selected() "{{{
+
+function! s:status.selected() "{{{
   let content = getline(line("'<"), line("'>"))
   if char2nr(visualmode()) ==# char2nr("\<C-v>")
     let s = col("'<")
@@ -519,8 +545,9 @@ function! s:undo.selected() "{{{
     let content = map(content, 'v:val[s-1:e-1]')
   endif
   let v =  {
-        \ 'start_linenr': line("'<"),
-        \ 'end_linenr': line("'>"),
+        \ 'mode': visualmode(),
+        \ 'line_start': line("'<"),
+        \ 'line_end': line("'>"),
         \ 'len': len(content),
         \ 'content': content,
         \ }
@@ -530,6 +557,97 @@ function! s:undo.selected() "{{{
   return v
 endfunction "}}}
 "}}}
+
+" ReplaceManagement:
+"===================== {{{
+let s:replaced = {}
+function! s:replaced.new(max)
+  let o = deepcopy(self)
+  let o._data = []
+  let o._max = a:max
+  return o
+endfunction
+
+function! s:replaced.up(val) "{{{
+  call self.push(a:val)
+  let c = self.len() - self._max
+  if c > 0
+    return self.shift()
+  else
+    return ['']
+  endif
+endfunction "}}}
+
+function! s:replaced.down(val) "{{{
+  call self.unshift(a:val)
+  let c = self.len() - self._max
+  " return c > 0
+  if c > 0
+    return self.pop()
+  else
+    return ['']
+  endif
+endfunction "}}}
+
+function! s:replaced.push(val) "{{{
+  call add(self._data, a:val)
+endfunction "}}}
+
+function! s:replaced.unshift(val) "{{{
+  call self.insert(a:val, 0)
+endfunction "}}}
+
+function! s:replaced.pop() "{{{
+  return remove(self._data, -1, -1)
+endfunction "}}}
+
+function! s:replaced.insert(val, idx) "{{{
+  call insert(self._data, a:val, a:idx)
+endfunction "}}}
+
+let g:R = s:replaced
+function! s:replaced.shift(...) "{{{
+  if     a:0 ==# 0 | let [from, to] = [0, 0]
+  elseif a:0 ==# 1 | let [from, to] = [a:1, a:1]
+  elseif a:0 ==# 2 | let [from, to] = a:000
+  endif
+  return remove(self._data, from, to)
+endfunction "}}}
+function! s:replaced.len() "{{{
+  return len(self._data)
+endfunction "}}}
+
+function! s:replaced.reset() "{{{
+  let self._data = []
+endfunction "}}}
+
+function! s:replaced.dump() "{{{
+  echo PP(self._data)
+endfunction "}}}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+" }}}
+
 " RegisterManagement:
 "===================== {{{
 let s:register = {}
@@ -594,8 +712,16 @@ function! textmanip#kickout(guide) range "{{{
   call setpos('.', orig_pos)
 endfunction "}}}
 
+function! textmanip#toggle_mode()
+  let g:textmanip_current_mode =
+        \ g:textmanip_current_mode ==# 'insert'
+        \ ? 'replace' : 'insert'
+  echo "textmanip-mode: " . g:textmanip_current_mode
+endfunction
+
 function! textmanip#debug() "{{{
-  return PP(s:varea)
+  " return s:replaced
+  return PP(s:varea._replaced._data)
 endfunction "}}}
 " }}}
 

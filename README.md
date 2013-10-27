@@ -24,7 +24,6 @@
 
 ### gVim
 
-    Tasks:
     xmap <M-d> <Plug>(textmanip-duplicate-down)
     nmap <M-d> <Plug>(textmanip-duplicate-down)
     xmap <M-D> <Plug>(textmanip-duplicate-up)

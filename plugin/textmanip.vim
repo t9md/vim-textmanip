@@ -7,7 +7,7 @@
 " GUARD: {{{
 "============================================================
 if exists('g:loaded_textmanip')
-  finish
+  " finish
 endif
 let g:loaded_textmanip = 1
 
@@ -34,13 +34,29 @@ nnoremap <Plug>(textmanip-debug) :<C-u>echo textmanip#debug()<CR>
 nnoremap <silent> <Plug>(textmanip-kickout) :<C-u>call textmanip#kickout(0)<CR>
 vnoremap <silent> <Plug>(textmanip-kickout) :call textmanip#kickout(0)<CR>
 
+nnoremap <Plug>(textmanip-toggle-mode) :<C-u>call textmanip#toggle_mode()<CR>
+
 " Command [FIXME]
 command! -range -nargs=* TextmanipKickout call textmanip#kickout(<q-args>)
 "}}}
 
-if exists("g:textmanip_enable_mappings")
-  let g:textmanip_enable_mappings = 0
-endif
+
+let s:default_settings = {
+      \ "enable_mappings" : 0,
+      \ "default_mode" : "insert",
+      \ }
+
+let s:prefix = "textmanip_"
+function! s:set_default(dict) "{{{
+  for [name, val] in items(a:dict)
+    let var = s:prefix . name
+    let g:{var} = get(g:, var, val)
+    unlet name val
+  endfor
+endfunction "}}}
+
+call s:set_default(s:default_settings)
+let g:textmanip_current_mode = g:textmanip_default_mode
 
 function! s:set_default_mapping() "{{{
   if has('gui_macvim')

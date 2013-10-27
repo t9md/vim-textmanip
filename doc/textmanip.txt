@@ -19,6 +19,7 @@ Mapping							   |textmanip-mapping|
 Configuration Examples					  |textmanip-examples|
 Use Case						   |textmanip-usecase|
 Practice						  |textmanip-practice|
+Todo							      |textmanip-todo|
 Bug							       |textmanip-bug|
 Changelog						 |textmanip-changelog|
 
@@ -112,7 +113,7 @@ For mac user replace `<M-*>` to `<D-*>`. <D-> is mac COMMAND key.
 	xmap <C-h> <Plug>(textmanip-move-left)
 	xmap <C-l> <Plug>(textmanip-move-right)
 <
-------------------------------------------------------------------------------
+==============================================================================
 USE CASE						   *textmanip-usecase*
 
 * Indent text block
@@ -129,8 +130,16 @@ USE CASE						   *textmanip-usecase*
   duplicate selected text block to bottom direction.
   Of course, "<M-d>" is my choice, you can assign your favorite key map.
 
-------------------------------------------------------------------------------
+==============================================================================
 PRACTICE						  *textmanip-practice*
+
+==============================================================================
+TODO							      *textmanip-todo*
+
+- support replace mode
+- stabilize, kickout action 
+- ?? move block or line to ^,$ with one command.
+
 
 ==============================================================================
 BUG							       *textmanip-bug*
