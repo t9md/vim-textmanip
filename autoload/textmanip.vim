@@ -43,200 +43,24 @@ let g:textmanip_move = 'replace'
 "
 " CusrsorPos Management:
 "===================== {{{
-" (s)tart  (e)end
-" (u)p, (d)own, (l)eft, (r)ight
-" (ul) u/l, (ur) u/r,
-" (dl) d/l, (dr) u/l
 "
-"           |--width--|
-"        (1,1) >   >
-"      (ul) s----+----+ (ur) -+-
-"           |    |    | V     |
-"   case1   +----+----+       | height
-"           |    |    | V     |
-"      (dl) +----+----e (dr) -+-
-"                    (3,3)
-"        (1,1)
-"           e----+----+
-"         ^ |    |    |
-"   case2   +----+----+
-"         ^ |    |    |
-"           +----+----s
-"             <    < (3,3)
+"     (ul)|--width--|(ur)
+"     --- +----+----+      (s)tart  (e)end
+"      |  |    |    |      (u)p, (d)own (l)eft, (r)ight
+"  height +----+----+      (ul) u/l, (ur) u/r,
+"      |  |    |    |      (dl) d/l, (dr) u/l
+"     --- +----+----+
+"     (dl)           (dr)
 "
-"             <    < (1,3)
-"           +----+----s
-"         V |    |    |
-"   case3   +----+----+
-"         V |    |    |
-"           e----+----+
-"        (3,1)
-"                    (1,3)
-"           |----+----e
-"           +    |    | ^
-"   case4   +----+----+
-"           |    |    | ^
-"           s----+----+
-"        (3,1) >    >
-"
+"          [ case1 ]        [ case2 ]         [ case3 ]        [ case4 ]
+"      (1,1) >   >      (1,1)                  <    < (1,3)           (1,3)
+"         s----+----+      e----+----+       +----+----s      +----+----e
+"         |    |    | V  ^ |    |    |     V |    |    |      +    |    | ^
+"         +----+----+      +----+----+       +----+----+      +----+----+
+"         |    |    | V  ^ |    |    |     V |    |    |      |    |    | ^
+"         +----+----e      +----+----s       e----+----+      s----+----+
+"                 (3,3)      <    < (3,3)  (3,1)           (3,1) >    >
 "}}}
-" VisualArea:
-"===================== {{{
-let s:varea = {}
-function! s:varea.move(direction) "{{{
-  call self.virtualedit_start()
-  let self._continue = s:status.undojoin()
-
-  call self.init(a:direction, 'v')
-  if !self._continue
-    let b:textmanip_replaced = s:replaced.new(self)
-  endif
-  let self._replaced = b:textmanip_replaced
-
-  if self.cant_move
-    call self.virtualedit_restore()
-    normal! gv
-    return
-  endif
-  call self.extend_EOF()
-  call s:register.save("x","z")
-
-  if self.is_linewise
-    call self.move_line()
-    " [FIXME] dirty hack for status management yanking let '< , '> refresh
-    normal! "zygv
-  else
-    call self.move_block()
-    " [FIXME] dirty hack for status management yanking let '< , '> refresh
-    normal! "zygv
-  endif
-
-  call s:register.restore()
-  call self.virtualedit_restore()
-  call s:status.update()
-endfunction "}}}
-
-function! s:varea.move_block() "{{{
-  " call self.select_area("chg")
-  " return
-  if g:textmanip_current_mode ==# "insert"
-    call setreg("z", self._replace_text(), getregtype("x"))
-    call self.select_area("chg")
-    normal! "zp
-    call self.select_area("org")
-    call self.visualmode_restore()
-  elseif g:textmanip_current_mode ==# "replace"
-    let c = self._count
-    let d = self._direction
-    let w = self.width
-
-    call self.select_area("chg")
-    normal! "xy
-    let _s = split(getreg("x"), "\n")
-               
-    if     d ==# 'up'
-      let eat = _s[: c-1]
-      let orig = _s[c :]
-      let rest = self._replaced.up(eat[0])
-      let replace   = orig + rest
-    elseif d ==# 'down'                                  
-      let eat = _s[-c :]                                 
-      let orig =_s[: -c-1]                               
-      let rest = self._replaced.down(eat[0])             
-      " throw string(rest + orig)                        
-      let replace = rest + orig                          
-    elseif d ==# 'right'                                 
-      let eat = map(copy(_s), 'v:val[-c :]')                  
-      let orig = map(copy(_s), 'v:val[ : -c-1]')              
-      let rest = self._replaced.right(eat)                    
-      let replace = map(orig, 'rest[v:key] . v:val')          
-    elseif d ==# 'left'                                       
-      let eat = map(copy(_s), 'v:val[: c-1]')                 
-      let orig = map(copy(_s), 'v:val[c : ]')                 
-      let rest = self._replaced.left(eat)                     
-      let replace = map(orig, 'v:val . rest[v:key]')          
-    endif                                                     
-                                                         
-    call setreg("z", join(replace,"\n"), getregtype("x"))
-    call self.select_area("chg")                         
-    normal! "zp                                          
-    call self.select_area("org")                         
-    call self.visualmode_restore()                       
-  endif                                                  
-endfunction "}}}
-
-function! s:varea._selct_org()
-  call cursor(self.__pos.ul + [0])
-  execute "normal! " . self._select_mode
-  call cursor(self.__pos.dr + [0])
-endfunction
-
-function! s:varea.duplicate_block() "{{{
-  call self.virtualedit_start()
-  call s:register.save("x","z")
-
-  let d = self._direction
-  let c = self._prevcount
-  let h = self.height
-  let s = copy(self.__pos.ul) + [0]
-  let e = copy(self.__pos.dr) + [0]
-
-  if g:textmanip_current_mode ==# "insert"
-    call self._selct_org()
-    normal! "xy
-
-    let target_line = d ==# 'up'
-          \ ? self.__pos.ul[0]-1
-          \ : self.__pos.dr[0]
-
-    let blank_line = map(range(h*c), '""')
-    call append(target_line, blank_line)
-
-    let _str = split(getreg("x"), "\n")
-    let _replace = copy(_str)
-    for n in range(c)
-      let _replace += _str
-    endfor
-    let replace = join( _replace , "\n")
-    call setreg("z", replace, getregtype("x"))
-
-    let e[0] += h*c
-    call cursor(s)
-    execute "normal! " . self._select_mode
-    call cursor(e)
-
-    normal! "zp
-    call self.select_area("dup")
-  elseif g:textmanip_current_mode ==# "replace"
-    call self._selct_org()
-    normal! "xy
-    let _str = split(getreg("x"), "\n")
-
-    let _replace = copy(_str)
-    for n in range(c)
-      let _replace += _str
-    endfor
-    let replace = join( _replace , "\n")
-    call setreg("z", replace, getregtype("x"))
-
-    if d ==# 'up'
-      let s[0] -= h*c
-    elseif d ==# 'down'
-      let e[0] += h*c
-    endif
-
-    call cursor(s)
-    execute "normal! " . self._select_mode
-    call cursor(e)
-
-    normal! "zp
-    call self.select_area("dup_replace")
-  endif
-
-  call s:register.restore()
-  call self.virtualedit_restore()
-endfunction "}}}
-
 " BlockMoveSummary:
 "======================= {{{
 "  c = 1
@@ -306,6 +130,89 @@ endfunction "}}}
 "       | s[0:-2]     |s[-1:]| => |s[-1:]+  s[ :-2]    |
 "}}}
 
+" VisualArea:
+"=====================
+let s:varea = {}
+function! s:varea.move(direction) "{{{
+  call self.virtualedit_start()
+  let self._continue = textmanip#status#undojoin()
+                            
+  call self.init(a:direction, 'v')
+  if !self._continue        
+    let b:textmanip_replaced = textmanip#replaced#new(self)
+  endif              
+  let self._replaced = b:textmanip_replaced
+
+  if self.cant_move
+    call self.virtualedit_restore()
+    normal! gv
+    return
+  endif
+  call self.extend_EOF()
+  call textmanip#register#save("x","z")
+
+  if self.is_linewise
+    call self.move_line()
+    " [FIXME] dirty hack for status management yanking let '< , '> refresh
+    normal! "zygv
+  else
+    call self.move_block()
+    " [FIXME] dirty hack for status management yanking let '< , '> refresh
+    normal! "zygv
+  endif
+
+  call textmanip#register#restore()
+  call self.virtualedit_restore()
+  call textmanip#status#update()
+endfunction "}}}             
+                             
+function! s:varea.move_block() "{{{
+  if g:textmanip_current_mode ==# "insert"
+    call setreg("z", self._replace_text(), getregtype("x"))
+    call self.select_area("chg")
+    normal! "zp
+    call self.select_area("org")
+    call self.visualmode_restore()
+  elseif g:textmanip_current_mode ==# "replace"
+    let c = self._count
+    let d = self._direction
+    let w = self.width
+
+    call self.select_area("chg")
+    normal! "xy
+    let _s = split(getreg("x"), "\n")
+
+    if     d ==# 'up'
+      let eat = _s[: c-1]
+      let orig = _s[c :]
+      " throw eat
+      let rest = self._replaced.up(eat)
+      let replace   = orig + rest
+    elseif d ==# 'down'
+      let eat  = _s[-c :]
+      let orig = _s[: -c-1]
+      let rest = self._replaced.down(eat)
+      let replace = rest + orig
+    elseif d ==# 'right'
+      let eat = map(copy(_s), 'v:val[-c :]')
+      let orig = map(copy(_s), 'v:val[ : -c-1]')
+      let rest = self._replaced.right(eat)
+      let replace = map(orig, 'rest[v:key] . v:val')
+    elseif d ==# 'left'                                      
+      let eat = map(copy(_s), 'v:val[: c-1]')                
+      let orig = map(copy(_s), 'v:val[c : ]')
+      let rest = self._replaced.left(eat)
+      let replace = map(orig, 'v:val . rest[v:key]')
+    endif
+
+    call setreg("z", join(replace,"\n"), getregtype("x"))
+    call self.select_area("chg")
+    normal! "zp
+    call self.select_area("org")
+    call self.visualmode_restore()
+  endif
+endfunction "}}}
+
 function! s:varea.move_line() "{{{
   let dir = self._direction
 
@@ -355,12 +262,99 @@ function! s:varea.move_line() "{{{
     call self.select_area("org")
     call self.visualmode_restore()
   elseif dir ==# "right"
+    " if c > 1
+      " call self.shiftwidth_switch(1)
+    " endif
     exe "'<,'>" . repeat(">",c)
+    " if c > 1
+      " call self.shiftwidth_restore()
+    " endif
     normal! gv
   elseif dir ==# "left"
     exe "'<,'>" . repeat("<",c)
     normal! gv
   endif
+endfunction "}}}
+
+function! s:varea.shiftwidth_switch(v) "{{{
+  let self._shiftwidth = &shiftwidth
+  silent exe "set shiftwidth=" . a:v
+endfunction "}}}
+function! s:varea.shiftwidth_restore() "{{{
+  silent exe "set shiftwidth=".self._shiftwidth
+endfunction "}}}
+
+function! s:varea._selct_org() "{{{
+  call cursor(self.__pos.ul + [0])
+  execute "normal! " . self._select_mode
+  call cursor(self.__pos.dr + [0])
+endfunction "}}}
+
+
+function! s:varea.duplicate_block() "{{{
+  call self.virtualedit_start()
+  call textmanip#register#save("x","z")
+
+  let d = self._direction
+  let c = self._prevcount
+  let h = self.height
+  let s = copy(self.__pos.ul) + [0]
+  let e = copy(self.__pos.dr) + [0]
+
+  if g:textmanip_current_mode ==# "insert"
+    call self._selct_org()
+    normal! "xy
+
+    let target_line = d ==# 'up'
+          \ ? self.__pos.ul[0]-1
+          \ : self.__pos.dr[0]
+
+    let blank_line = map(range(h*c), '""')
+    call append(target_line, blank_line)
+
+    let _str = split(getreg("x"), "\n")
+    let _replace = copy(_str)
+    for n in range(c)
+      let _replace += _str
+    endfor
+    let replace = join( _replace , "\n")
+    call setreg("z", replace, getregtype("x"))
+
+    let e[0] += h*c
+    call cursor(s)
+    execute "normal! " . self._select_mode
+    call cursor(e)
+
+    normal! "zp
+    call self.select_area("dup")
+  elseif g:textmanip_current_mode ==# "replace"
+    call self._selct_org()
+    normal! "xy
+    let _str = split(getreg("x"), "\n")
+
+    let _replace = copy(_str)
+    for n in range(c)
+      let _replace += _str
+    endfor
+    let replace = join( _replace , "\n")
+    call setreg("z", replace, getregtype("x"))
+
+    if d ==# 'up'
+      let s[0] -= h*c
+    elseif d ==# 'down'
+      let e[0] += h*c
+    endif
+
+    call cursor(s)
+    execute "normal! " . self._select_mode
+    call cursor(e)
+
+    normal! "zp
+    call self.select_area("dup_replace")
+  endif
+
+  call textmanip#register#restore()
+  call self.virtualedit_restore()
 endfunction "}}}
 
 function! s:varea.duplicate_normal() "{{{
@@ -405,6 +399,7 @@ function! s:varea.duplicate_visual() "{{{
   call self.select_area("dup")
   call self.visualmode_restore()
 endfun "}}}
+
 
 function! s:varea.init(direction, mode) "{{{
   let self._prevcount = (v:prevcount ? v:prevcount : 1)
@@ -582,193 +577,6 @@ function! s:varea.dump() "{{{
 endfunction "}}}
 " }}}
 
-" State:
-"===================== {{{
-let s:status = {}
-function! s:status.undojoin() "{{{
-  if !exists("b:textmanip_status") | return 0 | endif
-  if b:textmanip_status != self.selected() | return 0 | endif
-
-  try
-    call s:decho("status JOIN")
-    silent undojoin
-  catch /E790/
-    " after move and exit at the same position(actully at cosmetic level no
-    " change you made), and 'u'(undo), then restart move.
-    " This read to situation 'undojoin is not allowed after undo' error.
-    " But this cannot detect, so simply suppress this error.
-  endtry
-  return 1
-endfunction "}}}
-
-function! s:status.update() "{{{
-  " echo "== in update"
-  let b:textmanip_status = self.selected()
-endfunction "}}}
-
-function! s:status.selected() "{{{
-  let content = getline(line("'<"), line("'>"))
-  if char2nr(visualmode()) ==# char2nr("\<C-v>")
-    let s = col("'<")
-    let e = col("'>")
-    let content = map(content, 'v:val[s-1:e-1]')
-  endif
-  let v =  {
-        \ 'mode': visualmode(),
-        \ 'line_start': line("'<"),
-        \ 'line_end': line("'>"),
-        \ 'len': len(content),
-        \ 'content': content,
-        \ }
-  if g:textmanip_debug > 3
-    echo PP(v)
-  endif
-  return v
-endfunction "}}}
-"}}}
-
-" ReplaceManagement:
-"===================== {{{
-" 
-"         l_cut/add           r_cut/add 
-"                 |           |
-"                 V           V        _.data idx
-"                +-+---------+-+----      0
-"   u_cut/add -> +-+         +-+   ^      |
-"                |             |   |      |
-"                |             |  height  |
-"                |             |   |      |
-"                +-+         +-+   V      |
-"   d_cut/add -> +-+---------+-+ ---   len(_.data)
-"                |             |     
-"                +<-- width -->+     
-"
-             
-
-let s:replaced = {}
-function! s:replaced.new(owner) "{{{
-  let o        = deepcopy(self)
-  let o.parent = a:owner
-  let o._data  = []
-  " let o.height = o.parent.height
-  " let o.width  = o.parent.width
-  return o
-endfunction "}}}
-function! s:replaced.height() "{{{
-  return len(self._data)
-endfunction "}}}
-function! s:replaced.width() "{{{
-  return len(self._data[0])
-endfunction "}}}
-function! s:replaced.reset() "{{{
-  let self._data = []
-endfunction "}}}
-function! s:replaced.dump() "{{{
-  echo PP(self._data)
-endfunction "}}}
-
-function! s:replaced.up(val) "{{{
-  call self.u_add(a:val)
-  let c = self.height() - self.parent.height
-  if c > 0
-    " visual area moved over height need un-eat
-    return [self.d_cut()]
-  else
-    return self.parent.is_linewise ? [''] : [repeat(' ', self.parent.width)]
-  endif
-endfunction "}}}
-function! s:replaced.down(val) "{{{
-  call self.d_add(a:val)
-  let c = self.height() - self.parent.height
-  echo string([self._data, self.height(), self.parent.height, c ])
-
-  if c > 0
-    return [self.u_cut()]
-  else
-    return self.parent.is_linewise ? [''] : [repeat(' ', self.parent.width)]
-  endif
-endfunction "}}}
-function! s:replaced.left(val) "{{{
-  call self.l_add(a:val)
-  let c = self.width() - self.parent.width
-  if c > 0
-    " visual area moved over width need un-eat
-    return self.r_cut()
-  else
-    return map(range(self.parent.height), '" "')
-  endif
-endfunction "}}}
-function! s:replaced.right(val) "{{{
-  call self.r_add(a:val)
-  let c = self.width() - self.parent.width
-  if c > 0
-    return self.l_cut()
-    " visual area moved over width need un-eat
-  else
-    return map(range(self.parent.height), '" "')
-  endif
-endfunction "}}}
-
-function! s:replaced.u_cut() "{{{
-  return remove(self._data, 0)
-endfunction "}}}
-function! s:replaced.u_add(val) "{{{
-  call insert(self._data, a:val, 0)
-endfunction "}}}
-function! s:replaced.d_cut() "{{{
-  return remove(self._data, -1)
-endfunction "}}}
-function! s:replaced.d_add(val) "{{{
-  call add(self._data, a:val)
-endfunction "}}}
-function! s:replaced.r_cut() "{{{
-  let r = map(copy(self._data), 'v:val[-1:-1]')
-  call map(self._data, 'v:val[:-2]')
-  return r
-endfunction "}}}
-function! s:replaced.r_add(val) "{{{
-  if empty(self._data)
-    let self._data = map(copy(a:val), 'v:val')
-  else
-    call map(self._data, 'v:val . a:val[v:key]')
-  endif
-endfunction "}}}
-function! s:replaced.l_cut() "{{{
-  let r = map(copy(self._data), 'v:val[0]')
-  call map(self._data, 'v:val[1:]')
-  return r
-endfunction "}}}
-function! s:replaced.l_add(val) "{{{
-  if empty(self._data)
-    let self._data = map(copy(a:val), 'v:val')
-  else
-    cal map(self._data, 'a:val[v:key] . v:val')
-  endif
-endfunction "}}}
-
-
-
-
-
-
-" }}}
-
-" RegisterManagement:
-"===================== {{{
-let s:register = {}
-let s:register._data = {}
-function! s:register.save(...) "{{{
-  for r in a:000
-    let s:register._data[r] = { "content": getreg(r, 1), "type": getregtype(r) }
-  endfor
-endfunction "}}}
-function! s:register.restore() "{{{
-  for [r, val] in items(self._data)
-    call setreg(r, val.content, val.type)
-  endfor
-  let self._data = {}
-endfunction "}}}
-"}}}
 " Other:
 "===================== {{{
 function! s:varea.kickout(num, guide) "{{{
@@ -817,16 +625,16 @@ function! textmanip#kickout(guide) range "{{{
   call setpos('.', orig_pos)
 endfunction "}}}
 
-function! textmanip#toggle_mode()
+function! textmanip#toggle_mode() "{{{
   let g:textmanip_current_mode =
         \ g:textmanip_current_mode ==# 'insert'
         \ ? 'replace' : 'insert'
   echo "textmanip-mode: " . g:textmanip_current_mode
-endfunction
+endfunction "}}}
 
-function! textmanip#mode()
+function! textmanip#mode() "{{{
   return g:textmanip_current_mode
-endfunction
+endfunction "}}}
 
 function! textmanip#debug() "{{{
   " return s:replaced
@@ -840,13 +648,16 @@ endfunction "}}}
 " 666665|FFFFFF|666666
 " 777777|CCCCCC|777777
 " 888888|DDDDDD|888888
-" 222222|000000|222222
-" 555556|000000|555555
-" 333333|000000|333333
-" 444444|EEEEEE|444444
-" 000000|HHHHHH|000000
-" 111111|LLLLLL|111111
+" 222222|000000|222222          
+" 555556|000000|555555          
+" 333333|000000|333333          
+" 444444|000000|444444
+" 000000|000000|000000
+" 111111|000000|111111
 " 333333|NNNNNN|333333
 " 444444|OOOOOO|444444
-
+               
 " vim: foldmethod=marker
+               
+               
+               
