@@ -45,7 +45,7 @@ command! TextmanipToggleIgnoreShiftWidth
       \ <bar> echo g:textmanip_move_ignore_shiftwidth
 "}}}
 
-if exists("g:textmanip_enable_mappings")
+if !exists("g:textmanip_enable_mappings")
   let g:textmanip_enable_mappings = 0
 endif
 if !exists("g:textmanip_move_ignore_shiftwidth")
