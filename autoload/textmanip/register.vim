@@ -15,7 +15,7 @@ endfunction "}}}
                             
 " Public:                   
 function! textmanip#register#save(...) "{{{
-  call s:register.save(a:registers)
+  call s:register.save(a:000)
 endfunction "}}}            
 function! textmanip#register#restore(...) "{{{
   call s:register.restore() 

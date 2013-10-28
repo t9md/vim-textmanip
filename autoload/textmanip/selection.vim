@@ -144,6 +144,10 @@ endfunction "}}}
 
 function! Test(action, s, e) "{{{
   let b_v = "\<C-v>"
+  " let b_v = "V"
+  "
+  let wise =  b_v ==# "\<C-v>" ? "blockwise" : "linewise"
+
   echo "-- " . a:action
   let org = textmanip#selection#new(a:s, a:e)
   " let chg = deepcopy(org)
@@ -151,7 +155,7 @@ function! Test(action, s, e) "{{{
 
   call org.select(b_v) | call s:show()
   for area in ["change", "last"]
-    call deepcopy(org).move(s:area[a:action][area]).select(b_v)
+    call deepcopy(org).move(s:area[wise][a:action][area]).select(b_v)
     call s:show()
     " call chg.move("u-1, ").select(b_v) | call s:show()
     " call org.move(['u-1,  ', 'd-1,  ']).select(b_v) | call s:show()
@@ -159,13 +163,16 @@ function! Test(action, s, e) "{{{
 endfunction "}}}
 
 let s:area = {}
-let s:area.move_u = { "change": 'u-1,  ', "last": ['u-1,  ', 'd-1,  '] }
-let s:area.move_d = { "change": 'u+1,  ', "last": ['u+1,  ', 'd+1,  '] }
-let s:area.move_r = { "change": 'r  ,+1', "last": ['l  ,+1', 'r  ,+1'] }
-let s:area.move_l = { "change": 'l  ,-1', "last": ['l  ,-1', 'r  ,-1'] }
-" line
-" let s:area.move_u = { "change": 'u-1,  ', "last": ['u-1,  ', 'd-1,  '] }
-" let s:area.move_d = { "change": 'u+1,  ', "last": ['u+1,  ', 'd+1,  '] }
+let blockwise.move_u = { "change": 'u-1,  ', "last": ['u-1,  ', 'd-1,  '] }
+let blockwise.move_d = { "change": 'd+1,  ', "last": ['u+1,  ', 'd+1,  '] }
+let blockwise.move_r = { "change": 'r  ,+1', "last": ['l  ,+1', 'r  ,+1'] }
+let blockwise.move_l = { "change": 'l  ,-1', "last": ['l  ,-1', 'r  ,-1'] }
+let linewise.move_u = { "change": 'u-1,  ', "last": ['u-1,  ', 'd-1,  '] }
+let linewise.move_d = { "change": 'd+1,  ', "last": ['u+1,  ', 'd+1,  '] }
+
+let s:area.blockwise = blockwise
+let s:area.linewise = linewise
+"
 " let s:area.move_r = { "change": 'r  ,+1', "last": ['r  ,+1', 'r  ,+1'] }
 " let s:area.move_l = { "change": 'l  ,-1', "last": ['l  ,-1', 'l  ,-1'] }
 
@@ -175,9 +182,9 @@ function! s:show() "{{{
 endfunction "}}}
 
 function! RunTest() "{{{
-  " call Test("move_u", [11,11], [21,31])
-  " call Test("move_d", [11,11], [21,31])
-  " call Test("move_r", [11,11], [21,31])
+  call Test("move_u", [11,11], [21,31])
+  call Test("move_d", [11,11], [21,31])
+  call Test("move_r", [11,11], [21,31])
   call Test("move_l", [11,11], [21,31])
 endfunction "}}}
 nnoremap  <F9> :<C-u>call RunTest()<CR>
