@@ -75,6 +75,8 @@ let g:textmanip_debug = 0
 "===================== {{{
 let s:varea = {}
 function! s:varea.move(direction) "{{{
+
+  call self.shiftwidth_switch()
   call self.virtualedit_start()
   call s:undo.join()
   call self.init(a:direction, 'v')
@@ -97,10 +99,21 @@ function! s:varea.move(direction) "{{{
     normal! "zygv
   endif
 
+  call self.shiftwidth_restore()
   call s:register.restore()
   call self.virtualedit_restore()
   call s:undo.update_status()
 endfunction "}}}
+
+function! s:varea.shiftwidth_switch()
+  let self._shiftwidth = &sw
+  let &sw = g:textmanip_move_ignore_shiftwidth
+        \ ? g:textmanip_move_shift : &sw
+endfunction
+
+function! s:varea.shiftwidth_restore()
+  let &sw = self._shiftwidth
+endfunction
 
 function! s:varea.move_block() "{{{
   " call self.select_area("chg")
@@ -578,6 +591,20 @@ function! textmanip#do(action, direction, mode) "{{{
       endif
     endif
   endif
+endfunction "}}}
+
+function! textmanip#do1(action, direction, mode) "{{{
+  try
+    let _textmanip_move_ignore_shiftwidth = g:textmanip_move_ignore_shiftwidth
+    let _textmanip_move_shiftwidth        = g:textmanip_move_shiftwidth
+
+    let g:textmanip_move_ignore_shiftwidth = 1
+    let g:textmanip_move_shiftwidth        = 1
+    call textmanip#do(a:action, a:direction, a:mode)
+  finally
+    let g:textmanip_move_ignore_shiftwidth = _textmanip_move_ignore_shiftwidth
+    let g:textmanip_move_shiftwidth        = _textmanip_move_shiftwidth
+  endtry
 endfunction "}}}
 
 " [FIXME] very rough state.

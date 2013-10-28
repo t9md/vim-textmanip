@@ -48,6 +48,18 @@ VARIABLES						*textmanip-variables*
 	You need to setup your favorite keymap.
 	See |textmanip-mapping|.
 
+*g:textmanip_move_ignore_shiftwidth*
+	Default: 0
+
+	If you set this to `1`. When line move right/left is executed with
+	|g:textmanip_move_shiftwidth| value.
+
+*g:textmanip_move_shiftwidth*
+	Default: 1
+
+	When you set non zero value to |g:textmanip_move_ignore_shiftwidth|,
+	this value is used how much right/left shifted when move right/left.
+
 ==============================================================================
 MAPPINGS						    *textmanip-mappings*
 
