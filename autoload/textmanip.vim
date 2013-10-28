@@ -108,7 +108,7 @@ endfunction "}}}
 function! s:varea.shiftwidth_switch()
   let self._shiftwidth = &sw
   let &sw = g:textmanip_move_ignore_shiftwidth
-        \ ? g:textmanip_move_shift : &sw
+        \ ? g:textmanip_move_shiftwidth : &sw
 endfunction
 
 function! s:varea.shiftwidth_restore()

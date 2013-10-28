@@ -96,6 +96,12 @@ v <Plug>(textmanip-move-left)
     able to across original EOL.
 
 ==============================================================================
+COMMAND							    *textmanip-command*
+
+*:TextmanipToggleIgnoreShiftWidth*
+	Toggle whether line move right/left ignore |'shiwftwidth'| or not.
+
+==============================================================================
 CONFIGURATION EXAMPLE					   *textmanip-example*
 
 For mac user replace `<M-*>` to `<D-*>`. <D-> is mac COMMAND key.

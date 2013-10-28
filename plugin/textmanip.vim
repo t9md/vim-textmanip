@@ -40,6 +40,9 @@ vnoremap <silent> <Plug>(textmanip-kickout) :call textmanip#kickout(0)<CR>
 
 " Command [FIXME]
 command! -range -nargs=* TextmanipKickout call textmanip#kickout(<q-args>)
+command! TextmanipToggleIgnoreShiftWidth
+      \ let g:textmanip_move_ignore_shiftwidth = ! g:textmanip_move_ignore_shiftwidth
+      \ <bar> echo g:textmanip_move_ignore_shiftwidth
 "}}}
 
 if exists("g:textmanip_enable_mappings")
