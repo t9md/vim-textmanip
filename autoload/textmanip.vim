@@ -1,13 +1,12 @@
 " nnoremap <F9> :<C-u>echo textmanip#debug()["_data"]<CR>
-nnoremap <F9> :<C-u>echo PP(textmanip#debug()._data)<CR>
-xnoremap <F9> <Esc>:<C-u>echo PP(textmanip#debug()._data)<CR>
-nnoremap <F9> :<C-u>echo PP(textmanip#debug())<CR>
-xnoremap <F9> <Esc>:<C-u>echo PP(textmanip#debug())<CR>
+" nnoremap <F9> :<C-u>echo PP(textmanip#debug()._data)<CR>
+" xnoremap <F9> <Esc>:<C-u>echo PP(textmanip#debug()._data)<CR>
+" nnoremap <F9> :<C-u>echo PP(textmanip#debug())<CR>
+" xnoremap <F9> <Esc>:<C-u>echo PP(textmanip#debug())<CR>
 " xnoremap <F9> <Esc>
 " xnoremap <F9> :<C-u>echo "HOGEHOGE" <bar>echo "HOGEHOG"<CR>
 
 let g:textmanip_debug = 0
-let g:textmanip_move = 'replace'
 " nnoremap <F9> :let g:textmanip_debug =
       " \ !g:textmanip_debug <bar>echo g:textmanip_debug<CR>
 
@@ -52,14 +51,14 @@ let g:textmanip_move = 'replace'
 "     --- +----+----+
 "     (dl)           (dr)
 "
-"          [ case1 ]        [ case2 ]         [ case3 ]        [ case4 ]
-"      (1,1) >   >      (1,1)                  <    < (1,3)           (1,3)
-"         s----+----+      e----+----+       +----+----s      +----+----e
-"         |    |    | V  ^ |    |    |     V |    |    |      +    |    | ^
-"         +----+----+      +----+----+       +----+----+      +----+----+
-"         |    |    | V  ^ |    |    |     V |    |    |      |    |    | ^
-"         +----+----e      +----+----s       e----+----+      s----+----+
-"                 (3,3)      <    < (3,3)  (3,1)           (3,1) >    >
+"     [ case1 ]        [ case2 ]         [ case3 ]        [ case4 ]         
+" (1,1) >   >      (1,1)                  <    < (1,3)           (1,3)      
+"    s----+----+      e----+----+       +----+----s      +----+----e        
+"    |    |    | V  ^ |    |    |     V |    |    |      +    |    | ^      
+"    +----+----+      +----+----+       +----+----+      +----+----+        
+"    |    |    | V  ^ |    |    |     V |    |    |      |    |    | ^      
+"    +----+----e      +----+----s       e----+----+      s----+----+        
+"            (3,3)      <    < (3,3)  (3,1)           (3,1) >    >          
 "}}}
 " BlockMoveSummary:
 "======================= {{{
@@ -154,6 +153,7 @@ function! s:varea.move(direction) "{{{
   if self.is_linewise
     call self.move_line()
     " [FIXME] dirty hack for status management yanking let '< , '> refresh
+    "
     normal! "zygv
   else
     call self.move_block()
@@ -167,113 +167,148 @@ function! s:varea.move(direction) "{{{
 endfunction "}}}             
                              
 function! s:varea.move_block() "{{{
+  let varea = self._pos_org.dup()
+  let c = self._count
+  let d = self._direction
+  let mode = self._select_mode
+
   if g:textmanip_current_mode ==# "insert"
-    call setreg("z", self._replace_text(), getregtype("x"))
-    call self.select_area("chg")
-    normal! "zp
-    call self.select_area("org")
-    call self.visualmode_restore()
-  elseif g:textmanip_current_mode ==# "replace"
-    let c = self._count
-    let d = self._direction
-    let w = self.width
-
-    call self.select_area("chg")
-    normal! "xy
-    let _s = split(getreg("x"), "\n")
-
-    if     d ==# 'up'
-      let eat = _s[: c-1]
-      let orig = _s[c :]
-      " throw eat
-      let rest = self._replaced.up(eat)
-      let replace   = orig + rest
-    elseif d ==# 'down'
-      let eat  = _s[-c :]
-      let orig = _s[: -c-1]
-      let rest = self._replaced.down(eat)
-      let replace = rest + orig
+    if d ==# 'up'
+      let selected = varea.move("u-1, ").content('block')
+      let replace  = join(textmanip#area#new(selected).u_rotate(c).data(), "\n")
+      call setreg("z", replace, getregtype("x"))
+      call varea.select(mode)
+      normal! "zp
+      call varea.move("d-1, ").select(mode)
+    elseif d ==# 'down'    
+      let selected = varea.move("d+1, ").content('block')
+      let replace  = join(textmanip#area#new(selected).d_rotate(c).data(), "\n")
+      call setreg("z", replace, getregtype("x"))
+      call varea.select(mode)
+      normal! "zp
+      call varea.move("u+1, ").select(mode)
     elseif d ==# 'right'
-      let eat = map(copy(_s), 'v:val[-c :]')
-      let orig = map(copy(_s), 'v:val[ : -c-1]')
-      let rest = self._replaced.right(eat)
-      let replace = map(orig, 'rest[v:key] . v:val')
-    elseif d ==# 'left'                                      
-      let eat = map(copy(_s), 'v:val[: c-1]')                
-      let orig = map(copy(_s), 'v:val[c : ]')
-      let rest = self._replaced.left(eat)
-      let replace = map(orig, 'v:val . rest[v:key]')
+      let selected = varea.move("r  ,+1").content('block')
+      let replace  = join(textmanip#area#new(selected).r_rotate(c).data(), "\n")
+      call setreg("z", replace, getregtype("x"))
+      call varea.select(mode)
+      normal! "zp
+      call varea.move("l ,+1").select(mode)
+    elseif d ==# 'left'
+      let selected = varea.move("l  ,-1").content('block')
+      let replace  = join(textmanip#area#new(selected).l_rotate(c).data(), "\n")
+      call setreg("z", replace, getregtype("x"))
+      call varea.select(mode)                    
+      normal! "zp                                             
+      call varea.move("r ,-1").select(mode)      
     endif
 
-    call setreg("z", join(replace,"\n"), getregtype("x"))
-    call self.select_area("chg")
-    normal! "zp
-    call self.select_area("org")
-    call self.visualmode_restore()
+  elseif g:textmanip_current_mode ==# "replace"
+    if     d ==# 'up'
+
+      let selected = varea.move("u-1, ").content('block')
+      let area     = textmanip#area#new(selected)
+      let rest     = self._replaced.up(area.u_cut(c))
+      let replace  = area.d_add(rest).data()
+      call setreg("z", join(replace,"\n"), getregtype("x"))
+      call varea.select(mode)
+      normal! "zp
+      call varea.move("d-1, ").select(mode)
+          
+    elseif d ==# 'down'
+
+      let selected = varea.move("d+1, ").content('block')
+      let area     = textmanip#area#new(selected)
+      let rest     = self._replaced.down(area.d_cut(c))
+      let replace  = area.u_add(rest).data()
+      call setreg("z", join(replace,"\n"), getregtype("x"))
+      call varea.select(mode)
+      normal! "zp
+      call varea.move("u+1, ").select(mode)
+
+    elseif d ==# 'right'
+
+      let selected = varea.move("r ,+1").content('block')
+      let area     = textmanip#area#new(selected)
+      let rest    = self._replaced.right(area.r_cut(c))           
+      let replace = area.l_add(rest).data()                       
+      call setreg("z", join(replace,"\n"), getregtype("x"))
+      call varea.select(mode)
+      normal! "zp
+      call varea.move("l ,+1").select(mode)
+
+    elseif d ==# 'left'                                      
+
+      let selected = varea.move("l ,-1").content('block')
+      let area     = textmanip#area#new(selected)
+      let rest    = self._replaced.left(area.l_cut(c))           
+      let replace = area.r_add(rest).data()                       
+      call setreg("z", join(replace,"\n"), getregtype("x"))
+      call varea.select(mode)
+      normal! "zp
+      call varea.move("r ,-1").select(mode)
+
+    endif          
+                   
   endif
+  call self.visualmode_restore()
 endfunction "}}}
+
+" let s:area = {}
+" let block = {}
+" let line = {}
+" let block.move_u = { "chg": 'u-1,  ', "lst": ['u-1,  ', 'd-1,  '] }
+" let block.move_d = { "chg": 'd+1,  ', "lst": ['u+1,  ', 'd+1,  '] }
+" let block.move_r = { "chg": 'r  ,+1', "lst": ['l  ,+1', 'r  ,+1'] }
+" let block.move_l = { "chg": 'l  ,-1', "lst": ['l  ,-1', 'r  ,-1'] }
+" let line.move_u =  { "chg": 'u-1,  ', "lst": ['u-1,  ', 'd-1,  '] }
+" let line.move_d =  { "chg": 'd+1,  ', "lst": ['u+1,  ', 'd+1,  '] }
+" let s:area.block = block
+" let s:area.line = line
 
 function! s:varea.move_line() "{{{
   let dir = self._direction
-
   let c = self._count
-  if     dir ==# "up" || dir ==# "down"
 
-    if dir ==# 'up'
-      if g:textmanip_current_mode ==# "insert"
-        let selected = getline(self.__pos.ul[0]-c, self.__pos.dr[0])
-        let replace = selected[ c : ] + selected[ : c-1 ]
-        if g:textmanip_debug > 2  "{{{
-          echo PP(selected)
-          echo len(selected)
-          echo '--'
-          echo PP(replace)
-          echo len(replace)
-          return
-        endif "}}}
-        call setline(self.__pos.ul[0] - c, replace)
-      elseif g:textmanip_current_mode ==# "replace"
-        let selected  = getline(self.__pos.ul[0], self.__pos.dr[0])
-        let rest = self._replaced.up(getline(self.__pos.ul[0]-c))
-        let replace   = selected + rest
-        call setline(self.__pos.ul[0] - c, replace)
-      endif
+  if dir =~# '\v^(right|left)$'
+    let ward = dir ==# 'right' ? ">" : "<"                     
+    exe "'<,'>" . repeat( ward , self._count)                  
+    normal! gv                                                 
+    return                                                     
+  endif                                                        
+                                                               
+  let varea = self._pos_org.dup()                              
+  if g:textmanip_current_mode ==# "insert"                     
+                                                               
+    " DONE
+    if dir ==# 'up'                                            
+      let selected = varea.move("u-1, ").content('line')                      
+      let replace  = textmanip#area#new(selected).u_rotate(c).data()          
+      call setline(varea.u.pos()[0], replace)                                 
+      call varea.move("d-1, ").select(self._select_mode)                      
     elseif dir ==# 'down'
-      if g:textmanip_current_mode ==# "insert"
-        let selected = getline(self.__pos.ul[0], self.__pos.dr[0]+c)
-        let replace = selected[ -c : ] + selected[ : -c-1 ]
-        if g:textmanip_debug > 2  "{{{
-          echo PP(selected)
-          echo len(selected)
-          echo '--'
-          echo PP(replace)
-          echo len(replace)
-          return
-        endif "}}}
-        call setline(self.__pos.ul[0], replace)
+      let selected = varea.move("d+1, ").content('line')
+      let replace  = textmanip#area#new(selected).d_rotate(c).data()
+      call setline(varea.u.pos()[0], replace)
+      call varea.move("u+1, ").select(self._select_mode)
+    endif        
+                 
+  elseif g:textmanip_current_mode ==# "replace"
 
-      elseif g:textmanip_current_mode ==# "replace"
-        let selected  = getline(self.__pos.ul[0], self.__pos.dr[0])
-        let rest = self._replaced.down(getline(self.__pos.dr[0]+c))
-        let replace   = rest + selected
-        call setline(self.__pos.ul[0], replace)
-      endif
+    let selected = varea.content('line')                      
+    if dir ==# 'up'
+      let rest = self._replaced.up(getline(varea.u.line()-c))
+      let replace   = selected + rest
+      call setline(varea.u.line() - c, replace)
+      call varea.move(["u-1, ","d-1, "]).select(self._select_mode)
+    elseif dir ==# 'down'
+      let rest = self._replaced.down(getline(varea.d.line()+c))
+      let replace   = rest + selected
+      call setline(varea.u.line(), replace)
+      call varea.move(["u+1, ", "d+1, "]).select(self._select_mode)
     endif
-    call self.select_area("org")
-    call self.visualmode_restore()
-  elseif dir ==# "right"
-    " if c > 1
-      " call self.shiftwidth_switch(1)
-    " endif
-    exe "'<,'>" . repeat(">",c)
-    " if c > 1
-      " call self.shiftwidth_restore()
-    " endif
-    normal! gv
-  elseif dir ==# "left"
-    exe "'<,'>" . repeat("<",c)
-    normal! gv
   endif
+  call self.visualmode_restore()
 endfunction "}}}
 
 function! s:varea.shiftwidth_switch(v) "{{{
@@ -301,32 +336,32 @@ function! s:varea.duplicate_block() "{{{
   let s = copy(self.__pos.ul) + [0]
   let e = copy(self.__pos.dr) + [0]
 
-  if g:textmanip_current_mode ==# "insert"
-    call self._selct_org()
-    normal! "xy
+  let varea = self._pos_org.dup()                              
 
-    let target_line = d ==# 'up'
-          \ ? self.__pos.ul[0]-1
-          \ : self.__pos.dr[0]
+  if g:textmanip_current_mode ==# "insert"
+
+    let target_line = d ==# 'up' ? varea.u.line() - 1 : varea.d.line()
+    let selected = varea.content('block')                      
+
+    let replace = textmanip#area#new(selected).v_duplicate(c).data()
+    " PP replace
+    " return
+    PP replace
+    call setreg("z", join(replace, "\n"), getregtype("x"))
 
     let blank_line = map(range(h*c), '""')
     call append(target_line, blank_line)
 
-    let _str = split(getreg("x"), "\n")
-    let _replace = copy(_str)
-    for n in range(c)
-      let _replace += _str
-    endfor
-    let replace = join( _replace , "\n")
-    call setreg("z", replace, getregtype("x"))
+    if d ==# 'up'
+      call varea.select(self._select_mode)
+      " normal! "zp
+      " call varea.move("d+" . (h*c-h) . ", ").select(self._select_mode)
+    elseif d ==# 'down'
+      call varea.move("d+" . (h*c) . ", ").select(self._select_mode)
+      normal! "zp
+      call varea.move("u+".h. ", " ).select(self._select_mode)
+    endif
 
-    let e[0] += h*c
-    call cursor(s)
-    execute "normal! " . self._select_mode
-    call cursor(e)
-
-    normal! "zp
-    call self.select_area("dup")
   elseif g:textmanip_current_mode ==# "replace"
     call self._selct_org()
     normal! "xy
@@ -400,7 +435,6 @@ function! s:varea.duplicate_visual() "{{{
   call self.visualmode_restore()
 endfun "}}}
 
-
 function! s:varea.init(direction, mode) "{{{
   let self._prevcount = (v:prevcount ? v:prevcount : 1)
   let self._direction = a:direction
@@ -425,6 +459,8 @@ function! s:varea.init(direction, mode) "{{{
   let _e = getpos('.')
   exe "normal! " . "\<Esc>"
   let e = [_e[1], _e[2] + _e[3]]
+
+  let self._pos_org = textmanip#selection#new(s, e)
 
   if     ((s[0] <= e[0]) && (s[1] <=  e[1])) | let case = 1
   elseif ((s[0] >= e[0]) && (s[1] >=  e[1])) | let case = 2
@@ -543,28 +579,28 @@ function! s:varea.select_area(area) "{{{
   call cursor(e+[0])
 endfunction "}}}
 
-function! s:varea._replace_text() "{{{
-  call self.select_area("chg")
-  normal! "xy
-  let _s = split(getreg("x"), "\n")
+" function! s:varea._replace_text() "{{{
+  " call self.select_area("chg")
+  " normal! "xy
+  " let _s = split(getreg("x"), "\n")
 
-  let c = self._count
-  let d = self._direction
-  let w = self.width
-  if     d ==# 'up'   | let s = _s[c :] +  _s[: c-1]
-  elseif d ==# 'down' | let s = _s[-c :] + _s[: -c-1]
-  elseif d ==# 'right'| let s = map(_s,'v:val[-c :] . v:val[: -c-1]')
-  elseif d ==# 'left' | let s = map(_s,'v:val[c : ] . v:val[:  c-1]')
-  endif
-  if g:textmanip_debug > 0
-    echo c
-    echo "-- selected"
-    echo PP(_s)
-    echo "-- replace"
-    echo PP(s)
-  endif
-  return join(s, "\n")
-endfunction "}}}
+  " let c = self._count
+  " let d = self._direction
+  " let w = self.width
+  " if     d ==# 'up'   | let s = _s[c :] +  _s[: c-1]
+  " elseif d ==# 'down' | let s = _s[-c :] + _s[: -c-1]
+  " elseif d ==# 'right'| let s = map(_s,'v:val[-c :] . v:val[: -c-1]')
+  " elseif d ==# 'left' | let s = map(_s,'v:val[c : ] . v:val[:  c-1]')
+  " endif
+  " if g:textmanip_debug > 0
+    " echo c
+    " echo "-- selected"
+    " echo PP(_s)
+    " echo "-- replace"
+    " echo PP(s)
+  " endif
+  " return join(s, "\n")
+" endfunction "}}}
 
 function! s:decho(msg) "{{{
   if g:textmanip_debug

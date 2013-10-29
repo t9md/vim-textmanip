@@ -85,9 +85,20 @@ function! s:selection.new(s, e) "{{{
   " let self.ul = s:pos.new(ul)
   " let self.dr = s:pos.new(dr)
 
-  let self.width  = abs(e[1] - s[1]) + 1
-  let self.height = abs(e[0] - s[0]) + 1
+  " let self.width  = abs(e[1] - s[1]) + 1
+  " let self.height = abs(e[0] - s[0]) + 1
 
+  return deepcopy(self)
+endfunction "}}}
+
+function! s:selection.width() "{{{
+  return abs(e[1] - s[1]) + 1
+endfunction "}}}
+function! s:selection.height() "{{{
+  return abs(e[0] - s[0]) + 1
+endfunction "}}}
+
+function! s:selection.dup() "{{{
   return deepcopy(self)
 endfunction "}}}
 
@@ -103,6 +114,18 @@ function! s:selection.move(ope) "{{{
   endfor
   " echo parsed
   return self
+endfunction "}}}
+
+function! s:selection.content(wise) "{{{
+  if a:wise ==# 'line'
+    let content = getline( self.u.pos()[0], self.d.pos()[0])
+  elseif a:wise ==# 'block'
+    call self.select("\<C-v>")
+    " FIXME
+    normal! "xy
+    let content = split(getreg("x"), "\n")
+  endif
+  return content
 endfunction "}}}
 
 function! s:selection._parse(s) "{{{
@@ -141,7 +164,31 @@ endfunction "}}}
 " call Test("case3", [66,23], [61,11])
 " call Test("case4", [61,11], [66,23])
 " "}}}
+let Area = {}
+function! Area.init()
+  normal! gvo
+  let _s = getpos('.')
+  exe "normal! " . "\<Esc>"
+  let s = [_s[1], _s[2] + _s[3]]
+  normal! gvo
+  let _e = getpos('.')
+  exe "normal! " . "\<Esc>"
+  let e = [_e[1], _e[2] + _e[3]]
+  let self._pos_org = textmanip#selection#new(s, e)
+endfunction
+function! Area.run()
+  call self.init()
+  let pos = deepcopy(self._pos_org)
+  let selected = pos.move("u-1, ").content('line')
+  let area = textmanip#area#new(selected)
+  let up = area.u_cut(1)
+  " let replace = selected[ 1 : ] + selected[ : 1-1 ]
+  let replace = area.data() + up
+  call setline(pos.u.pos()[0], replace)
+endfunction
 
+" xnoremap <C-k> :<C-u>call Area.run()<CR>
+finish
 function! Test(action, s, e) "{{{
   let b_v = "\<C-v>"
   " let b_v = "V"
@@ -162,19 +209,6 @@ function! Test(action, s, e) "{{{
   endfor
 endfunction "}}}
 
-let s:area = {}
-let blockwise.move_u = { "change": 'u-1,  ', "last": ['u-1,  ', 'd-1,  '] }
-let blockwise.move_d = { "change": 'd+1,  ', "last": ['u+1,  ', 'd+1,  '] }
-let blockwise.move_r = { "change": 'r  ,+1', "last": ['l  ,+1', 'r  ,+1'] }
-let blockwise.move_l = { "change": 'l  ,-1', "last": ['l  ,-1', 'r  ,-1'] }
-let linewise.move_u = { "change": 'u-1,  ', "last": ['u-1,  ', 'd-1,  '] }
-let linewise.move_d = { "change": 'd+1,  ', "last": ['u+1,  ', 'd+1,  '] }
-
-let s:area.blockwise = blockwise
-let s:area.linewise = linewise
-"
-" let s:area.move_r = { "change": 'r  ,+1', "last": ['r  ,+1', 'r  ,+1'] }
-" let s:area.move_l = { "change": 'l  ,-1', "last": ['l  ,-1', 'l  ,-1'] }
 
 function! s:show() "{{{
   redraw | sleep 1
@@ -196,7 +230,7 @@ finish
 " # Pos should be specified in relation to [start, pos]
 "  ## move
 "  +------------------------------------------------------+
-"  | [block] |     change,  |           last              |
+"  |  block  |     change,  |           last              |
 "  +---------+--------------+-----------------------------|
 "  |  move-u | u-[ -1,    ] |  u-[ -1,    ], d-[ -1,    ] | 
 "  +---------+--------------+----+------------------------|
@@ -206,9 +240,8 @@ finish
 "  +---------+--------------+----+------------------------|
 "  |  move-l | -l[   , -1 ] |  -l[   , -1 ], -l[   , -1 ] |
 "  +------------------------------------------------------+
-"
 "  +------------------------------------------------------+
-"  | [Line ] |     change,   |           last             |
+"  |  line   |     change,   |           last             |
 "  +---------+---------------+----------------------------|
 "  |  move-u | u-[ -1,    ]  | u-[ -1,    ], d-[ -1,    ] |
 "  +---------+---------------+----------------------------|
@@ -219,12 +252,24 @@ finish
 "  |  move-l |     N/A       |           N/A              |
 "  +------------------------------------------------------+
 "
+"  # dup
+"  +------------------------------------------------------+
+"  |  block  |     change,   |           last             |
+"  +---------+---------------+----------------------------|
+"  |   dup-u | u-[   ,    ]  | u[ ,   ], d-[ +h*(c-1), ]  |
+"  +---------+---------------+----------------------------|
+"  |   dup-d | d-[ +h,    ]  | u-[ +1,    ], d-[ +1,    ] |
+"  +---------+---------------+----------------------------|
+"  |   dup-r |     N/A       |           N/A              |
+"  +---------+---------------+----------------------------|
+"  |   dup-l |     N/A       |           N/A              |
+"  +------------------------------------------------------+
 "
-" [line]
+" [line] "{{{
 " move-u  ul[ "-1", "" ]   ul["-1", ""], dr["-1", ""]
 " move-d  ul[ "+1", "" ]   ul["+1", ""], dr["+1", ""]
 " move-r  N/A
-" move-l  N/A
+" move-l  N/A "}}}
 
 " ## dup
 " [block]    change,           last

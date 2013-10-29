@@ -40,7 +40,6 @@ function! s:status.selected() "{{{
   return v
 endfunction "}}}
 
-
 " Public:
 function! textmanip#status#update() "{{{
   call s:status.update()

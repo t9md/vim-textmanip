@@ -56,8 +56,8 @@ function! s:replaced.right(val) "{{{
   call self._data.r_add(a:val)
   let c = self.width() - self.owner.width
   if c > 0
-    return self._data.l_cut(c)
     " visual area moved over width need un-eat
+    return self._data.l_cut(c)
   else
     let space = repeat(" ", len(a:val[0]))
     return map(range(self.owner.height), 'space')
