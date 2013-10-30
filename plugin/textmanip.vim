@@ -24,7 +24,7 @@ nnoremap <silent> <Plug>(textmanip-duplicate-down)      :<C-u>call textmanip#do(
 vnoremap <silent> <Plug>(textmanip-duplicate-up)   <Esc>:<C-u>call textmanip#do('dup', 'up','v')<CR>
 nnoremap <silent> <Plug>(textmanip-duplicate-up)        :<C-u>call textmanip#do('dup', 'up','n')<CR>
 
-vnoremap <silent> <Plug>(textmanip-move-up) 
+vnoremap <silent> <Plug>(textmanip-move-up)
       \ :<C-u>call textmanip#do('move', 'up', 'v')<CR>
 vnoremap <silent> <Plug>(textmanip-move-down)
       \ :<C-u>call textmanip#do('move', 'down', 'v')<CR>
@@ -32,6 +32,15 @@ vnoremap <silent> <Plug>(textmanip-move-right)
       \ :<C-u>call textmanip#do('move', 'right', 'v')<CR>
 vnoremap <silent> <Plug>(textmanip-move-left)
       \ :<C-u>call textmanip#do('move', 'left', 'v')<CR>
+
+vnoremap <silent> <Plug>(textmanip-move-up-i)
+      \ :<C-u>call textmanip#do('move', 'up', 'v', 'insert')<CR>
+vnoremap <silent> <Plug>(textmanip-move-down-i)
+      \ :<C-u>call textmanip#do('move', 'down', 'v', 'insert')<CR>
+vnoremap <silent> <Plug>(textmanip-move-right-i)
+      \ :<C-u>call textmanip#do('move', 'right', 'v', 'insert')<CR>
+vnoremap <silent> <Plug>(textmanip-move-left-i)
+      \ :<C-u>call textmanip#do('move', 'left', 'v', 'insert')<CR>
 
 vnoremap <silent> <Plug>(textmanip-move-up-r)
       \ :<C-u>call textmanip#do('move', 'up', 'v', 'replace')<CR>

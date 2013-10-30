@@ -204,3 +204,4 @@ echo s.data()
 
 
 
+" vim: foldmethod=marker

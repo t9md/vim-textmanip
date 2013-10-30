@@ -42,6 +42,7 @@ endfunction "}}}
 function! s:selection.move(ope) "{{{
   let ope = type(a:ope) ==# type([]) ? a:ope : [a:ope]
   for o in ope
+    if empty(o) | continue | endif
     let parsed = self._parse(o)
     call self[parsed.meth].move(parsed.arg[0], parsed.arg[1])
   endfor
