@@ -24,10 +24,23 @@ nnoremap <silent> <Plug>(textmanip-duplicate-down)      :<C-u>call textmanip#do(
 vnoremap <silent> <Plug>(textmanip-duplicate-up)   <Esc>:<C-u>call textmanip#do('dup', 'up','v')<CR>
 nnoremap <silent> <Plug>(textmanip-duplicate-up)        :<C-u>call textmanip#do('dup', 'up','n')<CR>
 
-vnoremap <silent> <Plug>(textmanip-move-up)    :<C-u>call textmanip#do('move', 'up', 'v')<CR>
-vnoremap <silent> <Plug>(textmanip-move-down)  :<C-u>call textmanip#do('move', 'down', 'v')<CR>
-vnoremap <silent> <Plug>(textmanip-move-right) :<C-u>call textmanip#do('move', 'right', 'v')<CR>
-vnoremap <silent> <Plug>(textmanip-move-left)  :<C-u>call textmanip#do('move', 'left', 'v')<CR>
+vnoremap <silent> <Plug>(textmanip-move-up) 
+      \ :<C-u>call textmanip#do('move', 'up', 'v')<CR>
+vnoremap <silent> <Plug>(textmanip-move-down)
+      \ :<C-u>call textmanip#do('move', 'down', 'v')<CR>
+vnoremap <silent> <Plug>(textmanip-move-right)
+      \ :<C-u>call textmanip#do('move', 'right', 'v')<CR>
+vnoremap <silent> <Plug>(textmanip-move-left)
+      \ :<C-u>call textmanip#do('move', 'left', 'v')<CR>
+
+vnoremap <silent> <Plug>(textmanip-move-up-r)
+      \ :<C-u>call textmanip#do('move', 'up', 'v', 'replace')<CR>
+vnoremap <silent> <Plug>(textmanip-move-down-r)
+      \ :<C-u>call textmanip#do('move', 'down', 'v', 'replace')<CR>
+vnoremap <silent> <Plug>(textmanip-move-right-r)
+      \ :<C-u>call textmanip#do('move', 'right', 'v', 'replace')<CR>
+vnoremap <silent> <Plug>(textmanip-move-left-r)
+      \ :<C-u>call textmanip#do('move', 'left', 'v', 'replace')<CR>
 
 " experimental dirty hack
 vnoremap <silent> <Plug>(textmanip-move-right-1col) :<C-u>call textmanip#do1('move', 'right', 'v')<CR>

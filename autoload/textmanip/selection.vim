@@ -20,17 +20,17 @@ function! s:selection.new(s, e) "{{{
   elseif case ==# 4 | let [u, d, l, r ] = [ pe, ps, ps, pe ]
   endif
                  let self.u = u
-  let self.l = l                let self.r = r 
+  let self.l = l       |       let self.r = r 
                  let self.d = d
+  return deepcopy(self)               
+endfunction "}}}                      
 
-  return deepcopy(self)
-endfunction "}}}
 
 function! s:selection.width() "{{{
-  return self.d.col() - self.u.col() + 1
+  return self.r.col() - self.l.col() + 1
 endfunction "}}}
 function! s:selection.height() "{{{
-  return self.r.line() - self.l.line() + 1
+  return self.d.line() - self.u.line() + 1
 endfunction "}}}
 function! s:selection.dup() "{{{
   return deepcopy(self)

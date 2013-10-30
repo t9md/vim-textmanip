@@ -173,29 +173,29 @@ function! s:varea.move_block() "{{{
   let d = self._direction
   let mode = self._select_mode
 
-  if g:textmanip_current_mode ==# "insert"
-    if d ==# 'up'
+  if s:textmanip_current_mode ==# "insert"
+    if self._direction ==# 'up'
       let selected = varea.move("u-1, ").content('block')
       let replace  = join(textmanip#area#new(selected).u_rotate(c).data(), "\n")
       call setreg("z", replace, getregtype("x"))
       call varea.select(mode)
       normal! "zp
       call varea.move("d-1, ").select(mode)
-    elseif d ==# 'down'    
+    elseif self._direction ==# 'down'    
       let selected = varea.move("d+1, ").content('block')
       let replace  = join(textmanip#area#new(selected).d_rotate(c).data(), "\n")
       call setreg("z", replace, getregtype("x"))
       call varea.select(mode)
       normal! "zp
       call varea.move("u+1, ").select(mode)
-    elseif d ==# 'right'
+    elseif self._direction ==# 'right'
       let selected = varea.move("r  ,+1").content('block')
       let replace  = join(textmanip#area#new(selected).r_rotate(c).data(), "\n")
       call setreg("z", replace, getregtype("x"))
       call varea.select(mode)
       normal! "zp
       call varea.move("l ,+1").select(mode)
-    elseif d ==# 'left'
+    elseif self._direction ==# 'left'
       let selected = varea.move("l  ,-1").content('block')
       let replace  = join(textmanip#area#new(selected).l_rotate(c).data(), "\n")
       call setreg("z", replace, getregtype("x"))
@@ -204,8 +204,8 @@ function! s:varea.move_block() "{{{
       call varea.move("r ,-1").select(mode)      
     endif
 
-  elseif g:textmanip_current_mode ==# "replace"
-    if     d ==# 'up'
+  elseif s:textmanip_current_mode ==# "replace"
+    if     self._direction ==# 'up'
 
       let selected = varea.move("u-1, ").content('block')
       let area     = textmanip#area#new(selected)
@@ -216,7 +216,7 @@ function! s:varea.move_block() "{{{
       normal! "zp
       call varea.move("d-1, ").select(mode)
           
-    elseif d ==# 'down'
+    elseif self._direction ==# 'down'
 
       let selected = varea.move("d+1, ").content('block')
       let area     = textmanip#area#new(selected)
@@ -227,7 +227,8 @@ function! s:varea.move_block() "{{{
       normal! "zp
       call varea.move("u+1, ").select(mode)
 
-    elseif d ==# 'right'
+    elseif self._direction ==# 'right'
+
 
       let selected = varea.move("r ,+1").content('block')
       let area     = textmanip#area#new(selected)
@@ -238,7 +239,7 @@ function! s:varea.move_block() "{{{
       normal! "zp
       call varea.move("l ,+1").select(mode)
 
-    elseif d ==# 'left'                                      
+    elseif self._direction ==# 'left'                                      
 
       let selected = varea.move("l ,-1").content('block')
       let area     = textmanip#area#new(selected)
@@ -261,13 +262,13 @@ function! s:varea.move_line() "{{{
   let varea = self._pos_org.dup()                              
 
   if self._direction =~# '\v^(right|left)$'
-    let ward = dir ==# 'right' ? ">" : "<"                     
+    let ward = self._direction ==# 'right' ? ">" : "<"                     
     exe "'<,'>" . repeat( ward , self._count)                  
-    call varea.select("V")
+    call varea.select(self.mode)
     return                                                     
   endif                                                        
                                                                
-  if g:textmanip_current_mode ==# "insert"                     
+  if s:textmanip_current_mode ==# "insert"                     
                                                                
     " DONE
     if self._direction ==# 'up'                                            
@@ -282,7 +283,7 @@ function! s:varea.move_line() "{{{
       call varea.move("u+1, ").select(self._select_mode)
     endif        
                  
-  elseif g:textmanip_current_mode ==# "replace"
+  elseif s:textmanip_current_mode ==# "replace"
 
     let selected = varea.content('line')                      
     if self._direction ==# 'up'
@@ -317,7 +318,7 @@ function! s:varea.duplicate_block() "{{{
   let replace = textmanip#area#new(varea.content('block')).v_duplicate(c).data()
   call setreg("z", join(replace, "\n"), getregtype("x"))
 
-  if g:textmanip_current_mode ==# "insert"
+  if s:textmanip_current_mode ==# "insert"
     let blank_lines = map(range(h*c), '""')
 
     if self._direction ==# 'up'
@@ -332,7 +333,7 @@ function! s:varea.duplicate_block() "{{{
       call varea.select(C_v)
     endif
 
-  elseif g:textmanip_current_mode ==# "replace"
+  elseif s:textmanip_current_mode ==# "replace"
 
     if self._direction ==# 'up'
       call varea.move(['u-' . (h*c) . ', ', 'd-' . h . ', ']).select(C_v)
@@ -409,7 +410,8 @@ function! s:varea.init(direction, mode) "{{{
   " adjust count
   let self.width  = varea.width()
   let self.height = varea.height()
-  let self.is_linewise = (self.mode ==# 'V' ) || (self.mode ==# 'v' && self.height() > 1)
+  " let h = self.height
+  let self.is_linewise = (self.mode ==# 'V' ) || (self.mode ==# 'v' && self.height > 1)
 
   let max = self._count
   if self._direction ==# 'up'
@@ -472,8 +474,9 @@ endfunction "}}}
 
 " PlublicInterface:
 "===================== {{{
-function! textmanip#do(action, direction, mode) "{{{
+function! textmanip#do(action, direction, mode, ...) "{{{
   call s:varea.init(a:direction, a:mode)
+  let s:textmanip_current_mode = ( a:0 > 0 ) ? a:1 : g:textmanip_current_mode
 
   if a:action ==# 'move'
     call s:varea.move(a:direction)   

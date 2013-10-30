@@ -184,18 +184,18 @@ Textmanip support 2 mode: insert, replace
    +-----------------+--------------+--------------+
    |  action	     | linewise     | blockwise    |
    +-----------------+--------------|--------------|
-   | move-up/down    |	    O	    |	   O	   |
-   | move-right/left |	   N/A	    |	   O	   |
-   | dup-up/down     |	   TODO     |	   O	   |
-   | dup-righ/left   |	   TODO     |	TODO	   |
+   | move-up/down    |	    o	    |	   o	   |
+   | move-right/left |	    o 	    |	   o	   |
+   | dup-up/down     |	    o       |	   o	   |
+   | dup-righ/left   |	   N/A      |	TODO	   |
    +-----------------+--------------+--------------+
 <
 ==============================================================================
 TODO							      *textmanip-todo*
 
-- support replace mode [up/down => o] [right/left => x ]
-- duplicate right
-- duplicate replacemode
+- support replace mode [up/down => o] [right/left => o ]: DONE
+- duplicate right/left yet
+- duplicate replacemode: DONE
 - refactoring( file separate, further oop style)
 - ?? option to automatically delete trailing space?
 - ?? option to automatically indent( I'm not in mood ).
@@ -211,6 +211,8 @@ position not restored to original position.
 
 ==============================================================================
 CHANGELOG						 *textmanip-changelog*
+2013-10-30: v1.3
+	- [bugfix] error when global var not defined.
 2013-10-27: v1.2
 	- [bugfix] count not properly handled.
 2013-10-26:

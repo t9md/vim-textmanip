@@ -71,7 +71,7 @@ endfunction "}}}
 
 
 " Test:
-" finish
+finish
 let varea = {}
 let varea.is_linewise = 1
 let varea.width  = 3
@@ -81,6 +81,7 @@ let replaced = textmanip#replaced#new(varea)
 echo replaced.up("abc")
 echo replaced.up("abc")
 echo replaced.height()
+echo replaced.data()
 finish
 echo replaced.up("def")
 echo replaced.up("ghi")

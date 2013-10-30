@@ -178,7 +178,7 @@ endfunction "}}}
 " vim: foldmethod=marker
 
 " Test:
-" finish
+finish
 function! s:split(mode) "{{{
   return split(a:mode, '.\zs')
 endfunction "}}}

@@ -16,7 +16,6 @@ function! s:status.undojoin() "{{{
 endfunction "}}}
 
 function! s:status.update() "{{{
-  " echo "== in update"
   let b:textmanip_status = self.selected()
 endfunction "}}}
 
