@@ -1,17 +1,16 @@
 " Selection:
 let s:selection = {}
 function! s:selection.new(s, e) "{{{
-  let self.s = textmanip#pos#new(a:s)
-  let self.e = textmanip#pos#new(a:e)
   let s = a:s
   let e = a:e
-
   if     ((s[0] <= e[0]) && (s[1] <=  e[1])) | let case = 1
   elseif ((s[0] >= e[0]) && (s[1] >=  e[1])) | let case = 2
   elseif ((s[0] <= e[0]) && (s[1] >=  e[1])) | let case = 3
   elseif ((s[0] >= e[0]) && (s[1] <=  e[1])) | let case = 4
   endif
 
+  let self.s = textmanip#pos#new(s)
+  let self.e = textmanip#pos#new(e)
   let ps = self.s
   let pe = self.e
 
@@ -20,20 +19,18 @@ function! s:selection.new(s, e) "{{{
   elseif case ==# 3 | let [u, d, l, r ] = [ ps, pe, pe, ps ]
   elseif case ==# 4 | let [u, d, l, r ] = [ pe, ps, ps, pe ]
   endif
-
-  let self.u = u
-  let self.d = d
-  let self.l = l
-  let self.r = r
+                 let self.u = u
+  let self.l = l                let self.r = r 
+                 let self.d = d
 
   return deepcopy(self)
 endfunction "}}}
 
 function! s:selection.width() "{{{
-  return abs(e[1] - s[1]) + 1
+  return self.d.col() - self.u.col() + 1
 endfunction "}}}
 function! s:selection.height() "{{{
-  return abs(e[0] - s[0]) + 1
+  return self.r.line() - self.l.line() + 1
 endfunction "}}}
 function! s:selection.dup() "{{{
   return deepcopy(self)
