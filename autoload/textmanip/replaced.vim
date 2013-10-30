@@ -69,4 +69,25 @@ function! textmanip#replaced#new(owner) "{{{
   return s:replaced.new(a:owner)
 endfunction "}}}
 
+
+" Test:
+" finish
+let varea = {}
+let varea.is_linewise = 1
+let varea.width  = 3
+let varea.height = 4
+
+let replaced = textmanip#replaced#new(varea)
+echo replaced.up("abc")
+echo replaced.up("abc")
+echo replaced.height()
+finish
+echo replaced.up("def")
+echo replaced.up("ghi")
+echo replaced.data()
+let a = textmanip#area#new( copy(replaced.data() ))
+" echo replace.left([1,2,3])
+echo replaced.right([1,2,3])
+echo replaced.data()        
+echo a.data()
 " vim: foldmethod=marker

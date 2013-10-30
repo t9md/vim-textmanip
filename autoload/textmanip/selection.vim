@@ -1,62 +1,8 @@
-" original => change => last
-" [line, col]
-"
-" u u[0] - 1
-" d d[0] + 1
-" l l[1] - 1
-" r r[1] + 1
-
-" POS:
-let s:pos = {}
-function! s:pos.new(pos) "{{{
-  " pos = [line, col]
-  let self._data = a:pos
-  return deepcopy(self)
-endfunction "}}}
-
-function! s:pos.pos() "{{{
-  return self._data
-endfunction "}}}
-
-function! s:pos.line() "{{{
-  return self._data[0]
-endfunction "}}}
-function! s:pos.col() "{{{
-  return self._data[1]
-endfunction "}}}
-
-function! s:pos.move_line(ope) "{{{
-  let self._data[0] = eval(self._data[0] . a:ope)
-  return self._data
-endfunction "}}}
-
-function! s:pos.move_col(ope) "{{{
-  let self._data[1] = eval(self._data[1] . a:ope)
-  return self._data
-endfunction "}}}
-
-function! s:pos.move(line_ope, col_ope) "{{{
-  let self._data = [
-        \ eval(self._data[0] . a:line_ope),
-        \ eval(self._data[1] . a:col_ope),
-        \ ]
-  return self
-endfunction "}}}
-
-function! s:pos.set(line, col) "{{{
-  let self._data = [ a:line, a:col ]
-  return self._data
-endfunction "}}}
-
-function! s:pos.dump() "{{{
-  return self._data
-endfunction "}}}
-
 " Selection:
 let s:selection = {}
 function! s:selection.new(s, e) "{{{
-  let self.s = s:pos.new(a:s)
-  let self.e = s:pos.new(a:e)
+  let self.s = textmanip#pos#new(a:s)
+  let self.e = textmanip#pos#new(a:e)
   let s = a:s
   let e = a:e
 
@@ -79,14 +25,6 @@ function! s:selection.new(s, e) "{{{
   let self.d = d
   let self.l = l
   let self.r = r
-  " let ul = [ u[0], l[1] ]     " let ur = [ u[0], r[1]]
-  " let dr = [ d[0], r[1]]      " let dl = [ d[0], l[1]]
-
-  " let self.ul = s:pos.new(ul)
-  " let self.dr = s:pos.new(dr)
-
-  " let self.width  = abs(e[1] - s[1]) + 1
-  " let self.height = abs(e[0] - s[0]) + 1
 
   return deepcopy(self)
 endfunction "}}}
@@ -97,11 +35,9 @@ endfunction "}}}
 function! s:selection.height() "{{{
   return abs(e[0] - s[0]) + 1
 endfunction "}}}
-
 function! s:selection.dup() "{{{
   return deepcopy(self)
 endfunction "}}}
-
 function! s:selection.dump() "{{{
   return PP([self.s.pos(), self.e.pos()])
 endfunction "}}}
@@ -159,6 +95,9 @@ function! textmanip#selection#dump() "{{{
   return s:selection.dump()
 endfunction "}}}
 
+
+" Test:
+finish
 " call Test("case2", [66,23], [61,11]) "{{{
 " call Test("case3", [61,11], [66,23])
 " call Test("case3", [66,23], [61,11])

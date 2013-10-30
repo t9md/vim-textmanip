@@ -44,15 +44,14 @@ command! -range -nargs=* TextmanipToggleMode call textmanip#toggle_mode()
 
 
 let s:default_settings = {
-      \ "enable_mappings" : 0,
-      \ "default_mode" : "insert",
+      \ "textmanip_enable_mappings" : 0,
+      \ "textmanip_default_mode"    : "insert",
       \ }
 
-let s:prefix = "textmanip_"
 function! s:set_default(dict) "{{{
   for [name, val] in items(a:dict)
-    let var = s:prefix . name
-    let g:{var} = get(g:, var, val)
+    " let var = s:prefix . name
+    let g:{name} = get(g:, name, val)
     unlet name val
   endfor
 endfunction "}}}
@@ -82,7 +81,7 @@ function! s:set_default_mapping() "{{{
   xmap <C-l> <Plug>(textmanip-move-smart-right)
 endfunction "}}}
 
-if g:textmanip_enable_mappings
+if !g:textmanip_enable_mappings
   call s:set_default_mapping()
 endif
 
