@@ -1,52 +1,3 @@
-" CeckList:
-"===================== {{{
-" restore original vim options
-" restore original visual mode
-" restore original cursor pos including where 'o'pposit pos in visual mode.
-" count reflect result.
-" undoable for continuous move by one 'undo' command.
-" care when move across corner( TOF,EOF, BOL, EOL )
-"  - by adjusting cursor to appropriate value
-"  u => TOF
-"  d => EOF
-"  r => EOL(but ve care this!)
-"  l => BOF
-"
-" Supported: [O: Finish][X: Not Yet][P: Partially impremented]
-" * normal_mode:
-" [O] duplicate line to above, below
-"
-" * visual_line('V', or multiline 'v':
-" [O] duplicate line to above, below
-" [O] move righ/left
-" [O] undoable/count
-"
-" * visual_block(C-v):
-" [O] move selected block to up/down/right/left.
-"   ( but not multibyte char aware ).
-" [X] count support, not undoable
-"
-"}}}
-" CusrsorPos Management:
-"===================== {{{
-"
-"     (ul)|--width--|(ur)
-"     --- +----+----+      (s)tart  (e)end
-"      |  |    |    |      (u)p, (d)own (l)eft, (r)ight
-"  height +----+----+      (ul) u/l, (ur) u/r,
-"      |  |    |    |      (dl) d/l, (dr) u/l
-"     --- +----+----+
-"     (dl)           (dr)
-"
-"     [ case1 ]        [ case2 ]         [ case3 ]        [ case4 ]         
-" (1,1) >   >      (1,1)                  <    < (1,3)           (1,3)      
-"    s----+----+      e----+----+       +----+----s      +----+----e        
-"    |    |    | V  ^ |    |    |     V |    |    |      +    |    | ^      
-"    +----+----+      +----+----+       +----+----+      +----+----+        
-"    |    |    | V  ^ |    |    |     V |    |    |      |    |    | ^      
-"    +----+----e      +----+----s       e----+----+      s----+----+        
-"            (3,3)      <    < (3,3)  (3,1)           (3,1) >    >          
-"}}}
 " BlockMoveSummary:
 "======================= {{{
 "  c = 1
@@ -198,8 +149,8 @@ function! s:varea.move_line() "{{{
   let varea = self._pos_org.dup()                              
 
   if self._direction =~# '\v^(right|left)$'
-    let ward = self._direction ==# 'right' ? ">" : "<"                     
-    exe "'<,'>" . repeat( ward , self._count)                  
+    let ward = {'right': ">", 'left': "<" }[self._direction]
+    exe "'<,'>" . repeat(ward, c)
     call varea.select(self.mode)
     return                                                     
   endif                                                        
@@ -209,23 +160,22 @@ function! s:varea.move_line() "{{{
           \ "up":   ['u-1, ', 'd-1, ' ],
           \ "down": ['d+1, ', 'u+1, ' ],
           \ }[self._direction]
+
     "(u)_rotate
     let meth = self._direction[0] . "_rotate"
     let replace  = textmanip#area#new(
           \ varea.move(chg).content('line')                      
           \ )[meth](c).data()          
-    call setline(varea.u.pos()[0], replace)                                 
+    call setline(varea.u.line(), replace)                                 
     call varea.move(last).select(self._select_mode)                      
 
   elseif s:textmanip_current_mode ==# "replace"
-
     let ul = varea.u.line()
     let dl = varea.d.line()
     let [ replace_line, set_line, replace_rule, last ] =  { 
           \ "up":   [ ul-c, ul-c, "selected + rest",  ['u-1, ','d-1, ']],
           \ "down": [ dl+c, ul  , "rest + selected",  ['u+1,', 'd+1, ']],
           \ }[self._direction]
-
     let selected = varea.content('line')
     let rest     = self._replaced[self._direction](getline(replace_line))
     let replace  = eval(replace_rule)
@@ -321,19 +271,12 @@ function! s:varea.init(direction, mode) "{{{
   if a:mode ==# 'n' | return | endif
 
   " current pos
-  normal! gvo
-  let _s = getpos('.')
-  exe "normal! " . "\<Esc>"
+  exe 'normal! gvo' | let s = getpos('.') | exe "normal! " . "\<Esc>"
+  exe 'normal! gvo' | let e = getpos('.') | exe "normal! " . "\<Esc>"
 " getpos() return [bufnum, lnum, col, off]
 " off is offset from actual col when virtual edit(ve) mode,
 " so, to respect ve position, we sum "col" + "off"
-  let s = [_s[1], _s[2] + _s[3]]
-  normal! gvo
-  let _e = getpos('.')
-  exe "normal! " . "\<Esc>"
-  let e = [_e[1], _e[2] + _e[3]]
-
-  let varea = textmanip#selection#new(s, e)
+  let varea = textmanip#selection#new([s[1], s[2] + s[3]], [e[1], e[2] + e[3]] )
   let self._pos_org = varea
 
   " adjust count
@@ -342,23 +285,42 @@ function! s:varea.init(direction, mode) "{{{
   let self.is_linewise = (self.mode ==# 'V' )
         \ || (self.mode ==# 'v' && self.height > 1)
 
+  " adjust count
   let max = self._count
   if self._direction ==# 'up'
     let max = varea.u.line() - 1
-  elseif self._direction ==# 'left'
-    if !self.is_linewise
-      let max = varea.u.col() - 1
-    endif
+  elseif self._direction ==# 'left' && !self.is_linewise
+    let max = varea.u.col() - 1
   endif
   let self._count = min([max, self._count])
 
+  let self.cant_move = 0
+  try
+    if self._direction ==# 'up'
+      if varea.u.line() ==# 1
+        throw "CANT_MOVE"
+      endif
+    elseif self._direction ==# 'left'
+      if self.is_linewise
+        if empty(filter(varea.content('line'),"v:val =~# '^\\s'"))
+          throw "CANT_MOVE"
+        endif
+      else
+        if varea.u.col() == 1 && self.mode ==# "\<C-v>"
+          throw "CANT_MOVE"
+        endif
+      endif
+    endif
+  catch /CANT_MOVE/
+    let self.cant_move = 1
+  endtry
+    
   " set useful attribute
-  let no_space = empty(filter(varea.content('line'),"v:val =~# '^\\s'"))
-  let self.cant_move =
-        \ ( self._direction ==# 'up' && varea.u.line() ==# 1) ||
-        \ ( self._direction ==# 'left' && ( self.is_linewise && no_space )) ||
-        \ ( self._direction ==# 'left' &&
-        \    (!self.is_linewise && varea.u.col() == 1 && self.mode ==# "\<C-v>" ))
+  " let self.cant_move =
+        " \ ( self._direction ==# 'up' && varea.u.line() ==# 1) ||
+        " \ ( self._direction ==# 'left' && ( self.is_linewise && no_space )) ||
+        " \ ( self._direction ==# 'left' &&
+        " \    (!self.is_linewise && varea.u.col() == 1 && self.mode ==# "\<C-v>" ))
   let self._select_mode = self.mode
   if self.mode ==# 'v'
     let self._select_mode = (self.is_linewise) ? "V" : "\<C-v>"
