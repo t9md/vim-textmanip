@@ -7,7 +7,7 @@
 	    `' `-' ' ` `' ' ' ' `-^ ' ' ' |-'
 					  |   < easy manupilation >
 
-Version: 1.2
+Version: 1.3
 Author : t9md <taqumd@gmail.com>
 
 ==============================================================================
@@ -50,6 +50,18 @@ VARIABLES						*textmanip-variables*
 	You need to setup your favorite keymap.
 	See |textmanip-mapping|.
 
+*g:textmanip_move_ignore_shiftwidth*
+	Default: 0
+
+	If you set this to `1`. When line move right/left is executed with
+	|g:textmanip_move_shiftwidth| value.
+
+*g:textmanip_move_shiftwidth*
+	Default: 1
+
+	When you set non zero value to |g:textmanip_move_ignore_shiftwidth|,
+	this value is used how much right/left shifted when move right/left.
+
 ==============================================================================
 MAPPINGS						    *textmanip-mappings*
 
@@ -84,6 +96,12 @@ v <Plug>(textmanip-move-left)
     Move visual selected word or block to up/down/left/right.
     When right direction reach EOL it automatically add one space " " to be
     able to across original EOL.
+
+==============================================================================
+COMMAND							    *textmanip-command*
+
+*:TextmanipToggleIgnoreShiftWidth*
+	Toggle whether line move right/left ignore |'shiwftwidth'| or not.
 
 ==============================================================================
 CONFIGURATION EXAMPLE					   *textmanip-example*

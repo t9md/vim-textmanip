@@ -29,6 +29,10 @@ vnoremap <silent> <Plug>(textmanip-move-down)  :<C-u>call textmanip#do('move', '
 vnoremap <silent> <Plug>(textmanip-move-right) :<C-u>call textmanip#do('move', 'right', 'v')<CR>
 vnoremap <silent> <Plug>(textmanip-move-left)  :<C-u>call textmanip#do('move', 'left', 'v')<CR>
 
+" experimental dirty hack
+vnoremap <silent> <Plug>(textmanip-move-right-1col) :<C-u>call textmanip#do1('move', 'right', 'v')<CR>
+vnoremap <silent> <Plug>(textmanip-move-left-1col)  :<C-u>call textmanip#do1('move', 'left', 'v')<CR>
+
 nnoremap <Plug>(textmanip-debug) :<C-u>echo textmanip#debug()<CR>
 " Experimental
 nnoremap <silent> <Plug>(textmanip-kickout) :<C-u>call textmanip#kickout(0)<CR>
@@ -40,12 +44,17 @@ xnoremap <Plug>(textmanip-toggle-mode) :<C-u>call textmanip#toggle_mode()<CR>gv
 " Command [FIXME]
 command! -range -nargs=* TextmanipKickout call textmanip#kickout(<q-args>)
 command! -range -nargs=* TextmanipToggleMode call textmanip#toggle_mode()
+command! TextmanipToggleIgnoreShiftWidth
+      \ let g:textmanip_move_ignore_shiftwidth = ! g:textmanip_move_ignore_shiftwidth
+      \ <bar> echo g:textmanip_move_ignore_shiftwidth
 "}}}
 
 
-let s:default_settings = {
+let global_variables = {
       \ "textmanip_enable_mappings" : 0,
       \ "textmanip_default_mode"    : "insert",
+      \ "textmanip_move_ignore_shiftwidth" : 0,
+      \ "textmanip_move_shiftwidth" : 1,
       \ }
 
 function! s:set_default(dict) "{{{
@@ -56,7 +65,7 @@ function! s:set_default(dict) "{{{
   endfor
 endfunction "}}}
 
-call s:set_default(s:default_settings)
+call s:set_default(global_variables)
 let g:textmanip_current_mode = g:textmanip_default_mode
 
 function! s:set_default_mapping() "{{{
@@ -81,7 +90,7 @@ function! s:set_default_mapping() "{{{
   xmap <C-l> <Plug>(textmanip-move-smart-right)
 endfunction "}}}
 
-if !g:textmanip_enable_mappings
+if g:textmanip_enable_mappings
   call s:set_default_mapping()
 endif
 

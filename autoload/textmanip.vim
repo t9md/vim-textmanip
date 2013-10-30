@@ -1,4 +1,3 @@
-let g:textmanip_debug = 0
 " CeckList:
 "===================== {{{
 " restore original vim options
@@ -120,6 +119,8 @@ let g:textmanip_debug = 0
 "=====================
 let s:varea = {}
 function! s:varea.move(direction) "{{{
+
+  " call self.shiftwidth_switch()
   call self.virtualedit_start()
   let self._continue = textmanip#status#undojoin()
                             
@@ -149,6 +150,7 @@ function! s:varea.move(direction) "{{{
   endif
 
   call textmanip#register#restore()
+  " call self.shiftwidth_restore()
   call self.virtualedit_restore()
   call textmanip#status#update()
 endfunction "}}}             
@@ -295,16 +297,25 @@ function! s:varea.move_line() "{{{
       call varea.move(["u+1, ", "d+1, "]).select(self._select_mode)
     endif
   endif
-  call self.visualmode_restore()
 endfunction "}}}
 
-function! s:varea.shiftwidth_switch(v) "{{{
-  let self._shiftwidth = &shiftwidth
-  silent exe "set shiftwidth=" . a:v
+function! s:varea.shiftwidth_switch() "{{{
+  let self._shiftwidth = &sw
+  let &sw = g:textmanip_move_ignore_shiftwidth
+        \ ? g:textmanip_move_shiftwidth : &sw
 endfunction "}}}
+
 function! s:varea.shiftwidth_restore() "{{{
-  silent exe "set shiftwidth=".self._shiftwidth
+  let &sw = self._shiftwidth
 endfunction "}}}
+
+" function! s:varea.shiftwidth_switch(v) "{{{
+  " let self._shiftwidth = &shiftwidth
+  " silent exe "set shiftwidth=" . a:v
+" endfunction "}}}
+" function! s:varea.shiftwidth_restore() "{{{
+  " silent exe "set shiftwidth=".self._shiftwidth
+" endfunction "}}}
 
 function! s:varea._selct_org() "{{{
   call cursor(self.__pos.ul + [0])
@@ -621,6 +632,20 @@ function! textmanip#do(action, direction, mode) "{{{
       " endif
     " endif
   endif
+endfunction "}}}
+
+function! textmanip#do1(action, direction, mode) "{{{
+  try
+    let _textmanip_move_ignore_shiftwidth = g:textmanip_move_ignore_shiftwidth
+    let _textmanip_move_shiftwidth        = g:textmanip_move_shiftwidth
+
+    let g:textmanip_move_ignore_shiftwidth = 1
+    let g:textmanip_move_shiftwidth        = 1
+    call textmanip#do(a:action, a:direction, a:mode)
+  finally
+    let g:textmanip_move_ignore_shiftwidth = _textmanip_move_ignore_shiftwidth
+    let g:textmanip_move_shiftwidth        = _textmanip_move_shiftwidth
+  endtry
 endfunction "}}}
 
 " [FIXME] very rough state.
