@@ -1,13 +1,13 @@
 " Private:
 "         l_cut/add           r_cut/add
 "                 |           |
-"                 V           V        _.data idx
+"                 V           V        _.data index
 "                +-+---------+-+----      0
 "   u_cut/add -> +-+         +-+   ^      |
 "                |             |   |      |
 "                |             |  height  |
 "                |             |   |      |
-"                +-+         +-+   V      |
+"                +-+         +-+   V      N
 "   d_cut/add -> +-+---------+-+ ---   len(_.data)
 "                |             |
 "                +<-- width -->+
@@ -175,7 +175,6 @@ endfunction "}}}
 function! textmanip#area#new(data) "{{{
   return s:area.new(a:data)
 endfunction "}}}
-" vim: foldmethod=marker
 
 " Test:
 finish
@@ -196,12 +195,5 @@ echo "pushed :" . string(s.l_pushout(s:split("xyz")))
 echo s.data()
 " echo swapped
 " let swapped =  s.d_swap(["a","b"])
-" echo s.data()
-" echo swapped
-
-" function! s:arAAAAAAAAAAAA
-  " return self.BBBBBBBBBBBB
-
-
 
 " vim: foldmethod=marker

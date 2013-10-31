@@ -1,10 +1,9 @@
 " Private:
 let s:replaced = {}
 function! s:replaced.new(owner) "{{{
-  let o = deepcopy(self)
-  let o.owner = a:owner
-  let o._data = textmanip#area#new([])
-  return o
+  let self._data = textmanip#area#new([])
+  let self.owner = a:owner
+  return deepcopy(self)
 endfunction "}}}
 function! s:replaced.data() "{{{
   return self._data.data()
@@ -89,6 +88,6 @@ echo replaced.data()
 let a = textmanip#area#new( copy(replaced.data() ))
 " echo replace.left([1,2,3])
 echo replaced.right([1,2,3])
-echo replaced.data()        
+echo replaced.data()
 echo a.data()
 " vim: foldmethod=marker

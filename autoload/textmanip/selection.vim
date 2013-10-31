@@ -1,59 +1,58 @@
 " Selection:
 let s:selection = {}
-function! s:selection.new(s, e) "{{{
+function! s:selection.new(s, e, mode) "{{{
 " 4 Selection cases {{{
 "
-"     (ul)|--width--|(ur)
-"     --- +----+----+      (s)tart  (e)end
-"      |  |    |    |      (u)p, (d)own (l)eft, (r)ight
-"  height +----+----+      (ul) u/l, (ur) u/r,
-"      |  |    |    |      (dl) d/l, (dr) u/l
-"     --- +----+----+
-"     (dl)           (dr)
+"    u--- s----+----+
+"      |  |    |    |
+"  height +----+----+  s => start  e => end
+"      |  |    |    |  u => up     d => downt
+"    d--- +----+----e  l => left   r => righ
+"         |--width--|
+"         l         r
 "
-"     [ case1 ]        [ case2 ]         [ case3 ]        [ case4 ]         
-" (1,1) >   >      (1,1)                  <    < (1,3)           (1,3)      
-"    s----+----+      e----+----+       +----+----s      +----+----e        
-"    |    |    | V  ^ |    |    |     V |    |    |      +    |    | ^      
-"    +----+----+      +----+----+       +----+----+      +----+----+        
-"    |    |    | V  ^ |    |    |     V |    |    |      |    |    | ^      
-"    +----+----e      +----+----s       e----+----+      s----+----+        
-"            (3,3)      <    < (3,3)  (3,1)           (3,1) >    >          
+"     [ case1 ]        [ case2 ]         [ case3 ]        [ case4 ]
+" (1,1) >   >      (1,1)                  <    < (1,3)           (1,3)
+"    s----+----+      e----+----+       +----+----s      +----+----e
+"    |    |    | V  ^ |    |    |     V |    |    |      +    |    | ^
+"    +----+----+      +----+----+       +----+----+      +----+----+
+"    |    |    | V  ^ |    |    |     V |    |    |      |    |    | ^
+"    +----+----e      +----+----s       e----+----+      s----+----+
+"            (3,3)      <    < (3,3)  (3,1)           (3,1) >    >
 " }}}
-  let s = a:s
-  let e = a:e
-  if     ((s[0] <= e[0]) && (s[1] <=  e[1])) | let case = 1
-  elseif ((s[0] >= e[0]) && (s[1] >=  e[1])) | let case = 2
-  elseif ((s[0] <= e[0]) && (s[1] >=  e[1])) | let case = 3
-  elseif ((s[0] >= e[0]) && (s[1] <=  e[1])) | let case = 4
-  endif
+  let self.mode = a:mode
+  let self.s = textmanip#pos#new(a:s)
+  let self.e = textmanip#pos#new(a:e)
+  let s = self.s
+  let e = self.e
 
-  let self.s = textmanip#pos#new(s)
-  let self.e = textmanip#pos#new(e)
-  let ps = self.s
-  let pe = self.e
+  let case =
+        \ (s.line() <= e.line()) && (s.col() <=  e.col()) ? 1 :
+        \ (s.line() >= e.line()) && (s.col() >=  e.col()) ? 2 :
+        \ (s.line() <= e.line()) && (s.col() >=  e.col()) ? 3 :
+        \ (s.line() >= e.line()) && (s.col() <=  e.col()) ? 4 :
+        \ throw
 
-  if     case ==# 1 | let [u, d, l, r ] = [ ps, pe, ps, pe ]
-  elseif case ==# 2 | let [u, d, l, r ] = [ pe, ps, pe, ps ]
-  elseif case ==# 3 | let [u, d, l, r ] = [ ps, pe, pe, ps ]
-  elseif case ==# 4 | let [u, d, l, r ] = [ pe, ps, ps, pe ]
-  endif
+  let [u, d, l, r ] =
+        \ case ==# 1 ?  [ s, e, s, e ] :
+        \ case ==# 2 ?  [ e, s, e, s ] :
+        \ case ==# 3 ?  [ s, e, e, s ] :
+        \ case ==# 4 ?  [ e, s, s, e ] :
+        \ throw
+
                  let self.u = u
-  let self.l = l       |       let self.r = r 
+  let self.l = l       |       let self.r = r
                  let self.d = d
-  return deepcopy(self)               
-endfunction "}}}                      
 
+  let self.height = self.d.line() - self.u.line() + 1
+  let self.width  = self.r.col()  - self.l.col()  + 1
+  return deepcopy(self)
+endfunction "}}}
 
-function! s:selection.width() "{{{
-  return self.r.col() - self.l.col() + 1
-endfunction "}}}
-function! s:selection.height() "{{{
-  return self.d.line() - self.u.line() + 1
-endfunction "}}}
 function! s:selection.dup() "{{{
   return deepcopy(self)
 endfunction "}}}
+
 function! s:selection.dump() "{{{
   return PP([self.s.pos(), self.e.pos()])
 endfunction "}}}
@@ -69,16 +68,35 @@ function! s:selection.move(ope) "{{{
   return self
 endfunction "}}}
 
-function! s:selection.content(wise) "{{{
-  if a:wise ==# 'line'
-    let content = getline( self.u.pos()[0], self.d.pos()[0])
-  elseif a:wise ==# 'block'
-    call self.select("\<C-v>")
-    " FIXME
-    normal! "xy
-    let content = split(getreg("x"), "\n")
+function! s:selection.content() "{{{
+  if ( self.mode ==# 'V') || ( self.mode ==# 'v' && self.height > 1 )
+    " linewise
+    let content = getline( self.u.line(), self.d.line() )
+    let r = { "content": content, "regtype": self.mode }
+  else
+    try
+      let register = textmanip#register#save("x")
+      call self.select()
+      normal! "xy
+      let content = split(getreg("x"), "\n")
+      let r = { "content": content, "regtype": getregtype("x") }
+    finally
+      call register.restore()
+    endtry
   endif
-  return content
+  return r
+endfunction "}}}
+
+function! s:selection.paste(data) "{{{
+  try
+    let register = textmanip#register#save("x")
+    let content = join(a:data.content, "\n")
+    call setreg("x", content, a:data.regtype)
+    normal! "xp
+  finally
+    call register.restore()
+  endtry
+  return self
 endfunction "}}}
 
 function! s:selection._parse(s) "{{{
@@ -87,108 +105,30 @@ function! s:selection._parse(s) "{{{
   return {"meth" : meth, "arg" : arg }
 endfunction "}}}
 
-function! s:run(s) "{{{
-  " echo a:s
-  let operations = type(a:s) ==# type([]) ? a:s : [a:s]
-  for ope in operations
-    call s:parse(ope)
-  endfor
-endfunction "}}}
-
-function! s:selection.select(select_mode) "{{{
+function! s:selection.select() "{{{
   call cursor(self.s.pos()+[0])
-  execute "normal! " . a:select_mode
+  execute "normal! " . self.mode
   call cursor(self.e.pos()+[0])
+  return self
 endfunction "}}}
 
 " Pulic:
-function! textmanip#selection#select(select_mode) "{{{
-  call s:selection.select(a:select_mode)
-endfunction "}}}
-function! textmanip#selection#new(start, end) "{{{
-  return s:selection.new(a:start, a:end)
+function! textmanip#selection#new(start, end, mode) "{{{
+  return s:selection.new(a:start, a:end, a:mode)
 endfunction "}}}
 function! textmanip#selection#dump() "{{{
   return s:selection.dump()
 endfunction "}}}
 
-
 " Test:
 finish
-" call Test("case2", [66,23], [61,11]) "{{{
-" call Test("case3", [61,11], [66,23])
-" call Test("case3", [66,23], [61,11])
-" call Test("case4", [61,11], [66,23])
-" "}}}
-let Area = {}
-function! Area.init()
-  normal! gvo
-  let _s = getpos('.')
-  exe "normal! " . "\<Esc>"
-  let s = [_s[1], _s[2] + _s[3]]
-  normal! gvo
-  let _e = getpos('.')
-  exe "normal! " . "\<Esc>"
-  let e = [_e[1], _e[2] + _e[3]]
-  let self._pos_org = textmanip#selection#new(s, e)
-endfunction
-function! Area.run()
-  call self.init()
-  let pos = deepcopy(self._pos_org)
-  let selected = pos.move("u-1, ").content('line')
-  let area = textmanip#area#new(selected)
-  let up = area.u_cut(1)
-  " let replace = selected[ 1 : ] + selected[ : 1-1 ]
-  let replace = area.data() + up
-  call setline(pos.u.pos()[0], replace)
-endfunction
-
-" xnoremap <C-k> :<C-u>call Area.run()<CR>
-finish
-function! Test(action, s, e) "{{{
-  let b_v = "\<C-v>"
-  " let b_v = "V"
-  "
-  let wise =  b_v ==# "\<C-v>" ? "blockwise" : "linewise"
-
-  echo "-- " . a:action
-  let org = textmanip#selection#new(a:s, a:e)
-  " let chg = deepcopy(org)
-  " let lst = deepcopy(org)
-
-  call org.select(b_v) | call s:show()
-  for area in ["change", "last"]
-    call deepcopy(org).move(s:area[wise][a:action][area]).select(b_v)
-    call s:show()
-    " call chg.move("u-1, ").select(b_v) | call s:show()
-    " call org.move(['u-1,  ', 'd-1,  ']).select(b_v) | call s:show()
-  endfor
-endfunction "}}}
-
-
-function! s:show() "{{{
-  redraw | sleep 1
-  exe "normal! " . "\<Esc>"
-endfunction "}}}
-
-function! RunTest() "{{{
-  call Test("move_u", [11,11], [21,31])
-  call Test("move_d", [11,11], [21,31])
-  call Test("move_r", [11,11], [21,31])
-  call Test("move_l", [11,11], [21,31])
-endfunction "}}}
-nnoremap  <F9> :<C-u>call RunTest()<CR>
-finish
-finish
-" block
-
 
 " # Pos should be specified in relation to [start, pos]
 "  ## move
 "  +------------------------------------------------------+
 "  |  block  |     change,  |           last              |
 "  +---------+--------------+-----------------------------|
-"  |  move-u | u-[ -1,    ] |  u-[ -1,    ], d-[ -1,    ] | 
+"  |  move-u | u-[ -1,    ] |  u-[ -1,    ], d-[ -1,    ] |
 "  +---------+--------------+----+------------------------|
 "  |  move-d | d-[ +1,    ] |  u-[ +1,    ], d-[ +1,    ] |
 "  +---------+--------------+----+------------------------|
@@ -238,17 +178,5 @@ finish
 " dup-d  ul[ "+h", "" ]   ul["+h", ""], dr["+h", ""]
 " dup-r  N/A
 " dup-l  N?A
-
-"   * REPLACE - action table >
-"   +-----------------+--------------+--------------+
-"   |  action	     | linewise     | blockwise    |
-"   +-----------------+--------------|--------------|
-"   | move-up/down    |	    O	    |	   O	   |
-"   | move-right/left |	   N/A	    |	   O	   |
-"   | dup-up/down     |	   TODO     |	   O	   |
-"   | dup-righ/left   |	   TODO     |	TODO	   |
-"   +-----------------+--------------+--------------+
-
-
 
 " vim: foldmethod=marker

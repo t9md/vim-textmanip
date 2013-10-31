@@ -152,7 +152,50 @@ USE CASE						   *textmanip-usecase*
 ==============================================================================
 PRACTICE						  *textmanip-practice*
 
+[FIXME] EXPLAIN OR MOVIE
 
+------------------------------------------------------------------------------
+Case1~
+
+from
+>
+	if     (s.line() <= e.line()) && (s.col() <=  e.col()) | let case = 1
+	elseif (s.line() >= e.line()) && (s.col() >=  e.col()) | let case = 2
+	elseif (s.line() <= e.line()) && (s.col() >=  e.col()) | let case = 3
+	elseif (s.line() >= e.line()) && (s.col() <=  e.col()) | let case = 4
+	endif
+<
+
+to
+>
+	let case = 
+	      \ (s.line() <= e.line()) && (s.col() <=  e.col()) ? 1 :
+	      \ (s.line() >= e.line()) && (s.col() >=  e.col()) ? 2 :
+	      \ (s.line() <= e.line()) && (s.col() >=  e.col()) ? 3 :
+	      \ (s.line() >= e.line()) && (s.col() <=  e.col()) ? 4 :
+	      \ throw
+<
+
+------------------------------------------------------------------------------
+Case2~
+
+from
+>
+	if     case ==# 1 | let [u, d, l, r ] = [ s, e, s, e ] 
+	elseif case ==# 2 | let [u, d, l, r ] = [ e, s, e, s ] 
+	elseif case ==# 3 | let [u, d, l, r ] = [ s, e, e, s ] 
+	elseif case ==# 4 | let [u, d, l, r ] = [ e, s, s, e ] 
+	endif
+
+to
+>
+	let [u, d, l, r ] =
+	      \ case ==# 1 ?  [ s, e, s, e ] :
+	      \ case ==# 2 ?  [ e, s, e, s ] :
+	      \ case ==# 3 ?  [ s, e, e, s ] :
+	      \ case ==# 4 ?  [ e, s, s, e ] :
+	      \ throw
+<
 ==============================================================================
 DETAIL							     *textmanip-detail*
 
