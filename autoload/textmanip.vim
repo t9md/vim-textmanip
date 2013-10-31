@@ -105,7 +105,7 @@ function! s:varea.move(direction) "{{{
   endtry
 endfunction "}}}             
 function! s:varea.move_block() "{{{
-  let varea = self._pos_org.dup()
+  let varea = self.varea.dup()
   let c = self._count
   let mode = self._select_mode
 
@@ -146,7 +146,7 @@ endfunction "}}}
 
 function! s:varea.move_line() "{{{
   let c = self._count
-  let varea = self._pos_org.dup()                              
+  let varea = self.varea.dup()                              
 
   if self._direction =~# '\v^(right|left)$'
     let ward = {'right': ">", 'left': "<" }[self._direction]
@@ -178,8 +178,7 @@ function! s:varea.move_line() "{{{
           \ }[self._direction]
     let selected = varea.content('line')
     let rest     = self._replaced[self._direction](getline(replace_line))
-    let replace  = eval(replace_rule)
-    call setline(set_line, replace)
+    call setline(set_line, eval(replace_rule))
     call varea.move(last).select(self._select_mode)
   endif
 endfunction "}}}
@@ -196,10 +195,10 @@ function! s:varea.duplicate_block() "{{{
   call self.virtualedit_start()
   call textmanip#register#save("x","z")
 
-  let c = self._prevcount
-  let h = self.height
-  let varea = self._pos_org.dup()                              
-  let C_v = self._select_mode
+  let c       = self._prevcount
+  let h       = self.height
+  let varea   = self.varea.dup()
+  let C_v     = self._select_mode
   let replace = textmanip#area#new(varea.content('block')).v_duplicate(c).data()
   call setreg("z", join(replace, "\n"), getregtype("x"))
 
@@ -234,9 +233,9 @@ endfunction "}}}
 function! s:varea.duplicate_line(mode) "{{{
   if a:mode ==# 'n'
     " normal
-    let c = self._count
-    let line = self.cur_pos[1]
-    let col  = self.cur_pos[2]
+    let c     = self._count
+    let line  = self.cur_pos[1]
+    let col   = self.cur_pos[2]
     let lines = textmanip#area#new(getline(line,line)).v_duplicate(c).data()
     let [target_line, last_line ] = {
           \ "up": [line-1, line ],
@@ -246,11 +245,11 @@ function! s:varea.duplicate_line(mode) "{{{
     call cursor(last_line, col)
   else
     " visual
-    let c     = self._prevcount
-    let h     = self.height
-    let varea = self._pos_org.dup()
+    let c        = self._prevcount
+    let h        = self.height
+    let varea    = self.varea.dup()
     let selected = varea.content('line')
-    let append = textmanip#area#new(selected).v_duplicate(c).data()
+    let append   = textmanip#area#new(selected).v_duplicate(c).data()
 
     let [target_line, last ] = {
           \ "up": [ varea.u.line() -1 , 'd+' . (h*c-h) . ', ' ],
@@ -270,14 +269,8 @@ function! s:varea.init(direction, mode) "{{{
   let self._count     = v:count1
   if a:mode ==# 'n' | return | endif
 
-  " current pos
-  exe 'normal! gvo' | let s = getpos('.') | exe "normal! " . "\<Esc>"
-  exe 'normal! gvo' | let e = getpos('.') | exe "normal! " . "\<Esc>"
-" getpos() return [bufnum, lnum, col, off]
-" off is offset from actual col when virtual edit(ve) mode,
-" so, to respect ve position, we sum "col" + "off"
-  let varea = textmanip#selection#new([s[1], s[2] + s[3]], [e[1], e[2] + e[3]] )
-  let self._pos_org = varea
+  let varea = self.preserve_selection()
+  let self.varea = varea
 
   " adjust count
   let self.width  = varea.width()
@@ -326,9 +319,18 @@ function! s:varea.init(direction, mode) "{{{
     let self._select_mode = (self.is_linewise) ? "V" : "\<C-v>"
   endif
 endfunction "}}}
+function! s:varea.preserve_selection()
+  " current pos
+  exe 'normal! gvo' | let s = getpos('.') | exe "normal! " . "\<Esc>"
+  exe 'normal! gvo' | let e = getpos('.') | exe "normal! " . "\<Esc>"
+" getpos() return [bufnum, lnum, col, off]
+" off is offset from actual col when virtual edit(ve) mode,
+" so, to respect ve position, we sum "col" + "off"
+  return textmanip#selection#new([s[1], s[2] + s[3]], [e[1], e[2] + e[3]] )
+endfunction
 function! s:varea.extend_EOF() "{{{
   " even if set ve=all, dont automatically extend EOF
-  let amount = (self._pos_org.d.line() + self._count) - line('$')
+  let amount = (self.varea.d.line() + self._count) - line('$')
   if self._direction ==# 'down' && amount > 0
     call append(line('$'), map(range(amount), '""'))
   endif
