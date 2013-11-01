@@ -2,11 +2,11 @@ let s:textmanip = {}
 
 function! s:textmanip.setup() "{{{1
     " call self.shiftwidth_switch()
-    call self.virtualedit_start()
+    call self.ve_start()
 endfunction
 
 function! s:textmanip.finish() "{{{1
-    call self.virtualedit_restore()
+    call self.ve_restore()
     call textmanip#status#update()
     " call self.shiftwidth_restore()
 endfunction
@@ -72,7 +72,7 @@ function! s:textmanip.move_line() "{{{1
 endfunction
 
 function! s:textmanip.duplicate_block() "{{{1
-  call self.virtualedit_start()
+  call self.ve_start()
 
   let c = self.env.prevcount
   let h = self.height
@@ -80,26 +80,27 @@ function! s:textmanip.duplicate_block() "{{{1
   let selected.content =
         \ textmanip#area#new(selected.content).v_duplicate(c).data()
 
+  let self.varea.vars = { 'h': h, 'c': c }
   if self.env.emode ==# "insert"
     let blank_lines = map(range(h*c), '""')
     let ul = self.varea.u.line()
     let dl = self.varea.d.line()
     let [ blank_target, chg, last ] =  {
-          \ "up":   [ ul-1, '', 'd+'.(h*c-h).', ' ],
-          \ "down": [ dl  , ['u+'. h .', ', 'd+'.(h*c).', '], ''],
+          \ "up":   [ ul-1, '',                     'd+(h*c-h):' ],
+          \ "down": [ dl  , ['u+h: ', 'd+(h*c):'], ''            ],
           \ }[self.env.dir]
     call append(blank_target, blank_lines)
-    call self.varea.move(chg).select().paste(selected).select()
+    call self.varea.select(chg).paste(selected).select(last)
 
   elseif self.env.emode ==# "replace"
     let chg =  {
-          \ "up":   ['u-' . (h*c) . ', ', 'd-' . h . ', '],
-          \ "down": ['u+' . h . ', ', 'd+'.(h*c).', ' ],
+          \ "up":   ['u-(h*c):', 'd-h:'],
+          \ "down": ['u+h:'    , 'd+(h*c):' ],
           \ }[self.env.dir]
-    call self.varea.move(chg).select().paste(selected).select()
+    call self.varea.select(chg).paste(selected).select()
   endif
 
-  call self.virtualedit_restore()
+  call self.ve_restore()
 endfunction
 
 function! s:textmanip.duplicate_line() "{{{1
@@ -121,22 +122,22 @@ function! s:textmanip.duplicate_line() "{{{1
     let selected = self.varea.content().content
     let append   = textmanip#area#new(selected).v_duplicate(c).data()
 
+    let self.varea.vars = { 'c': c, 'h': h }
     let [target_line, last ] = {
-          \ "up":   [ self.varea.u.line() -1 , 'd+' . (h*c-h) . ', ' ],
-          \ "down": [ self.varea.d.line() ,['u+' . h . ', ', 'd+'.(h*c).', '] ],
+          \ "up":   [ self.varea.u.line() -1 , 'd+(h*c-h):' ],
+          \ "down": [ self.varea.d.line()    ,['u+h:', 'd+(h*c):'] ],
           \ }[self.env.dir]
-
     call append(target_line , append)
-    call self.varea.move(last).select()
+    call self.varea.select(last)
   end
 endfun
 
 function! s:textmanip.init(env) "{{{1
 
   let self.env = a:env
-  let p              = getpos('.')
-  let self.cur_pos   = textmanip#pos#new([p[1], p[2] + p[3]])
-  let self.varea  = self.preserve_selection()
+  let p            = getpos('.')
+  let self.cur_pos = textmanip#pos#new([p[1], p[2] + p[3]])
+  let self.varea   = self.preserve_selection()
 
   let self.continuous = textmanip#status#continuous()
   if self.continuous
@@ -163,9 +164,9 @@ function! s:textmanip.init(env) "{{{1
    else
      let max = self.env.count
    endif
-
   let self.env.count = min([max, self.env.count])
 
+  " care corner case
   let self.cant_move = 0
   try
     if self.env.dir ==# 'up'
@@ -218,13 +219,13 @@ function! s:textmanip.extend_EOF() "{{{1
   endif
 endfunction
 
-function! s:textmanip.virtualedit_start() "{{{1
-  let self._virtualedit = &virtualedit
+function! s:textmanip.ve_start() "{{{1
+  let self._ve = &virtualedit
   let &virtualedit = 'all'
 endfunction
 
-function! s:textmanip.virtualedit_restore() "{{{1
-  let &virtualedit = self._virtualedit
+function! s:textmanip.ve_restore() "{{{1
+  let &virtualedit = self._ve
 endfunction
 
 function! s:textmanip.shiftwidth_switch() "{{{1
@@ -237,9 +238,7 @@ function! s:textmanip.shiftwidth_restore() "{{{1
   let &sw = self._shiftwidth
 endfunction
 
-
 function! s:textmanip.dump() "{{{1
-  echo PP(self.__table)
 endfunction
 
 function! s:textmanip.kickout(num, guide) "{{{1

@@ -1,4 +1,8 @@
 let s:selection = {}
+function! s:gsub(str,pat,rep) "{{{1
+  return substitute(a:str,'\v\C'.a:pat, a:rep,'g')
+endfunction
+
 function! s:selection.new(s, e, mode) "{{{1
 " 4 Selection cases {{{
 "
@@ -23,6 +27,7 @@ function! s:selection.new(s, e, mode) "{{{1
   let self.s = textmanip#pos#new(a:s)
   let self.e = textmanip#pos#new(a:e)
   let self.replaced = textmanip#area#new([])
+  let self.vars = {}
   let s = self.s
   let e = self.e
 
@@ -66,19 +71,19 @@ function! s:selection.move(ope) "{{{1
   let ope = type(a:ope) ==# type([]) ? a:ope : [a:ope]
   for o in ope
     if empty(o) | continue | endif
+    for [k,v] in items(self.vars)
+      let o = s:gsub(o, k, v)
+    endfor
     let parsed = self._parse(o)
     call self[parsed.meth].move(parsed.arg[0], parsed.arg[1])
   endfor
-  " echo parsed
   return self
 endfunction
 
 function! s:selection.content() "{{{1
-  if ( self.mode ==# 'V') || ( self.mode ==# 'v' && self.height > 1 )
-    " linewise
+  if self.linewise
     let content = getline( self.u.line(), self.d.line() )
     let r = { "content": content, "regtype": "V" }
-    " let r = { "content": content, "regtype": self.mode }
   else
     try
       let register = textmanip#register#save("x")
@@ -118,11 +123,13 @@ endfunction
 
 function! s:selection._parse(s) "{{{1
   let meth = a:s[0]
-  let arg  = split(a:s[1:], '\v,\s*', 1)
+  let arg  = split(a:s[1:], '\v:\s*', 1)
+  " let arg  = split(a:s[1:], '\v,\s*', 1)
   return {"meth" : meth, "arg" : arg }
 endfunction
 
-function! s:selection.select() "{{{1
+function! s:selection.select(...) "{{{1
+  call self.move(a:0 ? a:1 : '')
   call cursor(self.s.pos()+[0])
   execute "normal! " . self.mode
   call cursor(self.e.pos()+[0])
@@ -130,51 +137,56 @@ function! s:selection.select() "{{{1
 endfunction
 
 function! s:selection._move_insert(direction, count) "{{{1
+  " support both line and block
   let c = a:count
   " (d)own, (u)p, (r)ight, (l)eft
   let d = a:direction[0]
-
+  let self.vars = { "c": c }
   let [ chg, last ] =  {
-        \ "u": ['u-1, ', 'd-1, ' ],
-        \ "d": ['d+1, ', 'u+1, ' ],
-        \ "r": ['r ,+1', 'l, +1' ],
-        \ "l": ['l ,-1', 'r, -1' ],
+        \ "u": ['u-c:  ', 'd-c:  ' ],
+        \ "d": ['d+c : ', 'u+c:  ' ],
+        \ "r": ['r  :+c', 'l  :+c' ],
+        \ "l": ['l  :-c', 'r  :-c' ],
         \ }[d]
   let selected = self.move(chg).content()
   let selected.content =
         \ textmanip#area#new(selected.content)[d ."_rotate"](c).data()
-  call self.select().paste(selected).move(last).select()
+  call self.select().paste(selected).select(last)
 endfunction
 
 function! s:selection._move_block_replace(direction, count) "{{{1
   let c = a:count
-  let d = a:direction[0]
+  let self.vars = { "c": c }
+  " let d = a:direction[0]
   let [ chg, cut_meth, add_meth, last ] =  {
-        \ "u": ['u-1, ', 'u_cut', 'd_add', 'd-1, ' ],
-        \ "d": ['d+1, ', 'd_cut', 'u_add', 'u+1, ' ],
-        \ "r": ['r ,+1', 'r_cut', 'l_add', 'l, +1' ],
-        \ "l": ['l ,-1', 'l_cut', 'r_add', 'r, -1' ],
-        \ }[d]
+        \ "u": ['u-c:  ', 'u_cut', 'd_add', 'd-c:  ' ],
+        \ "d": ['d+c:  ', 'd_cut', 'u_add', 'u+c:  ' ],
+        \ "r": ['r  :+c', 'r_cut', 'l_add', 'l  :+c' ],
+        \ "l": ['l  :-c', 'l_cut', 'r_add', 'r  :-c' ],
+        \ }[a:direction[0]]
 
   let selected = self.move(chg).content()
   let area     = textmanip#area#new(selected.content)
   let rest     = self.replace(a:direction, area[cut_meth](c))
   let selected.content = area[add_meth](rest).data()
-  call self.select().paste(selected).move(last).select()
+  call self.select().paste(selected).select(last)
 endfunction
 
 function! s:selection._move_line_replace(direction, count) "{{{1
   let c = a:count
+  let self.vars = { "c": c }
   let ul = self.u.line()
   let dl = self.d.line()
-  let [ replace_line, set_line, replace_rule, last ] =  {
-        \ "up":   [ ul-c, ul-c, "selected + rest",  ['u-1, ','d-1, ']],
-        \ "down": [ dl+c, ul  , "rest + selected",  ['u+1,', 'd+1, ']],
-        \ }[a:direction]
-  let selected = self.content().content
+  let [ replace_line, chg, replace_rule, last ] =  {
+        \ "u": [ ul-c, 'u-c:', "content + rest", [''    , 'd-c:']],
+        \ "d": [ dl+c, ''    , "rest + content", ['u+c:', 'd+c:']],
+        \ }[a:direction[0]]
+  " FIXME
+  let selected = self.content()
+  let content  = selected.content
   let rest     = self.replace(a:direction, getline(replace_line))
-  call setline(set_line, eval(replace_rule))
-  call self.move(last).select()
+  let selected.content = eval(replace_rule)
+  call self.move(chg).paste(selected).select(last)
 endfunction
 
 function! s:selection.replace(direction, val) "{{{1
