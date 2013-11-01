@@ -19,19 +19,23 @@ let g:textmanip_debug = 0
 
 " KEYMAP: {{{
 "=================================================================
-vnoremap <silent> <Plug>(textmanip-duplicate-down) <Esc>:<C-u>call textmanip#do('dup', 'down','v')<CR>
-nnoremap <silent> <Plug>(textmanip-duplicate-down)      :<C-u>call textmanip#do('dup', 'down','n')<CR>
-vnoremap <silent> <Plug>(textmanip-duplicate-up)   <Esc>:<C-u>call textmanip#do('dup', 'up','v')<CR>
-nnoremap <silent> <Plug>(textmanip-duplicate-up)        :<C-u>call textmanip#do('dup', 'up','n')<CR>
+nnoremap <silent> <Plug>(textmanip-duplicate-down)
+      \ :<C-u>call textmanip#do('dup', 'down','n', 'auto')<CR>
+vnoremap <silent> <Plug>(textmanip-duplicate-down)
+      \ <Esc>:<C-u>call textmanip#do('dup', 'down','v', 'auto')<CR>
+vnoremap <silent> <Plug>(textmanip-duplicate-up)
+      \ <Esc>:<C-u>call textmanip#do('dup', 'up','v', 'auto')<CR>
+nnoremap <silent> <Plug>(textmanip-duplicate-up)
+      \ :<C-u>call textmanip#do('dup', 'up','n', 'auto')<CR>
 
 vnoremap <silent> <Plug>(textmanip-move-up)
-      \ :<C-u>call textmanip#do('move', 'up', 'v')<CR>
+      \ :<C-u>call textmanip#do('move', 'up', 'v', 'auto')<CR>
 vnoremap <silent> <Plug>(textmanip-move-down)
-      \ :<C-u>call textmanip#do('move', 'down', 'v')<CR>
+      \ :<C-u>call textmanip#do('move', 'down', 'v', 'auto')<CR>
 vnoremap <silent> <Plug>(textmanip-move-right)
-      \ :<C-u>call textmanip#do('move', 'right', 'v')<CR>
+      \ :<C-u>call textmanip#do('move', 'right', 'v', 'auto')<CR>
 vnoremap <silent> <Plug>(textmanip-move-left)
-      \ :<C-u>call textmanip#do('move', 'left', 'v')<CR>
+      \ :<C-u>call textmanip#do('move', 'left', 'v', 'auto')<CR>
 
 vnoremap <silent> <Plug>(textmanip-move-up-i)
       \ :<C-u>call textmanip#do('move', 'up', 'v', 'insert')<CR>

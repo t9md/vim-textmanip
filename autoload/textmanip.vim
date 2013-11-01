@@ -65,17 +65,39 @@
 "       |      |      |  |   |    |      |             |
 "       |      V      |  V   |    |      |             |
 "       | s[0:-2]     |s[-1:]| => |s[-1:]+  s[ :-2]    |
-"}}}
-" VisualArea:
+"
+"   
+"   Replace:
+"    selection                     
+"      +----+          +----+       +----+
+"      | A  |          | B  |       | B  |
+"      +----+ u_rotate +----+       +----+
+"      | B  |  -->     | C  |  ---> | C  |
+"      +----+          +----+       +----+
+"      | C  |          | A  |       | F  |
+"      +----+          +----+       +----+
+"                        ^             
+"    replaced            | swap -->   
+"                        V             
+"      +----+          +----+       +----+ 
+"      | D  |          | F  |  ---> | A  | 
+"      +----+          +----+       +----+ 
+"      | E  | d_rotate | D  |       | D  | 
+"      +----+ -->      +----+       +----+ 
+"      | F  |          | E  |       | E  | 
+"      +----+          +----+       +----+ 
+" }}}
+                        
+" Main:
 "=====================
 let s:textmanip = {}
 function! s:textmanip.setup() "{{{
     " call self.shiftwidth_switch()
     call self.virtualedit_start()
-    if ! textmanip#status#undojoin()
-      let b:textmanip_replaced = textmanip#replaced#new(self)
-    endif
-    let self._replaced = b:textmanip_replaced
+    " if ! textmanip#status#undojoin()
+      " let b:textmanip_replaced = textmanip#replaced#new(self)
+    " endif
+    " let self._replaced = b:textmanip_replaced
 endfunction "}}}
 function! s:textmanip.finish() "{{{
     call self.virtualedit_restore()
@@ -83,6 +105,8 @@ function! s:textmanip.finish() "{{{
     " call self.shiftwidth_restore()
 endfunction "}}}
 function! s:textmanip.move(direction) "{{{
+  let c = self._count
+  let d = self.direction
   try
     if self.cant_move
       normal! gv
@@ -94,7 +118,11 @@ function! s:textmanip.move(direction) "{{{
     if self.is_linewise
       call self.move_line()
     else
-      call self.move_block()
+      if self.env.emode ==# "insert"
+        call self.varea._move_insert(d, c)
+      elseif self.env.emode ==# "replace"
+        call self.varea._move_block_replace(d, c)
+      endif
     endif
     " [FIXME] dirty hack for status management yanking let '< , '> refresh,
     " use blackhole @_ register
@@ -104,48 +132,22 @@ function! s:textmanip.move(direction) "{{{
   endtry
 endfunction "}}}
 
-function! s:textmanip.move_block() "{{{
-  if s:textmanip_current_mode ==# "insert"
-    call self.varea._move_block_insert(self.direction, self._count)
-  elseif s:textmanip_current_mode ==# "replace"
-    call self.varea
-          \._move_block_replace(self.direction, self._count, self._replaced)
-  endif
-endfunction "}}}
-
 function! s:textmanip.move_line() "{{{
+  let d = self.direction
   let c = self._count
-  if self.direction =~# '\v^(right|left)$'
-    let ward = {'right': ">", 'left': "<" }[self.direction]
+  if d =~# '\v^(right|left)$'
+    let ward = 
+          \ d ==# 'right' ? ">" :
+          \ d ==# 'left'  ? "<" : throw
     exe "'<,'>" . repeat(ward, c)
     call self.varea.select()
     return
   endif
 
-  if s:textmanip_current_mode ==# "insert"
-    let [ chg, last ] =
-          \ self.direction ==# "up"   ? ['u-1, ', 'd-1, ' ]:
-          \ self.direction ==# "down" ? ['d+1, ', 'u+1, ' ]: throw
-
-    "(u)_rotate
-    let meth = self.direction[0] . "_rotate"
-    let replace  = textmanip#area#new(
-          \ self.varea.move(chg).content().content
-          \ )[meth](c).data()
-    call setline(self.varea.u.line(), replace)
-    call self.varea.move(last).select()
-
-  elseif s:textmanip_current_mode ==# "replace"
-    let ul = self.varea.u.line()
-    let dl = self.varea.d.line()
-    let [ replace_line, set_line, replace_rule, last ] =  {
-          \ "up":   [ ul-c, ul-c, "selected + rest",  ['u-1, ','d-1, ']],
-          \ "down": [ dl+c, ul  , "rest + selected",  ['u+1,', 'd+1, ']],
-          \ }[self.direction]
-    let selected = self.varea.content().content
-    let rest     = self._replaced[self.direction](getline(replace_line))
-    call setline(set_line, eval(replace_rule))
-    call self.varea.move(last).select()
+  if self.env.emode ==# "insert"
+    call self.varea._move_insert(d, c)
+  elseif self.env.emode ==# "replace"
+    call self.varea._move_line_replace(d, c)
   endif
 endfunction "}}}
 
@@ -161,15 +163,14 @@ endfunction "}}}
 function! s:textmanip.duplicate_block() "{{{
   call self.virtualedit_start()
 
-  let c       = self._prevcount
-  let h       = self.height
+  let c = self._prevcount
+  let h = self.height
   let selected = self.varea.content()
   let selected.content =
         \ textmanip#area#new(selected.content).v_duplicate(c).data()
 
-  if s:textmanip_current_mode ==# "insert"
+  if self.env.emode ==# "insert"
     let blank_lines = map(range(h*c), '""')
-
     let ul = self.varea.u.line()
     let dl = self.varea.d.line()
     let [ blank_target, chg, last ] =  {
@@ -179,7 +180,7 @@ function! s:textmanip.duplicate_block() "{{{
     call append(blank_target, blank_lines)
     call self.varea.move(chg).select().paste(selected).select()
 
-  elseif s:textmanip_current_mode ==# "replace"
+  elseif self.env.emode ==# "replace"
     let chg =  {
           \ "up":   ['u-' . (h*c) . ', ', 'd-' . h . ', '],
           \ "down": ['u+' . h . ', ', 'd+'.(h*c).', ' ],
@@ -218,22 +219,35 @@ function! s:textmanip.duplicate_line(mode) "{{{
     call self.varea.move(last).select()
   end
 endfun "}}}
-function! s:textmanip.init(direction, mode) "{{{
-  let self.direction = a:direction
-  let self.mode       = a:mode ==# 'v' ? visualmode() : 'n'
+function! s:textmanip.init(env) "{{{
+
+  let env = a:env
+  let self.env = env
+  let self.direction = env.direction
+  let self.mode       = env.mode ==# 'v' ? visualmode() : env.mode
   let p               = getpos('.')
   let self.cur_pos    = textmanip#pos#new([p[1], p[2] + p[3]])
   let self._count     = v:count1
   let self._prevcount = (v:prevcount ? v:prevcount : 1)
-  if a:mode ==# 'n' | return | endif
   " throw self.mode
 
   let self.varea  = self.preserve_selection(self.mode)
+
+
+  let self.continuous = textmanip#status#undojoin()
+  if ! self.continuous
+    let b:textmanip_replaced = textmanip#area#new([])
+  endif
+  let self.varea.replaced = b:textmanip_replaced
+
   let self.width  = self.varea.width
   let self.height = self.varea.height
 
-  let self.is_linewise = (self.mode ==# 'V' )
-        \ || (self.mode ==# 'v' && self.height > 1)
+  let self.is_linewise =
+        \ (self.mode ==# 'n' ) ||
+        \ (self.mode ==# 'V' ) ||
+        \ (self.mode ==# 'v' && self.height > 1)
+  if env.mode ==# 'n' | return | endif
 
   " adjust count
   let max = self._count
@@ -308,18 +322,21 @@ endfunction "}}}
 
 " PlublicInterface:
 "===================== {{{
-function! textmanip#do(action, direction, mode, ...) "{{{
-  call s:textmanip.init(a:direction, a:mode)
-  let s:textmanip_current_mode = ( a:0 > 0 ) ? a:1 : g:textmanip_current_mode
-
-  if a:action ==# 'move'
+function! textmanip#do(action, direction, mode, emode) "{{{
+  let env = {
+        \ "action": a:action,
+        \ "direction": a:direction,
+        \ "mode": a:mode,
+        \ "emode": (a:emode ==# 'auto') ? g:textmanip_current_mode : a:emode,
+        \ }
+  call s:textmanip.init(env)
+  if env.action ==# 'move'
     call s:textmanip.move(a:direction)
-  elseif a:action ==# 'dup'
-    if char2nr(visualmode()) ==# char2nr("\<C-v>") ||
-          \ s:textmanip.mode ==# 'v' && !s:textmanip.is_linewise
-      call s:textmanip.duplicate_block()
-    else
+  elseif env.action ==# 'dup'
+    if s:textmanip.is_linewise
       call s:textmanip.duplicate_line(a:mode)
+    else
+      call s:textmanip.duplicate_block()
     endif
   endif
 endfunction "}}}
@@ -354,8 +371,7 @@ endfunction "}}}
 
 function! textmanip#toggle_mode() "{{{
   let g:textmanip_current_mode =
-        \ g:textmanip_current_mode ==# 'insert'
-        \ ? 'replace' : 'insert'
+        \ g:textmanip_current_mode ==# 'insert' ? 'replace' : 'insert'
   echo "textmanip-mode: " . g:textmanip_current_mode
 endfunction "}}}
 
@@ -364,7 +380,7 @@ function! textmanip#mode() "{{{
 endfunction "}}}
 
 function! textmanip#debug() "{{{
-  return PP(s:textmanip._replaced._data)
+  " return PP(s:textmanip._replaced._data)
 endfunction "}}}
 " }}}
 "

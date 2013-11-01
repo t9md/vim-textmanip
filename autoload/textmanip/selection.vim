@@ -23,6 +23,7 @@ function! s:selection.new(s, e, mode) "{{{
   let self.mode = a:mode
   let self.s = textmanip#pos#new(a:s)
   let self.e = textmanip#pos#new(a:e)
+  let self.replaced = textmanip#area#new([])
   let s = self.s
   let e = self.e
 
@@ -44,8 +45,13 @@ function! s:selection.new(s, e, mode) "{{{
   let self.l = l       |       let self.r = r
                  let self.d = d
 
+  " pleserve original height and width since it's may change while operation
   let self.height = self.d.line() - self.u.line() + 1
   let self.width  = self.r.col()  - self.l.col()  + 1
+  let self.is_linewise =
+        \ (self.mode ==# 'n' ) ||
+        \ (self.mode ==# 'V' ) ||
+        \ (self.mode ==# 'v' && self.height > 1)
   return deepcopy(self)
 endfunction "}}}
 
@@ -72,7 +78,8 @@ function! s:selection.content() "{{{
   if ( self.mode ==# 'V') || ( self.mode ==# 'v' && self.height > 1 )
     " linewise
     let content = getline( self.u.line(), self.d.line() )
-    let r = { "content": content, "regtype": self.mode }
+    let r = { "content": content, "regtype": "V" }
+    " let r = { "content": content, "regtype": self.mode }
   else
     try
       let register = textmanip#register#save("x")
@@ -89,12 +96,23 @@ endfunction "}}}
 
 function! s:selection.paste(data) "{{{
   try
-    let register = textmanip#register#save("x")
-    let content = join(a:data.content, "\n")
-    call setreg("x", content, a:data.regtype)
-    normal! "xp
+    if a:data.regtype ==# 'V'
+      " setline() will not clear visual mode in scripts, at least my
+      " environment. I ensure return to normal mode before setline()
+      exe "normal! " . "\<Esc>"
+      " using 'p' is not perfect when date include blankline!
+      " so I choose setline its more precies to original data
+      call setline(self.u.line(), a:data.content)
+    else
+      let register = textmanip#register#save("x")
+      let content = join(a:data.content, "\n")
+      call setreg("x", content, a:data.regtype)
+      normal! "xp
+    endif
   finally
-    call register.restore()
+    if exists("register")
+      call register.restore()
+    endif
   endtry
   return self
 endfunction "}}}
@@ -112,7 +130,7 @@ function! s:selection.select() "{{{
   return self
 endfunction "}}}
 
-function! s:selection._move_block_insert(direction, count) "{{{
+function! s:selection._move_insert(direction, count) "{{{
   let c = a:count
   " (d)own, (u)p, (r)ight, (l)eft
   let d = a:direction[0]
@@ -129,7 +147,7 @@ function! s:selection._move_block_insert(direction, count) "{{{
   call self.select().paste(selected).move(last).select()
 endfunction "}}}
 
-function! s:selection._move_block_replace(direction, count, replace)
+function! s:selection._move_block_replace(direction, count) "{{{
   let c = a:count
   let d = a:direction[0]
   let [ chg, cut_meth, add_meth, last ] =  {
@@ -141,14 +159,49 @@ function! s:selection._move_block_replace(direction, count, replace)
 
   let selected = self.move(chg).content()
   let area     = textmanip#area#new(selected.content)
-  let rest     = a:replace[a:direction](area[cut_meth](c))
+  let rest     = self.replace(a:direction, area[cut_meth](c))
   let selected.content = area[add_meth](rest).data()
   call self.select().paste(selected).move(last).select()
-endfunction
-
-function! s:selection.u_move(count) "{{{
-  call self._move("up", a:count)
 endfunction "}}}
+
+function! s:selection._move_line_replace(direction, count) "{{{
+  let c = a:count
+  let ul = self.u.line()
+  let dl = self.d.line()
+  let [ replace_line, set_line, replace_rule, last ] =  {
+        \ "up":   [ ul-c, ul-c, "selected + rest",  ['u-1, ','d-1, ']],
+        \ "down": [ dl+c, ul  , "rest + selected",  ['u+1,', 'd+1, ']],
+        \ }[a:direction]
+  let selected = self.content().content
+  let rest     = self.replace(a:direction, getline(replace_line))
+  call setline(set_line, eval(replace_rule))
+  call self.move(last).select()
+endfunction "}}}
+
+function! s:selection.replace(direction, val) "{{{
+  " return
+  let d = a:direction[0]
+  let [ add_meth, ward, cut_meth, pad_ward ] =
+        \ d ==# 'u' ? [ 'u_add', 'height', 'd_cut', 'width',   ]:
+        \ d ==# 'd' ? [ 'd_add', 'height', 'u_cut', 'width',   ]:
+        \ d ==# 'l' ? [ 'l_add', 'width' , 'r_cut', 'height',  ]:
+        \ d ==# 'r' ? [ 'r_add', 'width' , 'l_cut', 'height',  ]: throw
+  call self.replaced[add_meth](a:val)
+  let c = self.replaced[ward]() - self[ward]
+  if c > 0
+    " visual area moved over itself area, need return to buffer from replaced
+    return self.replaced[cut_meth](c)
+  else
+    if     d =~# 'u\|d'
+      return self.is_linewise ? [''] : [repeat(' ', self[pad_ward])]
+    elseif d =~# 'r\|l'
+      let space = repeat(" ", len(a:val[0]))
+      return map(range(self[pad_ward]), 'space')
+    endif
+  endif
+  return r
+endfunction "}}}
+
 
 " Pulic:
 function! textmanip#selection#new(start, end, mode) "{{{
