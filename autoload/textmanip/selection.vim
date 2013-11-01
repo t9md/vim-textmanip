@@ -1,6 +1,5 @@
-" Selection:
 let s:selection = {}
-function! s:selection.new(s, e, mode) "{{{
+function! s:selection.new(s, e, mode) "{{{1
 " 4 Selection cases {{{
 "
 "    u--- s----+----+
@@ -48,22 +47,22 @@ function! s:selection.new(s, e, mode) "{{{
   " pleserve original height and width since it's may change while operation
   let self.height = self.d.line() - self.u.line() + 1
   let self.width  = self.r.col()  - self.l.col()  + 1
-  let self.is_linewise =
+  let self.linewise =
         \ (self.mode ==# 'n' ) ||
         \ (self.mode ==# 'V' ) ||
         \ (self.mode ==# 'v' && self.height > 1)
   return deepcopy(self)
-endfunction "}}}
+endfunction
 
-function! s:selection.dup() "{{{
+function! s:selection.dup() "{{{1
   return deepcopy(self)
-endfunction "}}}
+endfunction
 
-function! s:selection.dump() "{{{
+function! s:selection.dump() "{{{1
   return PP([self.s.pos(), self.e.pos()])
-endfunction "}}}
+endfunction
 
-function! s:selection.move(ope) "{{{
+function! s:selection.move(ope) "{{{1
   let ope = type(a:ope) ==# type([]) ? a:ope : [a:ope]
   for o in ope
     if empty(o) | continue | endif
@@ -72,9 +71,9 @@ function! s:selection.move(ope) "{{{
   endfor
   " echo parsed
   return self
-endfunction "}}}
+endfunction
 
-function! s:selection.content() "{{{
+function! s:selection.content() "{{{1
   if ( self.mode ==# 'V') || ( self.mode ==# 'v' && self.height > 1 )
     " linewise
     let content = getline( self.u.line(), self.d.line() )
@@ -92,9 +91,9 @@ function! s:selection.content() "{{{
     endtry
   endif
   return r
-endfunction "}}}
+endfunction
 
-function! s:selection.paste(data) "{{{
+function! s:selection.paste(data) "{{{1
   try
     if a:data.regtype ==# 'V'
       " setline() will not clear visual mode in scripts, at least my
@@ -115,22 +114,22 @@ function! s:selection.paste(data) "{{{
     endif
   endtry
   return self
-endfunction "}}}
+endfunction
 
-function! s:selection._parse(s) "{{{
+function! s:selection._parse(s) "{{{1
   let meth = a:s[0]
   let arg  = split(a:s[1:], '\v,\s*', 1)
   return {"meth" : meth, "arg" : arg }
-endfunction "}}}
+endfunction
 
-function! s:selection.select() "{{{
+function! s:selection.select() "{{{1
   call cursor(self.s.pos()+[0])
   execute "normal! " . self.mode
   call cursor(self.e.pos()+[0])
   return self
-endfunction "}}}
+endfunction
 
-function! s:selection._move_insert(direction, count) "{{{
+function! s:selection._move_insert(direction, count) "{{{1
   let c = a:count
   " (d)own, (u)p, (r)ight, (l)eft
   let d = a:direction[0]
@@ -145,9 +144,9 @@ function! s:selection._move_insert(direction, count) "{{{
   let selected.content =
         \ textmanip#area#new(selected.content)[d ."_rotate"](c).data()
   call self.select().paste(selected).move(last).select()
-endfunction "}}}
+endfunction
 
-function! s:selection._move_block_replace(direction, count) "{{{
+function! s:selection._move_block_replace(direction, count) "{{{1
   let c = a:count
   let d = a:direction[0]
   let [ chg, cut_meth, add_meth, last ] =  {
@@ -162,9 +161,9 @@ function! s:selection._move_block_replace(direction, count) "{{{
   let rest     = self.replace(a:direction, area[cut_meth](c))
   let selected.content = area[add_meth](rest).data()
   call self.select().paste(selected).move(last).select()
-endfunction "}}}
+endfunction
 
-function! s:selection._move_line_replace(direction, count) "{{{
+function! s:selection._move_line_replace(direction, count) "{{{1
   let c = a:count
   let ul = self.u.line()
   let dl = self.d.line()
@@ -176,9 +175,9 @@ function! s:selection._move_line_replace(direction, count) "{{{
   let rest     = self.replace(a:direction, getline(replace_line))
   call setline(set_line, eval(replace_rule))
   call self.move(last).select()
-endfunction "}}}
+endfunction
 
-function! s:selection.replace(direction, val) "{{{
+function! s:selection.replace(direction, val) "{{{1
   " return
   let d = a:direction[0]
   let [ add_meth, ward, cut_meth, pad_ward ] =
@@ -193,23 +192,24 @@ function! s:selection.replace(direction, val) "{{{
     return self.replaced[cut_meth](c)
   else
     if     d =~# 'u\|d'
-      return self.is_linewise ? [''] : [repeat(' ', self[pad_ward])]
+      return self.linewise ? [''] : [repeat(' ', self[pad_ward])]
     elseif d =~# 'r\|l'
       let space = repeat(" ", len(a:val[0]))
       return map(range(self[pad_ward]), 'space')
     endif
   endif
   return r
-endfunction "}}}
+endfunction
 
 
 " Pulic:
-function! textmanip#selection#new(start, end, mode) "{{{
+function! textmanip#selection#new(start, end, mode) "{{{1
   return s:selection.new(a:start, a:end, a:mode)
-endfunction "}}}
-function! textmanip#selection#dump() "{{{
+endfunction
+
+function! textmanip#selection#dump() "{{{1
   return s:selection.dump()
-endfunction "}}}
+endfunction
 
 " Test:
 finish

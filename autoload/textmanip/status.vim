@@ -1,25 +1,21 @@
-" Private:
 let s:status = {}
-function! s:status.undojoin() "{{{
-  if !exists("b:textmanip_status") | return 0 | endif
-  if b:textmanip_status != self.selected() | return 0 | endif
 
-  try
-    silent undojoin
-  catch /E790/
-    " after move and exit at the same position(actully at cosmetic level no
-    " change you made), and 'u'(undo), then restart move.
-    " This read to situation 'undojoin is not allowed after undo' error.
-    " But this cannot detect, so simply suppress this error.
-  endtry
+function! s:status.continuous() "{{{1
+  if !exists("b:textmanip_status")
+    return 0
+  endif
+  if b:textmanip_status != self.selected()
+    return 0
+  endif
+
   return 1
-endfunction "}}}
+endfunction
 
-function! s:status.update() "{{{
+function! s:status.update() "{{{1
   let b:textmanip_status = self.selected()
-endfunction "}}}
+endfunction
 
-function! s:status.selected() "{{{
+function! s:status.selected() "{{{1
   let content = getline(line("'<"), line("'>"))
   if char2nr(visualmode()) ==# char2nr("\<C-v>")
     let s = col("'<")
@@ -37,14 +33,14 @@ function! s:status.selected() "{{{
     echo PP(v)
   endif
   return v
-endfunction "}}}
+endfunction
 
-" Public:
-function! textmanip#status#update() "{{{
+function! textmanip#status#update() "{{{1
   call s:status.update()
-endfunction "}}}
+endfunction
 
-function! textmanip#status#undojoin() "{{{
-  return s:status.undojoin()
-endfunction "}}}
+function! textmanip#status#continuous() "{{{1
+  return s:status.continuous()
+endfunction
+
 " vim: foldmethod=marker

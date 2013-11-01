@@ -1,32 +1,34 @@
-" POS:
 let s:pos = {}
-function! s:pos.new(pos) "{{{
+
+function! s:pos.new(pos) "{{{1
   " pos = [line, col]
   let self._data = a:pos
   return deepcopy(self)
-endfunction "}}}
-function! s:pos.pos() "{{{
-  return self._data
-endfunction "}}}
-function! s:pos.line() "{{{
-  return self._data[0]
-endfunction "}}}
-function! s:pos.col() "{{{
-  return self._data[1]
-endfunction "}}}
+endfunction
 
-function! s:pos.move(line_ope, col_ope) "{{{
+function! s:pos.pos() "{{{1
+  return self._data
+endfunction
+
+function! s:pos.line() "{{{1
+  return self._data[0]
+endfunction
+
+function! s:pos.col() "{{{1
+  return self._data[1]
+endfunction
+
+function! s:pos.move(line_ope, col_ope) "{{{1
   let self._data[0] = eval(self._data[0] . a:line_ope)
   let self._data[1] = eval(self._data[1] . a:col_ope)
-  return self              
-endfunction "}}}           
-          
-function! s:pos.dump() "{{{
+  return self
+endfunction
+
+function! s:pos.dump() "{{{1
   return self._data
-endfunction "}}}
-          
-" Public: 
-function! textmanip#pos#new(pos)
+endfunction
+
+function! textmanip#pos#new(pos) "{{{1
   " pos = [line, col]
   return s:pos.new(a:pos)
 endfunction
