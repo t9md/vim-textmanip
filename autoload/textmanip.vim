@@ -103,54 +103,32 @@ function! s:textmanip.move(direction) "{{{
     call self.finish()
   endtry
 endfunction "}}}
+
 function! s:textmanip.move_block() "{{{
-  let c = self._count
   if s:textmanip_current_mode ==# "insert"
-    let [ chg, last ] =  {
-          \ "up":   ['u-1, ', 'd-1, ' ],
-          \ "down": ['d+1, ', 'u+1, ' ],
-          \ "right":['r ,+1', 'l, +1' ],
-          \ "left": ['l ,-1', 'r, -1' ],
-          \ }[self._direction]
-    " (d)own, (u)p, (r)ight, (l)eft
-    let meth     = self._direction[0] . "_rotate"
-    let selected = self.varea.move(chg).content()
-    let selected.content = textmanip#area#new(selected.content)[meth](c).data()
-    call self.varea.select().paste(selected).move(last).select()
-
+    call self.varea._move_block_insert(self.direction, self._count)
   elseif s:textmanip_current_mode ==# "replace"
-    let [ chg, cut_meth, add_meth, last ] =  {
-          \ "up":   ['u-1, ', 'u_cut', 'd_add', 'd-1, ' ],
-          \ "down": ['d+1, ', 'd_cut', 'u_add', 'u+1, ' ],
-          \ "right":['r ,+1', 'r_cut', 'l_add', 'l, +1' ],
-          \ "left": ['l ,-1', 'l_cut', 'r_add', 'r, -1' ],
-          \ }[self._direction]
-
-    let selected = self.varea.move(chg).content()
-    let area     = textmanip#area#new(selected.content)
-    let rest     = self._replaced[self._direction](area[cut_meth](c))
-    let selected.content = area[add_meth](rest).data()
-    call self.varea.select().paste(selected).move(last).select()
+    call self.varea
+          \._move_block_replace(self.direction, self._count, self._replaced)
   endif
 endfunction "}}}
 
 function! s:textmanip.move_line() "{{{
   let c = self._count
-  if self._direction =~# '\v^(right|left)$'
-    let ward = {'right': ">", 'left': "<" }[self._direction]
+  if self.direction =~# '\v^(right|left)$'
+    let ward = {'right': ">", 'left': "<" }[self.direction]
     exe "'<,'>" . repeat(ward, c)
     call self.varea.select()
     return
   endif
 
   if s:textmanip_current_mode ==# "insert"
-    let [ chg, last ] =  {
-          \ "up":   ['u-1, ', 'd-1, ' ],
-          \ "down": ['d+1, ', 'u+1, ' ],
-          \ }[self._direction]
+    let [ chg, last ] =
+          \ self.direction ==# "up"   ? ['u-1, ', 'd-1, ' ]:
+          \ self.direction ==# "down" ? ['d+1, ', 'u+1, ' ]: throw
 
     "(u)_rotate
-    let meth = self._direction[0] . "_rotate"
+    let meth = self.direction[0] . "_rotate"
     let replace  = textmanip#area#new(
           \ self.varea.move(chg).content().content
           \ )[meth](c).data()
@@ -163,9 +141,9 @@ function! s:textmanip.move_line() "{{{
     let [ replace_line, set_line, replace_rule, last ] =  {
           \ "up":   [ ul-c, ul-c, "selected + rest",  ['u-1, ','d-1, ']],
           \ "down": [ dl+c, ul  , "rest + selected",  ['u+1,', 'd+1, ']],
-          \ }[self._direction]
+          \ }[self.direction]
     let selected = self.varea.content().content
-    let rest     = self._replaced[self._direction](getline(replace_line))
+    let rest     = self._replaced[self.direction](getline(replace_line))
     call setline(set_line, eval(replace_rule))
     call self.varea.move(last).select()
   endif
@@ -179,13 +157,15 @@ endfunction "}}}
 function! s:textmanip.shiftwidth_restore() "{{{
   let &sw = self._shiftwidth
 endfunction "}}}
+
 function! s:textmanip.duplicate_block() "{{{
   call self.virtualedit_start()
 
   let c       = self._prevcount
   let h       = self.height
   let selected = self.varea.content()
-  let selected.content = textmanip#area#new(selected.content).v_duplicate(c).data()
+  let selected.content =
+        \ textmanip#area#new(selected.content).v_duplicate(c).data()
 
   if s:textmanip_current_mode ==# "insert"
     let blank_lines = map(range(h*c), '""')
@@ -195,7 +175,7 @@ function! s:textmanip.duplicate_block() "{{{
     let [ blank_target, chg, last ] =  {
           \ "up":   [ ul-1, '', 'd+'.(h*c-h).', ' ],
           \ "down": [ dl  , ['u+'. h .', ', 'd+'.(h*c).', '], ''],
-          \ }[self._direction]
+          \ }[self.direction]
     call append(blank_target, blank_lines)
     call self.varea.move(chg).select().paste(selected).select()
 
@@ -203,7 +183,7 @@ function! s:textmanip.duplicate_block() "{{{
     let chg =  {
           \ "up":   ['u-' . (h*c) . ', ', 'd-' . h . ', '],
           \ "down": ['u+' . h . ', ', 'd+'.(h*c).', ' ],
-          \ }[self._direction]
+          \ }[self.direction]
     call self.varea.move(chg).select().paste(selected).select()
   endif
 
@@ -214,13 +194,12 @@ function! s:textmanip.duplicate_line(mode) "{{{
   if a:mode ==# 'n'
     " normal
     let c     = self._count
-    let line  = self.cur_pos[1]
-    let col   = self.cur_pos[2]
+    let line  = self.cur_pos.line()
+    let col   = self.cur_pos.col()
     let lines = textmanip#area#new(getline(line,line)).v_duplicate(c).data()
-    let [target_line, last_line ] = {
-          \ "up": [line-1, line ],
-          \ "down": [line  , line + c ],
-          \ }[self._direction]
+    let [target_line, last_line ] =
+          \ self.direction ==# 'up'   ? [line-1, line    ] :
+          \ self.direction ==# 'down' ? [line  , line + c] : throw
     call append(target_line, lines)
     call cursor(last_line, col)
   else
@@ -231,20 +210,21 @@ function! s:textmanip.duplicate_line(mode) "{{{
     let append   = textmanip#area#new(selected).v_duplicate(c).data()
 
     let [target_line, last ] = {
-          \ "up": [ self.varea.u.line() -1 , 'd+' . (h*c-h) . ', ' ],
+          \ "up":   [ self.varea.u.line() -1 , 'd+' . (h*c-h) . ', ' ],
           \ "down": [ self.varea.d.line() ,['u+' . h . ', ', 'd+'.(h*c).', '] ],
-          \ }[self._direction]
+          \ }[self.direction]
 
     call append(target_line , append)
     call self.varea.move(last).select()
   end
 endfun "}}}
 function! s:textmanip.init(direction, mode) "{{{
-  let self._prevcount = (v:prevcount ? v:prevcount : 1)
-  let self._direction = a:direction
+  let self.direction = a:direction
   let self.mode       = a:mode ==# 'v' ? visualmode() : 'n'
-  let self.cur_pos    = getpos('.')
+  let p               = getpos('.')
+  let self.cur_pos    = textmanip#pos#new([p[1], p[2] + p[3]])
   let self._count     = v:count1
+  let self._prevcount = (v:prevcount ? v:prevcount : 1)
   if a:mode ==# 'n' | return | endif
   " throw self.mode
 
@@ -257,20 +237,20 @@ function! s:textmanip.init(direction, mode) "{{{
 
   " adjust count
   let max = self._count
-  if self._direction ==# 'up'
+  if self.direction ==# 'up'
     let max = self.varea.u.line() - 1
-  elseif self._direction ==# 'left' && !self.is_linewise
+  elseif self.direction ==# 'left' && !self.is_linewise
     let max = self.varea.u.col() - 1
   endif
   let self._count = min([max, self._count])
 
   let self.cant_move = 0
   try
-    if self._direction ==# 'up'
+    if self.direction ==# 'up'
       if self.varea.u.line() ==# 1
         throw "CANT_MOVE"
       endif
-    elseif self._direction ==# 'left'
+    elseif self.direction ==# 'left'
       if self.is_linewise
         if empty(filter(self.varea.content().content, "v:val =~# '^\\s'"))
           throw "CANT_MOVE"
@@ -292,14 +272,13 @@ function! s:textmanip.preserve_selection(mode) "{{{
 " getpos() return [bufnum, lnum, col, off]
 " off is offset from actual col when virtual edit(ve) mode,
 " so, to respect ve position, we sum "col" + "off"
-  " throw a:mode
-  let selection = textmanip#selection#new([s[1], s[2] + s[3]], [e[1], e[2] + e[3]], a:mode )
-  return selection
+  return textmanip#selection#new(
+        \ [s[1], s[2] + s[3]], [e[1], e[2] + e[3]], a:mode )
 endfunction "}}}
 function! s:textmanip.extend_EOF() "{{{
   " even if set ve=all, dont automatically extend EOF
   let amount = (self.varea.d.line() + self._count) - line('$')
-  if self._direction ==# 'down' && amount > 0
+  if self.direction ==# 'down' && amount > 0
     call append(line('$'), map(range(amount), '""'))
   endif
 endfunction "}}}
@@ -385,7 +364,6 @@ function! textmanip#mode() "{{{
 endfunction "}}}
 
 function! textmanip#debug() "{{{
-  " return s:replaced
   return PP(s:textmanip._replaced._data)
 endfunction "}}}
 " }}}

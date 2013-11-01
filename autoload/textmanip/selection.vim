@@ -112,6 +112,44 @@ function! s:selection.select() "{{{
   return self
 endfunction "}}}
 
+function! s:selection._move_block_insert(direction, count) "{{{
+  let c = a:count
+  " (d)own, (u)p, (r)ight, (l)eft
+  let d = a:direction[0]
+
+  let [ chg, last ] =  {
+        \ "u": ['u-1, ', 'd-1, ' ],
+        \ "d": ['d+1, ', 'u+1, ' ],
+        \ "r": ['r ,+1', 'l, +1' ],
+        \ "l": ['l ,-1', 'r, -1' ],
+        \ }[d]
+  let selected = self.move(chg).content()
+  let selected.content =
+        \ textmanip#area#new(selected.content)[d ."_rotate"](c).data()
+  call self.select().paste(selected).move(last).select()
+endfunction "}}}
+
+function! s:selection._move_block_replace(direction, count, replace)
+  let c = a:count
+  let d = a:direction[0]
+  let [ chg, cut_meth, add_meth, last ] =  {
+        \ "u": ['u-1, ', 'u_cut', 'd_add', 'd-1, ' ],
+        \ "d": ['d+1, ', 'd_cut', 'u_add', 'u+1, ' ],
+        \ "r": ['r ,+1', 'r_cut', 'l_add', 'l, +1' ],
+        \ "l": ['l ,-1', 'l_cut', 'r_add', 'r, -1' ],
+        \ }[d]
+
+  let selected = self.move(chg).content()
+  let area     = textmanip#area#new(selected.content)
+  let rest     = a:replace[a:direction](area[cut_meth](c))
+  let selected.content = area[add_meth](rest).data()
+  call self.select().paste(selected).move(last).select()
+endfunction
+
+function! s:selection.u_move(count) "{{{
+  call self._move("up", a:count)
+endfunction "}}}
+
 " Pulic:
 function! textmanip#selection#new(start, end, mode) "{{{
   return s:selection.new(a:start, a:end, a:mode)
