@@ -26,7 +26,6 @@ function! s:selection.new(s, e, mode) "{{{1
   let self.mode = a:mode
   let self.s = textmanip#pos#new(a:s)
   let self.e = textmanip#pos#new(a:e)
-  let self.replaced = textmanip#area#new([])
   let self.vars = {}
   let s = self.s
   let e = self.e
@@ -80,7 +79,8 @@ function! s:selection.move(ope) "{{{1
   return self
 endfunction
 
-function! s:selection.content() "{{{1
+function! s:selection.content(...) "{{{1
+  call self.move(a:0 ? a:1 : '')
   if self.linewise
     let content = getline( self.u.line(), self.d.line() )
     let r = { "content": content, "regtype": "V" }
@@ -130,9 +130,25 @@ endfunction
 
 function! s:selection.select(...) "{{{1
   call self.move(a:0 ? a:1 : '')
+
   call cursor(self.s.pos()+[0])
   execute "normal! " . self.mode
   call cursor(self.e.pos()+[0])
+  return self
+endfunction
+
+function! s:selection.mode_switch() "{{{1
+  if self.mode ==# 'v' && !self.linewise
+    let self._mode_org = self.mode
+    let self.mode = "\<C-v>"
+  endif
+  return self
+endfunction
+
+function! s:selection.mode_restore() "{{{1
+  if has_key(self, "_mode_org")
+    let self.mode = self._mode_org
+  endif
   return self
 endfunction
 
@@ -148,69 +164,51 @@ function! s:selection._move_insert(direction, count) "{{{1
         \ "r": ['r  :+c', 'l  :+c' ],
         \ "l": ['l  :-c', 'r  :-c' ],
         \ }[d]
-  let selected = self.move(chg).content()
+
+  call self.mode_switch()
+  let selected = self.content(chg)
   let selected.content =
         \ textmanip#area#new(selected.content)[d ."_rotate"](c).data()
-  call self.select().paste(selected).select(last)
+  call self.select().paste(selected).mode_restore().select(last)
 endfunction
 
-function! s:selection._move_block_replace(direction, count) "{{{1
+function! s:selection._move_replace(direction, count) "{{{1
+  " support both line and block
   let c = a:count
   let self.vars = { "c": c }
-  " let d = a:direction[0]
-  let [ chg, cut_meth, add_meth, last ] =  {
-        \ "u": ['u-c:  ', 'u_cut', 'd_add', 'd-c:  ' ],
-        \ "d": ['d+c:  ', 'd_cut', 'u_add', 'u+c:  ' ],
-        \ "r": ['r  :+c', 'r_cut', 'l_add', 'l  :+c' ],
-        \ "l": ['l  :-c', 'l_cut', 'r_add', 'r  :-c' ],
-        \ }[a:direction[0]]
-
-  let selected = self.move(chg).content()
-  let area     = textmanip#area#new(selected.content)
-  let rest     = self.replace(a:direction, area[cut_meth](c))
-  let selected.content = area[add_meth](rest).data()
-  call self.select().paste(selected).select(last)
-endfunction
-
-function! s:selection._move_line_replace(direction, count) "{{{1
-  let c = a:count
-  let self.vars = { "c": c }
-  let ul = self.u.line()
-  let dl = self.d.line()
-  let [ replace_line, chg, replace_rule, last ] =  {
-        \ "u": [ ul-c, 'u-c:', "content + rest", [''    , 'd-c:']],
-        \ "d": [ dl+c, ''    , "rest + content", ['u+c:', 'd+c:']],
-        \ }[a:direction[0]]
-  " FIXME
-  let selected = self.content()
-  let content  = selected.content
-  let rest     = self.replace(a:direction, getline(replace_line))
-  let selected.content = eval(replace_rule)
-  call self.move(chg).paste(selected).select(last)
-endfunction
-
-function! s:selection.replace(direction, val) "{{{1
-  " return
   let d = a:direction[0]
-  let [ add_meth, ward, cut_meth, pad_ward ] =
-        \ d ==# 'u' ? [ 'u_add', 'height', 'd_cut', 'width',   ]:
-        \ d ==# 'd' ? [ 'd_add', 'height', 'u_cut', 'width',   ]:
-        \ d ==# 'l' ? [ 'l_add', 'width' , 'r_cut', 'height',  ]:
-        \ d ==# 'r' ? [ 'r_add', 'width' , 'l_cut', 'height',  ]: throw
-  call self.replaced[add_meth](a:val)
-  let c = self.replaced[ward]() - self[ward]
-  if c > 0
-    " visual area moved over itself area, need return to buffer from replaced
-    return self.replaced[cut_meth](c)
-  else
-    if     d =~# 'u\|d'
-      return self.linewise ? [''] : [repeat(' ', self[pad_ward])]
-    elseif d =~# 'r\|l'
-      let space = repeat(" ", len(a:val[0]))
-      return map(range(self[pad_ward]), 'space')
-    endif
-  endif
-  return r
+  let [ chg, last ] =  {
+        \ "u": ['u-c:  ', 'd-c:  ' ],
+        \ "d": ['d+c:  ', 'u+c:  ' ],
+        \ "r": ['r  :+c', 'l  :+c' ],
+        \ "l": ['l  :-c', 'r  :-c' ],
+        \ }[d]
+
+  call self.mode_switch()
+  let selected = self.content(chg)
+  let selected.content = self.replace(a:direction, selected.content, c)
+  call self.select().paste(selected).mode_restore().select(last)
+endfunction
+
+function! s:selection.replace(direction, content, c) "{{{1
+  let d = a:direction[0]
+  let area  = textmanip#area#new(a:content)
+  let overwritten = area[d . '_cut'](a:c)
+  let [ od ] =
+        \ d ==# 'u' ? [ 'd' ]:
+        \ d ==# 'd' ? [ 'u' ]:
+        \ d ==# 'l' ? [ 'r' ]:
+        \ d ==# 'r' ? [ 'l' ]: throw
+
+  call self.replaced[d . '_add'](overwritten)
+  let reveal = self.replaced[od . '_cut'](a:c)
+  return area[od . '_add'](reveal).data()
+endfunction
+
+function! s:selection.new_replace()
+  let self.replaced = textmanip#area#new([])
+  let emptyline = self.linewise ? [''] : [repeat(" ", self.width)]
+  return textmanip#area#new(repeat(emptyline, self.height))
 endfunction
 
 

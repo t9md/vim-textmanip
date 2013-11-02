@@ -13,9 +13,11 @@ endfunction
 
 function! s:textmanip.start(env) "{{{1
   call self.init(a:env)
+  let dir = self.env.dir
 
+  " return
   if self.env.action ==# 'dup'
-    if self.linewise
+    if self.varea.linewise
       call self.duplicate_line()
     else
       call self.duplicate_block()
@@ -31,10 +33,16 @@ function! s:textmanip.start(env) "{{{1
     call self.setup()
     call self.extend_EOF()
 
-    if self.linewise
-      call self.move_line()
+    if ( self.varea.linewise && dir =~# '\v^(right|left)$' )
+      let ward = 
+            \ dir ==# 'right' ? ">" :
+            \ dir ==# 'left'  ? "<" : throw
+      exe "'<,'>" . repeat(ward, self.env.count)
+      call self.varea.select()
+      return
     else
-      call self.move_block()
+      " _move_insert / _move_replace
+      call self.varea["_move_" . self.env.emode](dir, self.env.count)
     endif
     " [FIXME] dirty hack for status management yanking let '< , '> refresh,
     " use blackhole @_ register
@@ -42,33 +50,6 @@ function! s:textmanip.start(env) "{{{1
   finally
     call self.finish()
   endtry
-endfunction
-
-function! s:textmanip.move_block() "{{{1
-  if self.env.emode ==# "insert"
-    call self.varea._move_insert(self.env.dir, self.env.count)
-  elseif self.env.emode ==# "replace"
-    call self.varea._move_block_replace(self.env.dir, self.env.count)
-  endif
-endfunction
-
-function! s:textmanip.move_line() "{{{1
-  let dir = self.env.dir
-  let c   = self.env.count
-  if dir =~# '\v^(right|left)$'
-    let ward = 
-          \ dir ==# 'right' ? ">" :
-          \ dir ==# 'left'  ? "<" : throw
-    exe "'<,'>" . repeat(ward, c)
-    call self.varea.select()
-    return
-  endif
-
-  if self.env.emode ==# "insert"
-    call self.varea._move_insert(dir, c)
-  elseif self.env.emode ==# "replace"
-    call self.varea._move_line_replace(dir, c)
-  endif
 endfunction
 
 function! s:textmanip.duplicate_block() "{{{1
@@ -107,59 +88,63 @@ function! s:textmanip.duplicate_line() "{{{1
   if self.env.mode ==# 'n'
     " normal
     let c     = self.env.count
-    let line  = self.cur_pos.line()
-    let col   = self.cur_pos.col()
-    let lines = textmanip#area#new(getline(line,line)).v_duplicate(c).data()
+    let [ line, col ]  = self.varea.u.pos()
+    " let col   = self.varea.u.col()
+    let selected = self.varea.content().content
+    let lines = textmanip#area#new(selected).v_duplicate(c).data()
     let [target_line, last_line ] =
           \ self.env.dir ==# 'up'   ? [line-1, line    ] :
           \ self.env.dir ==# 'down' ? [line  , line + c] : throw
     call append(target_line, lines)
     call cursor(last_line, col)
-  else
-    " visual
-    let c        = self.env.prevcount
-    let h        = self.height
-    let selected = self.varea.content().content
-    let append   = textmanip#area#new(selected).v_duplicate(c).data()
+    return
+  endif
 
-    let self.varea.vars = { 'c': c, 'h': h }
+  let c        = self.env.prevcount
+  let h        = self.height
+  let selected = self.varea.content()
+  let selected.content = textmanip#area#new(selected.content).v_duplicate(c).data()
+  let self.varea.vars = { 'c': c, 'h': h }
+
+  if self.env.emode ==# "insert"
     let [target_line, last ] = {
           \ "up":   [ self.varea.u.line() -1 , 'd+(h*c-h):' ],
           \ "down": [ self.varea.d.line()    ,['u+h:', 'd+(h*c):'] ],
           \ }[self.env.dir]
-    call append(target_line , append)
+    call append(target_line , selected.content)
     call self.varea.select(last)
-  end
+  elseif self.env.emode ==# "replace"
+    let chg =  {
+          \ "up":   ['u-(h*c):', 'd-h:'],
+          \ "down": ['u+h:'    , 'd+(h*c):' ],
+          \ }[self.env.dir]
+    call self.varea.select(chg).paste(selected).select()
+  endif
 endfun
 
 function! s:textmanip.init(env) "{{{1
 
   let self.env = a:env
   let p            = getpos('.')
-  let self.cur_pos = textmanip#pos#new([p[1], p[2] + p[3]])
   let self.varea   = self.preserve_selection()
 
   let self.continuous = textmanip#status#continuous()
   if self.continuous
     call self.undojoin()
   else
-    let b:textmanip_replaced = textmanip#area#new([])
+    let b:textmanip_replaced = self.varea.new_replace()
   endif
   let self.varea.replaced = b:textmanip_replaced
 
   let self.width  = self.varea.width
   let self.height = self.varea.height
 
-  let self.linewise =
-        \ (self.env.mode ==# 'n' ) ||
-        \ (self.env.mode ==# 'V' ) ||
-        \ (self.env.mode ==# 'v' && self.height > 1)
   if self.env.mode ==# 'n' | return | endif
 
   " adjust count
    if self.env.dir ==# 'up'
      let max = self.varea.u.line() - 1
-   elseif self.env.dir ==# 'left' && !self.linewise
+   elseif self.env.dir ==# 'left' && !self.varea.linewise
      let max = self.varea.u.col() - 1
    else
      let max = self.env.count
@@ -174,7 +159,7 @@ function! s:textmanip.init(env) "{{{1
         throw "CANT_MOVE"
       endif
     elseif self.env.dir ==# 'left'
-      if self.linewise
+      if self.varea.linewise
         if empty(filter(self.varea.content().content, "v:val =~# '^\\s'"))
           throw "CANT_MOVE"
         endif
@@ -201,9 +186,13 @@ function! s:textmanip.undojoin() "{{{1
 endfunction
 
 function! s:textmanip.preserve_selection() "{{{1
-  " current pos
-  exe 'normal! gvo' | let s = getpos('.') | exe "normal! " . "\<Esc>"
-  exe 'normal! gvo' | let e = getpos('.') | exe "normal! " . "\<Esc>"
+  if self.env.mode ==# 'n'
+    let s = getpos('.')
+    let e = getpos('.')
+  else
+    exe 'normal! gvo' | let s = getpos('.') | exe "normal! " . "\<Esc>"
+    exe 'normal! gvo' | let e = getpos('.') | exe "normal! " . "\<Esc>"
+  endif
 " getpos() return [bufnum, lnum, col, off]
 " off is offset from actual col when virtual edit(ve) mode,
 " so, to respect ve position, we sum "col" + "off"
