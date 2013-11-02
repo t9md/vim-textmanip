@@ -15,7 +15,6 @@ function! s:textmanip.start(env) "{{{1
   call self.init(a:env)
   let dir = self.env.dir
 
-  " return
   if self.env.action ==# 'dup'
     if self.varea.linewise
       call self.duplicate_line()
@@ -33,16 +32,15 @@ function! s:textmanip.start(env) "{{{1
     call self.setup()
     call self.extend_EOF()
 
-    if ( self.varea.linewise && dir =~# '\v^(right|left)$' )
-      let ward = 
+    if self.varea.linewise && dir =~# '\v^(right|left)$'
+      let ward =
             \ dir ==# 'right' ? ">" :
             \ dir ==# 'left'  ? "<" : throw
       exe "'<,'>" . repeat(ward, self.env.count)
       call self.varea.select()
       return
-    else
-      " _move_insert / _move_replace
-      call self.varea["_move_" . self.env.emode](dir, self.env.count)
+    else            
+      call self.varea.move(dir, self.env.count, self.env.emode)
     endif
     " [FIXME] dirty hack for status management yanking let '< , '> refresh,
     " use blackhole @_ register
@@ -60,8 +58,8 @@ function! s:textmanip.duplicate_block() "{{{1
   let selected = self.varea.content()
   let selected.content =
         \ textmanip#area#new(selected.content).v_duplicate(c).data()
-
   let self.varea.vars = { 'h': h, 'c': c }
+
   if self.env.emode ==# "insert"
     let blank_lines = map(range(h*c), '""')
     let ul = self.varea.u.line()
@@ -103,7 +101,8 @@ function! s:textmanip.duplicate_line() "{{{1
   let c        = self.env.prevcount
   let h        = self.height
   let selected = self.varea.content()
-  let selected.content = textmanip#area#new(selected.content).v_duplicate(c).data()
+  let selected.content =
+        \ textmanip#area#new(selected.content).v_duplicate(c).data()
   let self.varea.vars = { 'c': c, 'h': h }
 
   if self.env.emode ==# "insert"

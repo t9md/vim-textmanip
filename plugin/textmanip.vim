@@ -7,7 +7,7 @@
 " GUARD: {{{
 "============================================================
 if exists('g:loaded_textmanip')
-  " finish
+  finish
 endif
 let g:loaded_textmanip = 1
 
@@ -85,7 +85,6 @@ let global_variables = {
 
 function! s:set_default(dict) "{{{
   for [name, val] in items(a:dict)
-    " let var = s:prefix . name
     let g:{name} = get(g:, name, val)
     unlet name val
   endfor

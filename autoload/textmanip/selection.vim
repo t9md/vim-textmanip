@@ -66,21 +66,21 @@ function! s:selection.dump() "{{{1
   return PP([self.s.pos(), self.e.pos()])
 endfunction
 
-function! s:selection.move(ope) "{{{1
+function! s:selection.move_pos(ope) "{{{1
   let ope = type(a:ope) ==# type([]) ? a:ope : [a:ope]
   for o in ope
     if empty(o) | continue | endif
     for [k,v] in items(self.vars)
       let o = s:gsub(o, k, v)
     endfor
-    let parsed = self._parse(o)
-    call self[parsed.meth].move(parsed.arg[0], parsed.arg[1])
+    let p = self._parse(o)
+    call self[p.target].move(p.arg[0], p.arg[1])
   endfor
   return self
 endfunction
 
 function! s:selection.content(...) "{{{1
-  call self.move(a:0 ? a:1 : '')
+  call self.move_pos(a:0 ? a:1 : '')
   if self.linewise
     let content = getline( self.u.line(), self.d.line() )
     let r = { "content": content, "regtype": "V" }
@@ -101,10 +101,11 @@ endfunction
 function! s:selection.paste(data) "{{{1
   try
     if a:data.regtype ==# 'V'
-      " setline() will not clear visual mode in scripts, at least my
-      " environment. I ensure return to normal mode before setline()
+      " setline() will not clear visual mode , at least my
+      " environment. So ensure return to normal mode before setline()
       exe "normal! " . "\<Esc>"
-      " using 'p' is not perfect when date include blankline!
+      " using 'p' is not perfect when date include blankline.
+      " It's unnecessarily kindly omit empty blankline when paste!
       " so I choose setline its more precies to original data
       call setline(self.u.line(), a:data.content)
     else
@@ -122,14 +123,13 @@ function! s:selection.paste(data) "{{{1
 endfunction
 
 function! s:selection._parse(s) "{{{1
-  let meth = a:s[0]
+  let target = a:s[0]
   let arg  = split(a:s[1:], '\v:\s*', 1)
-  " let arg  = split(a:s[1:], '\v,\s*', 1)
-  return {"meth" : meth, "arg" : arg }
+  return {"target" : target, "arg" : arg }
 endfunction
 
 function! s:selection.select(...) "{{{1
-  call self.move(a:0 ? a:1 : '')
+  call self.move_pos(a:0 ? a:1 : '')
 
   call cursor(self.s.pos()+[0])
   execute "normal! " . self.mode
@@ -152,31 +152,12 @@ function! s:selection.mode_restore() "{{{1
   return self
 endfunction
 
-function! s:selection._move_insert(direction, count) "{{{1
+function! s:selection.move(direction, count, emode) "{{{1
   " support both line and block
   let c = a:count
   " (d)own, (u)p, (r)ight, (l)eft
   let d = a:direction[0]
   let self.vars = { "c": c }
-  let [ chg, last ] =  {
-        \ "u": ['u-c:  ', 'd-c:  ' ],
-        \ "d": ['d+c : ', 'u+c:  ' ],
-        \ "r": ['r  :+c', 'l  :+c' ],
-        \ "l": ['l  :-c', 'r  :-c' ],
-        \ }[d]
-
-  call self.mode_switch()
-  let selected = self.content(chg)
-  let selected.content =
-        \ textmanip#area#new(selected.content)[d ."_rotate"](c).data()
-  call self.select().paste(selected).mode_restore().select(last)
-endfunction
-
-function! s:selection._move_replace(direction, count) "{{{1
-  " support both line and block
-  let c = a:count
-  let self.vars = { "c": c }
-  let d = a:direction[0]
   let [ chg, last ] =  {
         \ "u": ['u-c:  ', 'd-c:  ' ],
         \ "d": ['d+c:  ', 'u+c:  ' ],
@@ -186,22 +167,28 @@ function! s:selection._move_replace(direction, count) "{{{1
 
   call self.mode_switch()
   let selected = self.content(chg)
-  let selected.content = self.replace(a:direction, selected.content, c)
+  if a:emode ==# 'insert'
+    let selected.content =
+          \ textmanip#area#new(selected.content)[d ."_rotate"](c).data()
+  elseif a:emode ==# 'replace'
+    let selected.content =
+          \ self.replace(a:direction, selected.content, c)
+  endif
   call self.select().paste(selected).mode_restore().select(last)
 endfunction
 
 function! s:selection.replace(direction, content, c) "{{{1
   let d = a:direction[0]
   let area  = textmanip#area#new(a:content)
-  let overwritten = area[d . '_cut'](a:c)
+  " opposite direction
   let [ od ] =
         \ d ==# 'u' ? [ 'd' ]:
         \ d ==# 'd' ? [ 'u' ]:
         \ d ==# 'l' ? [ 'r' ]:
         \ d ==# 'r' ? [ 'l' ]: throw
 
-  call self.replaced[d . '_add'](overwritten)
-  let reveal = self.replaced[od . '_cut'](a:c)
+  let overwritten = area[d . '_cut'](a:c)
+  let reveal = self.replaced[d . '_pushout'](overwritten)
   return area[od . '_add'](reveal).data()
 endfunction
 
