@@ -230,6 +230,10 @@ CONFIGURATION EXAMPLE                                      *textmanip-example*
         xmap <C-k> <Plug>(textmanip-move-up)
         xmap <C-h> <Plug>(textmanip-move-left)
         xmap <C-l> <Plug>(textmanip-move-right)
+
+        " toggle insert/replace with <F10>
+        nmap <F10> <Plug>(textmanip-toggle-mode)
+        xmap <F10> <Plug>(textmanip-toggle-mode)
 <
 ==============================================================================
 USE CASE                                                   *textmanip-usecase*
@@ -347,6 +351,9 @@ TODO                                                          *textmanip-todo*
 
 ==============================================================================
 BUG                                                             *textmanip-bug*
+
+Relatively big count cause error, index out of range.
+Will be fixed soon.
 
 When you movement visually selected text to right or left, then |:undo|, cursor
 position not restored to original position.
