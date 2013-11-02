@@ -78,7 +78,7 @@ command! TextmanipToggleIgnoreShiftWidth
 
 let global_variables = {
       \ "textmanip_enable_mappings" : 0,
-      \ "textmanip_default_mode"    : "insert",
+      \ "textmanip_startup_mode"    : "insert",
       \ "textmanip_move_ignore_shiftwidth" : 0,
       \ "textmanip_move_shiftwidth" : 1,
       \ }
@@ -91,7 +91,7 @@ function! s:set_default(dict) "{{{
 endfunction "}}}
 
 call s:set_default(global_variables)
-let g:textmanip_current_mode = g:textmanip_default_mode
+let g:textmanip_current_mode = g:textmanip_startup_mode
 
 function! s:set_default_mapping() "{{{
   if has('gui_macvim')

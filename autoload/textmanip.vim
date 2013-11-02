@@ -1,14 +1,14 @@
 let s:textmanip = {}
 
 function! s:textmanip.setup() "{{{1
-    " call self.shiftwidth_switch()
+    call self.shiftwidth_switch()
     call self.ve_start()
 endfunction
 
 function! s:textmanip.finish() "{{{1
     call self.ve_restore()
     call textmanip#status#update()
-    " call self.shiftwidth_restore()
+    call self.shiftwidth_restore()
 endfunction
 
 function! s:textmanip.start(env) "{{{1
@@ -223,7 +223,9 @@ function! s:textmanip.shiftwidth_switch() "{{{1
 endfunction
 
 function! s:textmanip.shiftwidth_restore() "{{{1
-  let &sw = self._shiftwidth
+  if has_key(self, "_shiftwidth")
+    let &sw = self._shiftwidth
+  endif
 endfunction
 
 function! s:textmanip.dump() "{{{1
@@ -258,7 +260,7 @@ function! textmanip#do1(action, direction, mode) "{{{1
 
     let g:textmanip_move_ignore_shiftwidth = 1
     let g:textmanip_move_shiftwidth        = 1
-    call textmanip#do(a:action, a:direction, a:mode)
+    call textmanip#do(a:action, a:direction, a:mode, "auto")
   finally
     let g:textmanip_move_ignore_shiftwidth = _textmanip_move_ignore_shiftwidth
     let g:textmanip_move_shiftwidth        = _textmanip_move_shiftwidth

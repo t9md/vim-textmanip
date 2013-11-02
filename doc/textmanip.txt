@@ -60,10 +60,23 @@ VARIABLES                                               *textmanip-variables*
         If this value is 1, textmanip setup default keymap
         See |textmanip-mapping|.
 
+*g:textmanip_startup_mode*
+        Default: 'insert'
+
+        Set 'insert' or 'replace', to specify textmanip act mode.
+	Specify textmanip mode at startup.
+
+*g:textmanip_current_mode*
+	Default: value of |g:textmanip_startup_mode|.[
+
+	This var store current mode.
+	To change current mode, use |:TextmanipToggleMode| or 
+	<Plug>(textmanip-toggle-mode).
+
 *g:textmanip_move_ignore_shiftwidth*
         Default: 0
 
-        If you set this to `1`. When line move right/left is executed with
+        If you set this to 1. When line move right/left is executed with
         |g:textmanip_move_shiftwidth| value.
 
 *g:textmanip_move_shiftwidth*
@@ -71,11 +84,6 @@ VARIABLES                                               *textmanip-variables*
 
         When you set non zero value to |g:textmanip_move_ignore_shiftwidth|,
         this value is used how much right/left shifted when move right/left.
-
-*g:textmanip_default_mode*
-        Default: 'insert'
-
-        Set 'insert' or 'replace', to specify textmanip act mode.
 
 ==============================================================================
 MAPPINGS                                                    *textmanip-mappings*
@@ -143,6 +151,13 @@ Toggle Mode between 'insert' and 'replace'~
 n_<Plug>(textmanip-toggle-mode)
 x_<Plug>(textmanip-toggle-mode)
 
+==============================================================================
+FUNCTION						 *textmanip-functions*
+
+textmanip#mode()
+	Simply return value of |g:textmanip_current_mode|.
+	It could be use to indicate current mode in |'statusline'|.
+	                                                                      
 ==============================================================================
 COMMAND                                                     *textmanip-command*
 
