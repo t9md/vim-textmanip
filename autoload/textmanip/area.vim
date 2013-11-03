@@ -134,31 +134,31 @@ endfunction
 " pushout
 function! s:area.u_pushout(v) "{{{1
   let height = len(a:v)
-  let r = self.d_cut(height)
   call self.u_add(a:v)
+  let r = self.d_cut(height)
   return r
 endfunction
 
 function! s:area.d_pushout(v) "{{{1
   let height = len(a:v)
-  let r = self.u_cut(height)
   call self.d_add(a:v)
+  let r = self.u_cut(height)
   return r
 endfunction
 
 function! s:area.r_pushout(v) "{{{1
   " assume all member have same width
   let width = len(a:v[0])
-  let r = self.l_cut(width)
   call self.r_add(a:v)
+  let r = self.l_cut(width)
   return r
 endfunction
 
 function! s:area.l_pushout(v) "{{{1
   " assume all member have same width
   let width = len(a:v[0])
-  let r = self.r_cut(width)
   call self.l_add(a:v)
+  let r = self.r_cut(width)
   return r
 endfunction
 
