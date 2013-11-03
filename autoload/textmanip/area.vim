@@ -198,25 +198,3 @@ endfunction
 function! textmanip#area#new(data) "{{{1
   return s:area.new(a:data)
 endfunction
-
-" Test:
-finish
-function! s:split(mode) "{{{1
-  return split(a:mode, '.\zs')
-endfunction
-
-let s = s:area.new([])
-" call s.h_duplicate(2)
-call s.u_add(["abc", "def","hij"])
-" call s.u_add("def")
-echo s.data()
-echo "--"
-" echo s.r_cut(1)
-" echo s.r_cut(1)
-echo "pushed :" . string(s.l_pushout(s:split("xyz")))
-" echo s.u_pushout([12,24])
-echo s.data()
-" echo swapped
-" let swapped =  s.d_swap(["a","b"])
-
-" vim: foldmethod=marker
