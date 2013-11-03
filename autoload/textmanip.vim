@@ -24,12 +24,9 @@ function! s:textmanip.start(env) "{{{1
   try
     call self.setup()
     call self.init(a:env)
+
     if self.env.action ==# 'dup'
       call self.varea.duplicate(dir, c, emode)
-      return
-    endif
-    if self.cant_move
-      normal! gv
       return
     endif
 
@@ -38,6 +35,8 @@ function! s:textmanip.start(env) "{{{1
     " [FIXME] dirty hack for status management yanking let '< , '> refresh,
     " use blackhole @_ register
     normal! "_ygv
+  catch /CANT_MOVE/
+    normal! gv
   finally
     call self.finish()
   endtry
@@ -71,42 +70,24 @@ function! s:textmanip.init(env) "{{{1
    endif
   let self.env.count = min([max, self.env.count])
 
-  " care corner case
-  try
-    command! -nargs=* CANT_MOVE if <args> | throw "CANT_MOVE" | endif
+  if self.env.action ==# 'dup' | return | endif
 
-    CANT_MOVE self.env.dir ==# 'up' && self.varea.u.line() ==# 1
-    CANT_MOVE
+  try
+    command! -nargs=* CantMove if <args> | throw "CANT_MOVE" | endif
+
+    CantMove self.env.dir ==# 'up' && self.varea.u.line() ==# 1
+    CantMove
           \ self.env.dir ==# 'left' &&
           \ self.varea.linewise &&
           \ empty(filter(self.varea.content().content, "v:val =~# '^\\s'"))
-    CANT_MOVE
+    CantMove
           \ self.env.dir ==# 'left' &&
           \ !self.varea.linewise &&
           \ self.varea.u.col() == 1 && self.env.mode ==# "\<C-v>"
-  catch /CANT_MOVE/
-    let self.cant_move = 1
+
+  finally
+    delcommand CantMove
   endtry
-  " let self.cant_move = 0
-  " try
-    " if self.env.dir ==# 'up'
-      " if self.varea.u.line() ==# 1
-        " throw "CANT_MOVE"
-      " endif
-    " elseif self.env.dir ==# 'left'
-      " if self.varea.linewise
-        " if empty(filter(self.varea.content().content, "v:val =~# '^\\s'"))
-          " throw "CANT_MOVE"
-        " endif
-      " else
-        " if self.varea.u.col() == 1 && self.env.mode ==# "\<C-v>"
-          " throw "CANT_MOVE"
-        " endif
-      " endif
-    " endif
-  " catch /CANT_MOVE/
-    " let self.cant_move = 1
-  " endtry
 endfunction
 
 function! s:textmanip.undojoin() "{{{1
