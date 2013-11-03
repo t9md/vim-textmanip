@@ -119,11 +119,20 @@ function! s:selection.paste(data) "{{{1
 endfunction
 
 
-function! s:selection.insert_blankline(where, num) "{{{1
-  let line =
-        \ a:where ==# 'above' ? self.u.line() -1 :
-        \ a:where ==# 'below' ? self.d.line()    : throw
-  call append(line, map(range(a:num), '""'))
+function! s:selection.insert_blank(dir, num) "{{{1
+  let where =
+        \ a:dir ==# 'u' ? self.u.line() -1 :
+        \ a:dir ==# 'd' ? self.d.line()    :
+        \ a:dir ==# 'r' ? self.r.col()    :
+        \ a:dir ==# 'l' ? self.l.col() -1   : throw
+  if a:dir =~# 'd\|u'
+    call append(where, map(range(a:num), '""'))
+  else
+    let space = repeat(" " , a:num)
+    let lines = map(getline(self.u.line(), self.d.line()),
+          \ 'v:val[0 : where - 1 ] . repeat(" ", a:num) . v:val[ where : ]')
+    call setline(self.u.line(), lines)
+  endif
 endfunction
 
 function! s:selection._parse(s) "{{{1
@@ -212,29 +221,29 @@ function! s:selection.dup(dir, count, emode) "{{{1
   " work following case
   " * normal duplicate(insert/replace) allways linewise
   " * visual duplicate(insert/replace) linewise/blockwise
-  let c        = a:count
-  let h        = self.height
-  let w        = self.width
+  let [c, h, w ]  = [a:count, self.height, self.width ]
   let dir      = a:dir[0]
   let selected = self.content()
   let ward =
         \ dir =~# 'u\|d' ? 'v' :
         \ dir =~# 'l\|r' ? 'h' : throw
-  let selected.content =
-        \ textmanip#area#new(selected.content)[ward . "_duplicate"](c).data()
+  let duplicated = textmanip#area#new(selected.content)[ward . "_duplicate"](c)
+  let selected.content = duplicated.data()
   let self.vars = { 'c': c, 'h': h, 'w': w }
 
   if a:emode ==# "insert"
-    let [ blank_target, chg, last ] =  {
-          \ "u": [ 'above', '',                   'd+(h*(c-1)):' ],
-          \ "d": [ 'below', ['u+h: ', 'd+(h*c):'], ''            ],
+    let [ward, chg] =  {
+          \ "u": [ "height", 'd+(h*(c-1)):'         ] ,
+          \ "d": [ "height", ['u+h: ', 'd+(h*c):'  ]] ,
+          \ "r": [ "width" , ['l :+w', 'r :+(w*c)' ]] ,
+          \ "l": [ "width" , 'r :+(w*(c-1))'       ] ,
           \ }[dir]
-    call self.insert_blankline(blank_target, h*c)
+    call self.insert_blank(dir, duplicated[ward]())
     call self.select(chg).paste(selected)
     if self.mode ==# 'n'
       call cursor( self[dir].pos() )
     else
-      call self.select(last)
+      call self.select()
     endif
   elseif a:emode ==# "replace"
     let chg =  {
