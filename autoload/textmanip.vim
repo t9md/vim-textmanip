@@ -1,5 +1,5 @@
-let s:textmanip = {}
 
+let s:textmanip = {}
 function! s:textmanip.setup() "{{{1
   let sw = g:textmanip_move_ignore_shiftwidth ? g:textmanip_move_shiftwidth : &sw
   call textmanip#options#set({
@@ -43,7 +43,6 @@ function! s:textmanip.start(env) "{{{1
 endfunction
 
 function! s:textmanip.init(env) "{{{1
-
   let self.env = a:env
   let self.varea   = self.preserve_selection()
 
@@ -70,21 +69,26 @@ function! s:textmanip.init(env) "{{{1
   if self.env.action ==# 'dup' | return | endif
 
   try
-    command! -nargs=* CantMove if <args> | throw "CANT_MOVE" | endif
-
-    CantMove self.env.dir ==# 'up' && self.varea.u.line() ==# 1
-    CantMove
+    call s:cant_move(
+          \ self.env.dir ==# 'up' && self.varea.u.line() ==# 1
+          \ )
+    call s:cant_move(
           \ self.env.dir ==# 'left' &&
           \ self.varea.linewise &&
           \ empty(filter(self.varea.content().content, "v:val =~# '^\\s'"))
-    CantMove
+          \ )
+    call s:cant_move(
           \ self.env.dir ==# 'left' &&
           \ !self.varea.linewise &&
           \ self.varea.u.col() == 1 && self.env.mode ==# "\<C-v>"
-
-  finally
-    delcommand CantMove
+          \ )
   endtry
+endfunction
+
+function! s:cant_move(expr) "{{{1
+  if a:expr
+    throw "CANT_MOVE"
+  endif
 endfunction
 
 function! s:textmanip.undojoin() "{{{1
