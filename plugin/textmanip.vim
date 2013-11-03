@@ -22,9 +22,9 @@ let g:textmanip_debug = 0
 nnoremap <silent> <Plug>(textmanip-duplicate-down)
       \ :<C-u>call textmanip#do('dup', 'down','n', 'auto')<CR>
 vnoremap <silent> <Plug>(textmanip-duplicate-down)
-      \ <Esc>:<C-u>call textmanip#do('dup', 'down','v', 'auto')<CR>
+      \ :<C-u>call textmanip#do('dup', 'down','v', 'auto')<CR>
 vnoremap <silent> <Plug>(textmanip-duplicate-up)
-      \ <Esc>:<C-u>call textmanip#do('dup', 'up','v', 'auto')<CR>
+      \ :<C-u>call textmanip#do('dup', 'up','v', 'auto')<CR>
 nnoremap <silent> <Plug>(textmanip-duplicate-up)
       \ :<C-u>call textmanip#do('dup', 'up','n', 'auto')<CR>
 
@@ -56,16 +56,23 @@ vnoremap <silent> <Plug>(textmanip-move-left-r)
       \ :<C-u>call textmanip#do('move', 'left', 'v', 'replace')<CR>
 
 " experimental dirty hack
-vnoremap <silent> <Plug>(textmanip-move-right-1col) :<C-u>call textmanip#do1('move', 'right', 'v')<CR>
-vnoremap <silent> <Plug>(textmanip-move-left-1col)  :<C-u>call textmanip#do1('move', 'left', 'v')<CR>
+vnoremap <silent> <Plug>(textmanip-move-right-1col)
+      \ :<C-u>call textmanip#do1('move', 'right', 'v')<CR>
+vnoremap <silent> <Plug>(textmanip-move-left-1col)
+      \ :<C-u>call textmanip#do1('move', 'left', 'v')<CR>
 
-nnoremap <Plug>(textmanip-debug) :<C-u>echo textmanip#debug()<CR>
+nnoremap <Plug>(textmanip-debug)
+      \ :<C-u>echo textmanip#debug()<CR>
 " Experimental
-nnoremap <silent> <Plug>(textmanip-kickout) :<C-u>call textmanip#kickout(0)<CR>
-vnoremap <silent> <Plug>(textmanip-kickout) :call textmanip#kickout(0)<CR>
+nnoremap <silent> <Plug>(textmanip-kickout)
+      \ :<C-u>call textmanip#kickout(0)<CR>
+vnoremap <silent> <Plug>(textmanip-kickout)
+      \ :call textmanip#kickout(0)<CR>
 
-nnoremap <Plug>(textmanip-toggle-mode) :<C-u>call textmanip#toggle_mode()<CR>
-xnoremap <Plug>(textmanip-toggle-mode) :<C-u>call textmanip#toggle_mode()<CR>gv
+nnoremap <Plug>(textmanip-toggle-mode)
+      \ :<C-u>call textmanip#toggle_mode()<CR>
+xnoremap <Plug>(textmanip-toggle-mode)
+      \ :<C-u>call textmanip#toggle_mode()<CR>gv
 
 " Command [FIXME]
 command! -range -nargs=* TextmanipKickout call textmanip#kickout(<q-args>)

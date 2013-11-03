@@ -55,9 +55,6 @@ function! s:textmanip.init(env) "{{{1
   endif
   let self.varea.replaced = b:textmanip_replaced
 
-  " let self.width  = self.varea.width
-  " let self.height = self.varea.height
-
   if self.env.mode ==# 'n' | return | endif
 
   " adjust count

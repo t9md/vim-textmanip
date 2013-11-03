@@ -122,6 +122,14 @@ function! s:selection.paste(data) "{{{1
   return self
 endfunction
 
+
+function! s:selection.insert_blankline(where, num) "{{{1
+  let line =
+        \ a:where ==# 'above' ? self.u.line() -1 :
+        \ a:where ==# 'below' ? self.d.line()    : throw
+  call append(line, map(range(a:num), '""'))
+endfunction
+
 function! s:selection._parse(s) "{{{1
   let target = a:s[0]
   let arg  = split(a:s[1:], '\v:\s*', 1)
@@ -132,7 +140,9 @@ function! s:selection.select(...) "{{{1
   call self.move_pos(a:0 ? a:1 : '')
 
   call cursor(self.s.pos()+[0])
-  execute "normal! " . self.mode
+  if self.mode !=# 'n'
+    execute "normal! " . self.mode
+  endif
   call cursor(self.e.pos()+[0])
   return self
 endfunction
@@ -152,11 +162,21 @@ function! s:selection.mode_restore() "{{{1
   return self
 endfunction
 
-function! s:selection.move(direction, count, emode) "{{{1
+function! s:selection.move(dir, count, emode) "{{{1
   " support both line and block
   let c = a:count
+   
+  if a:dir =~# '\v^(right|left)$' && self.linewise
+    let ward =
+          \ a:dir ==# 'right' ? ">" :
+          \ a:dir ==# 'left'  ? "<" : throw
+    exe "'<,'>" . repeat(ward, c)
+    call self.select()
+    return
+  endif
+
   " (d)own, (u)p, (r)ight, (l)eft
-  let d = a:direction[0]
+  let d = a:dir[0]
   let self.vars = { "c": c }
   let [ chg, last ] =  {
         \ "u": ['u-c:  ', 'd-c:  ' ],
@@ -172,16 +192,49 @@ function! s:selection.move(direction, count, emode) "{{{1
           \ textmanip#area#new(selected.content)[d ."_rotate"](c).data()
   elseif a:emode ==# 'replace'
     let selected.content =
-          \ self.replace(a:direction, selected.content, c)
+          \ self.replace(a:dir, selected.content, c)
   endif
   call self.select().paste(selected).mode_restore().select(last)
 endfunction
 
-function! s:selection.replace(direction, content, c) "{{{1
-  let d = a:direction[0]
+function! s:selection.duplicate(dir, count, emode) "{{{1
+  " work following case
+  " * normal duplicate(insert/replace) allways linewise
+  " * visual duplicate(insert/replace) linewise/blockwise
+  let c        = a:count
+  let h        = self.height
+  let dir      = a:dir[0]
+  let selected = self.content()
+  let selected.content =
+        \ textmanip#area#new(selected.content).v_duplicate(c).data()
+  let self.vars = { 'c': c, 'h': h }
+
+  if a:emode ==# "insert"
+    let [ blank_target, chg, last ] =  {
+          \ "u": [ 'above', '',                   'd+(h*(c-1)):' ],
+          \ "d": [ 'below', ['u+h: ', 'd+(h*c):'], ''            ],
+          \ }[dir]
+    call self.insert_blankline(blank_target, h*c)
+    call self.select(chg).paste(selected)
+    if self.mode ==# 'n'
+      call cursor( self[dir].pos() )
+    else
+      call self.select(last)
+    endif
+  elseif a:emode ==# "replace"
+    let chg =  {
+          \ "u": ['u-(h*c):', 'd-h:'],
+          \ "d": ['u+h:'    , 'd+(h*c):' ],
+          \ }[dir]
+    call self.select(chg).paste(selected).select()
+  endif
+endfunction
+
+function! s:selection.replace(dir, content, c) "{{{1
+  let d = a:dir[0]
   let area  = textmanip#area#new(a:content)
   " opposite direction
-  let [ od ] =
+  let od  =
         \ d ==# 'u' ? [ 'd' ]:
         \ d ==# 'd' ? [ 'u' ]:
         \ d ==# 'l' ? [ 'r' ]:

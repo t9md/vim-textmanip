@@ -1,8 +1,10 @@
 let s:pos = {}
 
 function! s:pos.new(pos) "{{{1
-  " pos = [line, col]
-  let self._data = a:pos
+  " getpos() return [bufnum, lnum, col, off]
+  " off is offset from actual col when virtual edit(ve) mode,
+  " so, to respect ve position, we sum "col" + "off"
+  let self._data = [a:pos[1], a:pos[2] + a:pos[3]]
   return deepcopy(self)
 endfunction
 
