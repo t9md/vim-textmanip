@@ -214,11 +214,15 @@ function! s:selection.dup(dir, count, emode) "{{{1
   " * visual duplicate(insert/replace) linewise/blockwise
   let c        = a:count
   let h        = self.height
+  let w        = self.width
   let dir      = a:dir[0]
   let selected = self.content()
+  let ward =
+        \ dir =~# 'u\|d' ? 'v' :
+        \ dir =~# 'l\|r' ? 'h' : throw
   let selected.content =
-        \ textmanip#area#new(selected.content).v_duplicate(c).data()
-  let self.vars = { 'c': c, 'h': h }
+        \ textmanip#area#new(selected.content)[ward . "_duplicate"](c).data()
+  let self.vars = { 'c': c, 'h': h, 'w': w }
 
   if a:emode ==# "insert"
     let [ blank_target, chg, last ] =  {
@@ -236,8 +240,11 @@ function! s:selection.dup(dir, count, emode) "{{{1
     let chg =  {
           \ "u": ['u-(h*c):', 'd-h:'],
           \ "d": ['u+h:'    , 'd+(h*c):' ],
+          \ "r": ['l :+w'    , 'r :+(w*c)' ],
+          \ "l": ['r :-w'    , 'l :-(w*c)' ],
           \ }[dir]
-    call self.select(chg).paste(selected).select()
+    call self.select(chg)
+    call self.paste(selected).select()
   endif
 endfunction
 

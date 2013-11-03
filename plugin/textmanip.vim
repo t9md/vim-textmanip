@@ -27,6 +27,14 @@ vnoremap <silent> <Plug>(textmanip-duplicate-up)
       \ :<C-u>call textmanip#do('dup', 'up','v', 'auto')<CR>
 nnoremap <silent> <Plug>(textmanip-duplicate-up)
       \ :<C-u>call textmanip#do('dup', 'up','n', 'auto')<CR>
+vnoremap <silent> <Plug>(textmanip-duplicate-left)
+      \ :<C-u>call textmanip#do('dup', 'left','v', 'auto')<CR>
+nnoremap <silent> <Plug>(textmanip-duplicate-left)
+      \ :<C-u>call textmanip#do('dup', 'left','n', 'auto')<CR>
+vnoremap <silent> <Plug>(textmanip-duplicate-right)
+      \ :<C-u>call textmanip#do('dup', 'rigth','v', 'auto')<CR>
+nnoremap <silent> <Plug>(textmanip-duplicate-right)
+      \ :<C-u>call textmanip#do('dup', 'right','n', 'auto')<CR>
 
 vnoremap <silent> <Plug>(textmanip-move-up)
       \ :<C-u>call textmanip#do('move', 'up', 'v', 'auto')<CR>
