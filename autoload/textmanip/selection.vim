@@ -235,10 +235,10 @@ function! s:selection.replace(dir, content, c) "{{{1
   let area  = textmanip#area#new(a:content)
   " opposite direction
   let od  =
-        \ d ==# 'u' ? [ 'd' ]:
-        \ d ==# 'd' ? [ 'u' ]:
-        \ d ==# 'l' ? [ 'r' ]:
-        \ d ==# 'r' ? [ 'l' ]: throw
+        \ d ==# 'u' ? 'd':
+        \ d ==# 'd' ? 'u':
+        \ d ==# 'l' ? 'r':
+        \ d ==# 'r' ? 'l': throw
 
   let overwritten = area[d . '_cut'](a:c)
   let reveal = self.replaced[d . '_pushout'](overwritten)
