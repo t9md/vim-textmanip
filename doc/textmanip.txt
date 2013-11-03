@@ -342,18 +342,15 @@ TODO                                                          *textmanip-todo*
 - support replace mode [up/down => o] [right/left => o ]: DONE
 - duplicate right/left => yet
 - duplicate replacemode: DONE
-- refactoring( file separate, further oop style) => 80% done
+- refactoring( file separate, further oop style) => 100% done
 - ?? option to automatically delete trailing space?
 - ?? option to automatically indent( I'm not in mood ).
 - stabilize, kickout action or delete this action?
 - ?? move block or line to ^,$ with one command. I'm not in mood.
-- Corner case handling in replace mode( I know its include bug ).
+- Corner case handling in replace mode( I know its include bug ). => yet
 
 ==============================================================================
 BUG                                                             *textmanip-bug*
-
-Relatively big count cause error, index out of range.
-Will be fixed soon.
 
 When you movement visually selected text to right or left, then |:undo|, cursor
 position not restored to original position.
@@ -363,6 +360,9 @@ layout.
 
 ==============================================================================
 CHANGELOG                                                *textmanip-changelog*
+2013-11-04: v1.9
+        - refactoring
+	- [bugfix] count now properly work in replace mode.
 2013-11-02: v1.8
         - greatly improve stability. greatly refactored.
         - count and replace move is now stable.
