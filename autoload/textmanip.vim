@@ -1,44 +1,20 @@
 
 let s:textmanip = {}
-function! s:textmanip.setup() "{{{1
-  let sw = g:textmanip_move_ignore_shiftwidth ? g:textmanip_move_shiftwidth : &sw
-  call textmanip#options#set({
-        \ 've': 'all',
-        \ 'sw': sw,
-        \ })
-endfunction
-
-function! s:textmanip.finish() "{{{1
-  call textmanip#options#restore()
-  if self.env.action ==# 'dup'
-    return
-  endif
-  call textmanip#status#update()
-endfunction
 
 function! s:textmanip.start(env) "{{{1
-  let dir   = a:env.dir
-  let c     = a:env.count
-  let emode = a:env.emode
-
   try
-    call self.setup()
+    let sw = g:textmanip_move_ignore_shiftwidth ? g:textmanip_move_shiftwidth : &sw
+    call textmanip#options#set({ 've': 'all', 'sw': sw })
     call self.init(a:env)
+    call self.varea[self.env.action](a:env.dir, a:env.count, a:env.emode)
 
-    if self.env.action ==# 'dup'
-      call self.varea.duplicate(dir, c, emode)
-      return
+    if self.env.action ==# 'move'
+      call textmanip#status#update()
     endif
-
-    call self.extend_EOF()
-    call self.varea.move(dir, c, emode)
-    " [FIXME] dirty hack for status management yanking let '< , '> refresh,
-    " use blackhole @_ register
-    normal! "_ygv
   catch /CANT_MOVE/
     normal! gv
   finally
-    call self.finish()
+    call textmanip#options#restore()
   endtry
 endfunction
 
@@ -111,14 +87,6 @@ function! s:textmanip.preserve_selection() "{{{1
     exe 'normal! gvo' | let e = getpos('.') | exe "normal! " . "\<Esc>"
   endif
   return textmanip#selection#new(s, e, self.env.mode)
-endfunction
-
-function! s:textmanip.extend_EOF() "{{{1
-  " even if set ve=all, dont automatically extend EOF
-  let amount = (self.varea.d.line() + self.env.count) - line('$')
-  if self.env.dir ==# 'down' && amount > 0
-    call append(line('$'), map(range(amount), '""'))
-  endif
 endfunction
 
 function! s:textmanip.dump() "{{{1

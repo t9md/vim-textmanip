@@ -58,10 +58,6 @@ function! s:selection.new(s, e, mode) "{{{1
   return deepcopy(self)
 endfunction
 
-function! s:selection.dup() "{{{1
-  return deepcopy(self)
-endfunction
-
 function! s:selection.dump() "{{{1
   return PP([self.s.pos(), self.e.pos()])
 endfunction
@@ -162,6 +158,13 @@ function! s:selection.mode_restore() "{{{1
   return self
 endfunction
 
+function! s:selection.extend_EOF(n) "{{{1
+  let amount = (self.d.line() + a:n ) - line('$')
+  if amount > 0
+    call append(line('$'), map(range(amount), '""'))
+  endif
+endfunction
+
 function! s:selection.move(dir, count, emode) "{{{1
   " support both line and block
   let c = a:count
@@ -176,6 +179,10 @@ function! s:selection.move(dir, count, emode) "{{{1
   endif
 
   " (d)own, (u)p, (r)ight, (l)eft
+  if a:dir ==# 'down'
+    call self.extend_EOF(c)
+  endif
+
   let d = a:dir[0]
   let self.vars = { "c": c }
   let [ chg, last ] =  {
@@ -195,9 +202,13 @@ function! s:selection.move(dir, count, emode) "{{{1
           \ self.replace(a:dir, selected.content, c)
   endif
   call self.select().paste(selected).mode_restore().select(last)
+
+  " [FIXME] dirty hack for status management yanking let '< , '> refresh,
+  " use blackhole @_ register
+  normal! "_ygv
 endfunction
 
-function! s:selection.duplicate(dir, count, emode) "{{{1
+function! s:selection.dup(dir, count, emode) "{{{1
   " work following case
   " * normal duplicate(insert/replace) allways linewise
   " * visual duplicate(insert/replace) linewise/blockwise
