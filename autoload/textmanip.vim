@@ -105,7 +105,7 @@ endfunction
 function! s:textmanip.preserve_selection() "{{{1
   if self.env.mode ==# 'n'
     let s = getpos('.')
-    let e = getpos('.')
+    let e = s
   else
     exe 'normal! gvo' | let s = getpos('.') | exe "normal! " . "\<Esc>"
     exe 'normal! gvo' | let e = getpos('.') | exe "normal! " . "\<Esc>"
