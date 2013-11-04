@@ -1,8 +1,8 @@
 # Move/Duplicate text intuitively.
-  * move visually selected text easily ( linewise / blockwise )
-  * Two mode support, insert/replace.
+  * move selected lines or block area to specified direction ( up/down/right/left ).
+  * duplicate selected lines or block to specified direction ( up/down/right/left ).
+  * Two mode: inesrt or replace
   * count support
-  * duplicate text easily ( linewise / blockwise )
   * keep original cursor position (include 'o'ther pos in visualmode!) while moving / duplicating.
   * undo with one 'u' by undojoining.
 
@@ -68,5 +68,43 @@
         xmap <C-l> <Plug>(textmanip-move-right)
 
         " toggle insert/replace with <F10>
+        nmap <F10> <Plug>(textmanip-toggle-mode)
+        xmap <F10> <Plug>(textmanip-toggle-mode)
+
+
+### keymap advanced macvim (this is my current configuration).
+
+        " use Enter and Shift-Enter to insert blank line.
+        " which is useful since I enforce duplicate with '-r(replace' mode.
+        nmap <CR>   <Plug>(textmanip-blank-below)
+        nmap <S-CR> <Plug>(textmanip-blank-above)
+        xmap <CR>   <Plug>(textmanip-blank-below)
+        xmap <S-CR> <Plug>(textmanip-blank-above)
+
+        " simple duplicate
+        nmap <D-D> <Plug>(textmanip-duplicate-up)
+        nmap <D-d> <Plug>(textmanip-duplicate-down)
+        xmap <D-D> <Plug>(textmanip-duplicate-up)
+        xmap <D-d> <Plug>(textmanip-duplicate-down)
+               
+        " move with jkhl
+        xmap <C-k> <Plug>(textmanip-move-up)
+        xmap <C-j> <Plug>(textmanip-move-down)
+        xmap <C-h> <Plug>(textmanip-move-left)
+        xmap <C-l> <Plug>(textmanip-move-right)
+
+        " duplicate with COMMAND-SHIFT-jkhl always replace-mode
+        xmap <D-K> <Plug>(textmanip-duplicate-up-r)
+        xmap <D-J> <Plug>(textmanip-duplicate-down-r)
+        xmap <D-H> <Plug>(textmanip-duplicate-left-r)
+        xmap <D-L> <Plug>(textmanip-duplicate-right-r)
+
+              " use allow key to force replace movement
+        xmap  <Up>    <Plug>(textmanip-move-up-r)
+        xmap  <Down>  <Plug>(textmanip-move-down-r)
+        xmap  <Left>  <Plug>(textmanip-move-left-r)
+        xmap  <Right> <Plug>(textmanip-move-right-r)
+
+              " toggle insert/replace with <F10>
         nmap <F10> <Plug>(textmanip-toggle-mode)
         xmap <F10> <Plug>(textmanip-toggle-mode)

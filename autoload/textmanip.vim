@@ -9,9 +9,10 @@ function! s:textmanip.start(env) "{{{1
     call self.varea[self.env.action](a:env.dir, a:env.count, a:env.emode)
 
     if self.env.action ==# 'move'
-      call textmanip#status#update()
+      let b:textmanip_status = self.varea.state()
     endif
   catch /CANT_MOVE/
+    " echo v:exception "\n"
     normal! gv
   finally
     call textmanip#options#restore()
@@ -22,48 +23,67 @@ function! s:textmanip.init(env) "{{{1
   let self.env = a:env
   let self.varea   = self.preserve_selection()
 
-  let self.continuous = textmanip#status#continuous()
-  if self.continuous
+  if get(b:, "textmanip_status", {}) == self.varea.state() &&
+        \ a:env.action ==# 'move'
+    " continuous move
     call self.undojoin()
   else
     let b:textmanip_replaced = self.varea.new_replace()
   endif
   let self.varea.replaced = b:textmanip_replaced
 
-  if self.env.mode ==# 'n' | return | endif
+  if self.env.mode   ==# 'n'                                  | return | endif
+  if self.env.action ==# 'blank'                              | return | endif
+  if self.env.action ==# 'dup' && self.env.emode ==# 'insert' | return | endif
+  if self.env.dir    =~# 'd\|r'                               | return | endif
 
-  " adjust count
-   if self.env.dir ==# 'up'
-     let max = self.varea.u.line() - 1
-   elseif self.env.dir ==# 'left' && !self.varea.linewise
-     let max = self.varea.u.col() - 1
-   else
-     let max = self.env.count
-   endif
-  let self.env.count = min([max, self.env.count])
-
-  if self.env.action ==# 'dup' | return | endif
+  call self.adjust_count()
 
   try
-    call s:cant_move(
-          \ self.env.dir ==# 'up' && self.varea.u.line() ==# 1
+    call s:cant_move( "topmost line",
+          \ self.env.dir ==# 'u' && self.varea.u.line() ==# 1
           \ )
-    call s:cant_move(
-          \ self.env.dir ==# 'left' &&
+    call s:cant_move( "all line have no-blank char",
+          \ self.env.dir ==# 'l' &&
           \ self.varea.linewise &&
           \ empty(filter(self.varea.content().content, "v:val =~# '^\\s'"))
           \ )
-    call s:cant_move(
-          \ self.env.dir ==# 'left' &&
+    call s:cant_move( "no space to left",
+          \ self.env.dir ==# 'l' &&
           \ !self.varea.linewise &&
-          \ self.varea.u.col() == 1 && self.env.mode ==# "\<C-v>"
+          \ self.varea.l.col() == 1 && self.env.mode ==# "\<C-v>"
           \ )
+    call s:cant_move( "count 0", self.env.count ==# 0 )
   endtry
 endfunction
 
-function! s:cant_move(expr) "{{{1
+function! s:textmanip.adjust_count() "{{{1
+  " care only 'u' and 'l'
+  " echo "pre :" self.env.count
+  let dir = self.env.dir
+
+  if dir ==# 'u'
+    let max = self.varea.u.line() - 1
+  elseif dir ==# 'l'
+    if ! self.varea.linewise
+      let max = self.varea.l.col()  - 1
+    else
+      let max = self.env.count
+    endif
+  endif
+
+  if self.env.emode ==# 'replace' && self.env.action ==# 'dup'
+    if     dir ==# 'u' | let max = max / self.varea.height
+    elseif dir ==# 'l' | let max = max / self.varea.width
+    endif
+  endif
+  let self.env.count = min([max, self.env.count])
+  " echo "post :" self.env.count
+endfunction
+
+function! s:cant_move(desc, expr) "{{{1
   if a:expr
-    throw "CANT_MOVE"
+    throw "CANT_MOVE " . a:desc
   endif
 endfunction
 
@@ -89,16 +109,17 @@ function! s:textmanip.preserve_selection() "{{{1
   return textmanip#selection#new(s, e, self.env.mode)
 endfunction
 
-function! s:textmanip.dump() "{{{1
+function! s:textmanip.debug() "{{{1
+  return PP(b:textmanip_status)
 endfunction
 
 function! s:textmanip.kickout(num, guide) "{{{1
   let orig_str = getline(a:num)
-  let s1 = orig_str[ : col('.')- 2 ]
-  let s2 = orig_str[ col('.')-1 : ]
-  let pad = &textwidth - len(orig_str)
-  let pad = ' ' . repeat(a:guide, pad - 2) . ' '
-  let new_str = join([s1, pad, s2],'')
+  let s1       = orig_str[ : col('.')- 2 ]
+  let s2       = orig_str[ col('.')-1 : ]
+  let pad      = &textwidth - len(orig_str)
+  let pad      = ' ' . repeat(a:guide, pad - 2) . ' '
+  let new_str  = join([s1, pad, s2],'')
   return new_str
 endfunction
 
@@ -113,14 +134,14 @@ function! textmanip#do(action, direction, mode, emode) "{{{1
   call s:textmanip.start(env)
 endfunction
 
-function! textmanip#do1(action, direction, mode) "{{{1
+function! textmanip#do1(action, direction, mode, emode) "{{{1
   try
     let _textmanip_move_ignore_shiftwidth = g:textmanip_move_ignore_shiftwidth
     let _textmanip_move_shiftwidth        = g:textmanip_move_shiftwidth
 
     let g:textmanip_move_ignore_shiftwidth = 1
     let g:textmanip_move_shiftwidth        = 1
-    call textmanip#do(a:action, a:direction, a:mode, "auto")
+    call textmanip#do(a:action, a:direction, a:mode, a:emode)
   finally
     let g:textmanip_move_ignore_shiftwidth = _textmanip_move_ignore_shiftwidth
     let g:textmanip_move_shiftwidth        = _textmanip_move_shiftwidth
@@ -152,7 +173,7 @@ function! textmanip#mode() "{{{1
 endfunction
 
 function! textmanip#debug() "{{{1
-  " return PP(s:textmanip._replaced._data)
+  echo s:textmanip.debug()
 endfunction
 
 " vim: foldmethod=marker

@@ -1,31 +1,31 @@
 *textmanip.txt* Maniplate selected text easily
 
 
-            .          .
-           -|- ,-. . , |- ,-,-. ,-. ,-. . ,-.  >
-            |  |-'  X  |  | | | ,-| | | | | |
-            `' `-' ' ` `' ' ' ' `-^ ' ' ' |-'
-                                          |   < easy manupilation >
+	    .	       .
+	   -|- ,-. . , |- ,-,-. ,-. ,-. . ,-.  >
+	    |  |-'  X  |  | | | ,-| | | | | |
+	    `' `-' ' ` `' ' ' ' `-^ ' ' ' |-'
+					  |   < easy manupilation >
 
 Version: 1.8
 Author : t9md <taqumd@gmail.com>
 
 ==============================================================================
-CONTENTS                                                  *textmanip-contents*
+CONTENTS						  *textmanip-contents*
 
-Introduction                                          |textmanip-introduction|
-Variables                                                 |textmanip-variable|
-Mapping                                                    |textmanip-mapping|
-Configuration Examples                                    |textmanip-examples|
-Use Case                                                   |textmanip-usecase|
-Practice                                                  |textmanip-practice|
-Detail                                                      |textmanip-detail|
-Todo                                                          |textmanip-todo|
-Bug                                                            |textmanip-bug|
-Changelog                                                |textmanip-changelog|
+Introduction					      |textmanip-introduction|
+Variables						  |textmanip-variable|
+Mapping							   |textmanip-mapping|
+Configuration Examples					  |textmanip-examples|
+Use Case						   |textmanip-usecase|
+Practice						  |textmanip-practice|
+Detail							    |textmanip-detail|
+Todo							      |textmanip-todo|
+Bug							       |textmanip-bug|
+Changelog						 |textmanip-changelog|
 
 ==============================================================================
-INTRODUCTION                                            *textmanip-introduction*
+INTRODUCTION						*textmanip-introduction*
 
 *textmanip* is minimal utility for
 
@@ -40,7 +40,7 @@ Requirement:
 Latest Version:
 http://github.com/t9md/vim-textmanip
 
-                                                              *textmanip-mode*
+							      *textmanip-mode*
 Textmanip Mode~
 Textmanip have two mode.
 
@@ -52,18 +52,18 @@ Textmanip have two mode.
   area.
 
 ==============================================================================
-VARIABLES                                               *textmanip-variables*
+VARIABLES						*textmanip-variables*
 
 *g:textmanip_enable_mappings*
-        Default: 0
+	Default: 0
 
-        If this value is 1, textmanip setup default keymap
-        See |textmanip-mapping|.
+	If this value is 1, textmanip setup default keymap
+	See |textmanip-mapping|.
 
 *g:textmanip_startup_mode*
-        Default: 'insert'
+	Default: 'insert'
 
-        Set 'insert' or 'replace', to specify textmanip act mode.
+	Set 'insert' or 'replace', to specify textmanip act mode.
 	Specify textmanip mode at startup.
 
 *g:textmanip_current_mode*
@@ -74,37 +74,53 @@ VARIABLES                                               *textmanip-variables*
 	<Plug>(textmanip-toggle-mode).
 
 *g:textmanip_move_ignore_shiftwidth*
-        Default: 0
+	Default: 0
 
-        If you set this to 1. When line move right/left is executed with
-        |g:textmanip_move_shiftwidth| value.
+	If you set this to 1. When line move right/left is executed with
+	|g:textmanip_move_shiftwidth| value.
 
 *g:textmanip_move_shiftwidth*
-        Default: 1
+	Default: 1
 
-        When you set non zero value to |g:textmanip_move_ignore_shiftwidth|,
-        this value is used how much right/left shifted when move right/left.
+	When you set non zero value to |g:textmanip_move_ignore_shiftwidth|,
+	this value is used how much right/left shifted when move right/left.
 
 ==============================================================================
-MAPPINGS                                                    *textmanip-mappings*
+MAPPINGS						    *textmanip-mappings*
 
 all mappings accept |count| which specify number of 'duplication' or
 amount of 'movement'.
 
-n_<Plug>(textmanip-duplicate-down)
-v_<Plug>(textmanip-duplicate-down)
-    Copy text of current line or visually selected area to 'down' direction.
+------------------------------------------------------------------------------
+BASE Actions~
 
+* insert-blank-line~
+n_<Plug>(textmanip-blank-above)
+n_<Plug>(textmanip-blank-below)
+	insert blank line to specified direction.
+
+v_<Plug>(textmanip-blank-above)
+v_<Plug>(textmanip-blank-below)
+	insert blank line to specified direction.
+
+* duplicate~
 n_<Plug>(textmanip-duplicate-up)
-v_<Plug>(textmanip-duplicate-up)
-    Copy text of current line or visually selected area to 'up' direction.
+n_<Plug>(textmanip-duplicate-down)
+	duplicate selection to specified direction.
 
+v_<Plug>(textmanip-duplicate-up)
+v_<Plug>(textmanip-duplicate-down)
+v_<Plug>(textmanip-duplicate-left)
+v_<Plug>(textmanip-duplicate-right)
+	duplicate selection to specified direction.
+
+* move~
 v_<Plug>(textmanip-move-up)
 v_<Plug>(textmanip-move-down)
-v_<Plug>(textmanip-move-right)
 v_<Plug>(textmanip-move-left)
+v_<Plug>(textmanip-move-right)
 
-    Move visually selected text to specified direction.
+    Move selected area to specified direction.
 
     |linewise| (|v_V| or |v_v| expand multi line)
     move line up/down/left/right.
@@ -117,126 +133,171 @@ v_<Plug>(textmanip-move-left)
     When right direction reach EOL it automatically add one space " " to be
     able to across original EOL.
 
-Always act insert-mode~
-Keymap bellow is same as above but asways act as 'insert' mode.
-
-n_<Plug>(textmanip-duplicate-down-i)
-v_<Plug>(textmanip-duplicate-down-i)
-n_<Plug>(textmanip-duplicate-up-i)
-v_<Plug>(textmanip-duplicate-up-i)
-v_<Plug>(textmanip-move-up-i)
-v_<Plug>(textmanip-move-down-i)
-v_<Plug>(textmanip-move-right-i)
-v_<Plug>(textmanip-move-left-i)
-
-Always act repalce-mode~
-Keymap bellow is same as above but asways act as 'replace' mode.
-
-n_<Plug>(textmanip-duplicate-down-r)
-v_<Plug>(textmanip-duplicate-down-r)
-n_<Plug>(textmanip-duplicate-up-r)
-v_<Plug>(textmanip-duplicate-up-r)
-v_<Plug>(textmanip-move-up-r)
-v_<Plug>(textmanip-move-down-r)
-v_<Plug>(textmanip-move-right-r)
-v_<Plug>(textmanip-move-left-r)
-
-
-Force 1column movement in right/left move~
-
-v_<Plug>(textmanip-move-right-1col)
+* Force 1column movement in right/left move~
 v_<Plug>(textmanip-move-left-1col)
+v_<Plug>(textmanip-move-right-1col)
 
-Toggle Mode between 'insert' and 'replace'~
+* Toggle Mode between 'insert' and 'replace'~
 n_<Plug>(textmanip-toggle-mode)
 x_<Plug>(textmanip-toggle-mode)
 
+------------------------------------------------------------------------------
+MODE SPECIFIED VERSION~
+For 'duplicate' and 'move' action, mode-fixed keymap is also provided.
+If you want to 'duplicate' or 'move' always act as 'insert' or 'replace' mode
+independently of |g:textmanip_current_mode|, use following keymap.
+Also see |textmanip-example| for practical usecase.
+
+Insert~
+Have '-i' suffix
+
+n_<Plug>(textmanip-duplicate-up-i)
+n_<Plug>(textmanip-duplicate-down-i)
+
+v_<Plug>(textmanip-duplicate-up-i)
+v_<Plug>(textmanip-duplicate-down-i)
+v_<Plug>(textmanip-duplicate-left-i)
+v_<Plug>(textmanip-duplicate-right-i)
+
+v_<Plug>(textmanip-move-up-i)
+v_<Plug>(textmanip-move-down-i)
+v_<Plug>(textmanip-move-left-i)
+v_<Plug>(textmanip-move-right-i)
+
+v_<Plug>(textmanip-move-left-1col-i)
+v_<Plug>(textmanip-move-right-1col-i)
+
+Replace~
+Have '-r' suffix
+
+n_<Plug>(textmanip-duplicate-up-r)
+n_<Plug>(textmanip-duplicate-down-r)
+
+v_<Plug>(textmanip-duplicate-up-r)
+v_<Plug>(textmanip-duplicate-down-r)
+v_<Plug>(textmanip-duplicate-left-r)
+v_<Plug>(textmanip-duplicate-right-r)
+
+v_<Plug>(textmanip-move-up-r)
+v_<Plug>(textmanip-move-down-r)
+v_<Plug>(textmanip-move-left-r)
+v_<Plug>(textmanip-move-right-r)
+
+v_<Plug>(textmanip-move-left-1col-r)
+v_<Plug>(textmanip-move-right-1col-r)
 ==============================================================================
 FUNCTION						 *textmanip-functions*
 
 textmanip#mode()
 	Simply return value of |g:textmanip_current_mode|.
 	It could be use to indicate current mode in |'statusline'|.
-	                                                                      
+									      
 ==============================================================================
-COMMAND                                                     *textmanip-command*
+COMMAND							    *textmanip-command*
 
 *:TextmanipToggleMode*
-        Switch mode between 'insert' and 'replace'.
+	Switch mode between 'insert' and 'replace'.
 
 *:TextmanipToggleIgnoreShiftWidth*
-        Toggle whether line move right/left ignore |'shiwftwidth'| or not.
+	Toggle whether line move right/left ignore |'shiwftwidth'| or not.
 
 *:TextmanipKickout*
-        Split text in two part and aling to each side(right/left).
-        To judge side wall, this command use use |'textwidth'|.
+	Split text in two part and aling to each side(right/left).
+	To judge side wall, this command use use |'textwidth'|.
 
 ==============================================================================
-CONFIGURATION EXAMPLE                                      *textmanip-example*
+CONFIGURATION EXAMPLE					   *textmanip-example*
 
 * Macvim~
 <D-> is mac COMMAND key.
 >
-        xmap <D-d> <Plug>(textmanip-duplicate-down)
-        nmap <D-d> <Plug>(textmanip-duplicate-down)
-        xmap <D-D> <Plug>(textmanip-duplicate-up)
-        nmap <D-D> <Plug>(textmanip-duplicate-up)
+	xmap <D-d> <Plug>(textmanip-duplicate-down)
+	nmap <D-d> <Plug>(textmanip-duplicate-down)
+	xmap <D-D> <Plug>(textmanip-duplicate-up)
+	nmap <D-D> <Plug>(textmanip-duplicate-up)
 
-        xmap <C-j> <Plug>(textmanip-move-down)
-        xmap <C-k> <Plug>(textmanip-move-up)
-        xmap <C-h> <Plug>(textmanip-move-left)
-        xmap <C-l> <Plug>(textmanip-move-right)
+	xmap <C-j> <Plug>(textmanip-move-down)
+	xmap <C-k> <Plug>(textmanip-move-up)
+	xmap <C-h> <Plug>(textmanip-move-left)
+	xmap <C-l> <Plug>(textmanip-move-right)
 
-        " toggle insert/replace with <F10>
-        nmap <F10> <Plug>(textmanip-toggle-mode)
-        xmap <F10> <Plug>(textmanip-toggle-mode)
-
-        " use allow key to force replace movement
-        xmap  <Up>     <Plug>(textmanip-move-up-r)
-        xmap  <Down>   <Plug>(textmanip-move-down-r)
-        xmap  <Left>   <Plug>(textmanip-move-left-r)
-        xmap  <Right>  <Plug>(textmanip-move-right-r)
+	" toggle insert/replace with <F10>
+	nmap <F10> <Plug>(textmanip-toggle-mode)
+	xmap <F10> <Plug>(textmanip-toggle-mode)
 <
+
+Advanced
+>
+	" use Enter and Shift-Enter to insert blank line.
+	" which is useful since I enforce duplicate with '-r(replace' mode.
+	nmap <CR>   <Plug>(textmanip-blank-below)
+	nmap <S-CR> <Plug>(textmanip-blank-above)
+	xmap <CR>   <Plug>(textmanip-blank-below)
+	xmap <S-CR> <Plug>(textmanip-blank-above)
+
+	" simple duplicate
+	nmap <D-D> <Plug>(textmanip-duplicate-up)
+	nmap <D-d> <Plug>(textmanip-duplicate-down)
+	xmap <D-D> <Plug>(textmanip-duplicate-up)
+	xmap <D-d> <Plug>(textmanip-duplicate-down)
+				 
+	" move with jkhl
+	xmap <C-k> <Plug>(textmanip-move-up)
+	xmap <C-j> <Plug>(textmanip-move-down)
+	xmap <C-h> <Plug>(textmanip-move-left)
+	xmap <C-l> <Plug>(textmanip-move-right)
+
+	" duplicate with COMMAND-SHIFT-jkhl always replace-mode
+	xmap <D-K> <Plug>(textmanip-duplicate-up-r)
+	xmap <D-J> <Plug>(textmanip-duplicate-down-r)
+	xmap <D-H> <Plug>(textmanip-duplicate-left-r)
+	xmap <D-L> <Plug>(textmanip-duplicate-right-r)
+
+	" use allow key to force replace movement
+	xmap  <Up>    <Plug>(textmanip-move-up-r)
+	xmap  <Down>  <Plug>(textmanip-move-down-r)
+	xmap  <Left>  <Plug>(textmanip-move-left-r)
+	xmap  <Right> <Plug>(textmanip-move-right-r)
+
+	" toggle insert/replace with <F10>
+	nmap <F10> <Plug>(textmanip-toggle-mode)
+	xmap <F10> <Plug>(textmanip-toggle-mode)
+<
+
 * gVim~
 >
-        xmap <M-d> <Plug>(textmanip-duplicate-down)
-        nmap <M-d> <Plug>(textmanip-duplicate-down)
-        xmap <M-D> <Plug>(textmanip-duplicate-up)
-        nmap <M-D> <Plug>(textmanip-duplicate-up)
+	xmap <M-d> <Plug>(textmanip-duplicate-down)
+	nmap <M-d> <Plug>(textmanip-duplicate-down)
+	xmap <M-D> <Plug>(textmanip-duplicate-up)
+	nmap <M-D> <Plug>(textmanip-duplicate-up)
 
-        xmap <C-j> <Plug>(textmanip-move-down)
-        xmap <C-k> <Plug>(textmanip-move-up)
-        xmap <C-h> <Plug>(textmanip-move-left)
-        xmap <C-l> <Plug>(textmanip-move-right)
+	xmap <C-j> <Plug>(textmanip-move-down)
+	xmap <C-k> <Plug>(textmanip-move-up)
+	xmap <C-h> <Plug>(textmanip-move-left)
+	xmap <C-l> <Plug>(textmanip-move-right)
 
-        " toggle insert/replace with <F10>
-        nmap <F10> <Plug>(textmanip-toggle-mode)
-        xmap <F10> <Plug>(textmanip-toggle-mode)
-
-        " use allow key to force replace movement
-        xmap  <Up>     <Plug>(textmanip-move-up-r)
-        xmap  <Down>   <Plug>(textmanip-move-down-r)
-        xmap  <Left>   <Plug>(textmanip-move-left-r)
-        xmap  <Right>  <Plug>(textmanip-move-right-r)
+	" toggle insert/replace with <F10>
+	nmap <F10> <Plug>(textmanip-toggle-mode)
+	xmap <F10> <Plug>(textmanip-toggle-mode)
 <
 * vim on terminal~
 >
-        xmap <Space>d <Plug>(textmanip-duplicate-down)
-        nmap <Space>d <Plug>(textmanip-duplicate-down)
-        xmap <Space>D <Plug>(textmanip-duplicate-up)
-        nmap <Space>D <Plug>(textmanip-duplicate-up)
+	xmap <Space>d <Plug>(textmanip-duplicate-down)
+	nmap <Space>d <Plug>(textmanip-duplicate-down)
+	xmap <Space>D <Plug>(textmanip-duplicate-up)
+	nmap <Space>D <Plug>(textmanip-duplicate-up)
 
-        xmap <C-j> <Plug>(textmanip-move-down)
-        xmap <C-k> <Plug>(textmanip-move-up)
-        xmap <C-h> <Plug>(textmanip-move-left)
-        xmap <C-l> <Plug>(textmanip-move-right)
+	xmap <C-j> <Plug>(textmanip-move-down)
+	xmap <C-k> <Plug>(textmanip-move-up)
+	xmap <C-h> <Plug>(textmanip-move-left)
+	xmap <C-l> <Plug>(textmanip-move-right)
 
-        " toggle insert/replace with <F10>
-        nmap <F10> <Plug>(textmanip-toggle-mode)
-        xmap <F10> <Plug>(textmanip-toggle-mode)
+	" toggle insert/replace with <F10>
+	nmap <F10> <Plug>(textmanip-toggle-mode)
+	xmap <F10> <Plug>(textmanip-toggle-mode)
 <
 ==============================================================================
-USE CASE                                                   *textmanip-usecase*
+USE CASE						   *textmanip-usecase*
 
 * Indent text block
   While editing markdown or vim help file.
@@ -253,7 +314,7 @@ USE CASE                                                   *textmanip-usecase*
   Of course, "<M-d>" is my choice, you can assign your favorite key map.
 
 ==============================================================================
-PRACTICE                                                  *textmanip-practice*
+PRACTICE						  *textmanip-practice*
 
 [FIXME] EXPLAIN OR MOVIE
 
@@ -262,21 +323,21 @@ Case1~
 
 from
 >
-        if     (s.line() <= e.line()) && (s.col() <=  e.col()) | let case = 1
-        elseif (s.line() >= e.line()) && (s.col() >=  e.col()) | let case = 2
-        elseif (s.line() <= e.line()) && (s.col() >=  e.col()) | let case = 3
-        elseif (s.line() >= e.line()) && (s.col() <=  e.col()) | let case = 4
-        endif
+	if     (s.line() <= e.line()) && (s.col() <=  e.col()) | let case = 1
+	elseif (s.line() >= e.line()) && (s.col() >=  e.col()) | let case = 2
+	elseif (s.line() <= e.line()) && (s.col() >=  e.col()) | let case = 3
+	elseif (s.line() >= e.line()) && (s.col() <=  e.col()) | let case = 4
+	endif
 <
 
 to
 >
-        let case = 
-              \ (s.line() <= e.line()) && (s.col() <=  e.col()) ? 1 :
-              \ (s.line() >= e.line()) && (s.col() >=  e.col()) ? 2 :
-              \ (s.line() <= e.line()) && (s.col() >=  e.col()) ? 3 :
-              \ (s.line() >= e.line()) && (s.col() <=  e.col()) ? 4 :
-              \ throw
+	let case = 
+	      \ (s.line() <= e.line()) && (s.col() <=  e.col()) ? 1 :
+	      \ (s.line() >= e.line()) && (s.col() >=  e.col()) ? 2 :
+	      \ (s.line() <= e.line()) && (s.col() >=  e.col()) ? 3 :
+	      \ (s.line() >= e.line()) && (s.col() <=  e.col()) ? 4 :
+	      \ throw
 <
 
 ------------------------------------------------------------------------------
@@ -284,73 +345,76 @@ Case2~
 
 from
 >
-        if     case ==# 1 | let [u, d, l, r ] = [ s, e, s, e ] 
-        elseif case ==# 2 | let [u, d, l, r ] = [ e, s, e, s ] 
-        elseif case ==# 3 | let [u, d, l, r ] = [ s, e, e, s ] 
-        elseif case ==# 4 | let [u, d, l, r ] = [ e, s, s, e ] 
-        endif
+	if     case ==# 1 | let [u, d, l, r ] = [ s, e, s, e ] 
+	elseif case ==# 2 | let [u, d, l, r ] = [ e, s, e, s ] 
+	elseif case ==# 3 | let [u, d, l, r ] = [ s, e, e, s ] 
+	elseif case ==# 4 | let [u, d, l, r ] = [ e, s, s, e ] 
+	endif
 
 to
 >
-        let [u, d, l, r ] =
-              \ case ==# 1 ?  [ s, e, s, e ] :
-              \ case ==# 2 ?  [ e, s, e, s ] :
-              \ case ==# 3 ?  [ s, e, e, s ] :
-              \ case ==# 4 ?  [ e, s, s, e ] :
-              \ throw
+	let [u, d, l, r ] =
+	      \ case ==# 1 ?  [ s, e, s, e ] :
+	      \ case ==# 2 ?  [ e, s, e, s ] :
+	      \ case ==# 3 ?  [ s, e, e, s ] :
+	      \ case ==# 4 ?  [ e, s, s, e ] :
+	      \ throw
 <
 ==============================================================================
-DETAIL                                                       *textmanip-detail*
+DETAIL							     *textmanip-detail*
 
 Linewise or Blockwise is vary from how you invoked
 
      * vim-mode - wise map >
      +--------------+--------------+
-     | vim-mode     | wise         |
+     | vim-mode     | wise	   |
      +--------------+--------------|
-     | n            | linewise     |
+     | n	    | linewise	   |
      | v oneline    | blockwise    |
-     | v multiline  | linewise     |
-     | C-v          | blockwise    |
+     | v multiline  | linewise	   |
+     | C-v	    | blockwise    |
      +--------------+--------------+
 <
 Textmanip support 2 mode: insert, replace
 
    * INSERT - action table >
    +-----------------+--------------+--------------+
-   |  action         | linewise     | blockwise    |
+   |  action	     | linewise     | blockwise    |
    +-----------------+--------------|--------------|
-   | move-up/down    |      o       |      o       |
-   | move-right/left |      o       |      o       |
-   | dup-up/down     |      o       |      o       |
-   | dup-righ/left   |     ????     |   TODO       |
+   | move-up/down    |	    o	    |	   o	   |
+   | move-right/left |	    o	    |	   o	   |
+   | dup-up/down     |	    o	    |	   o	   |
+   | dup-righ/left   |	   ????     |	TODO	   |
    +-----------------+--------------+--------------+
 <
    * REPLACE - action table >
    +-----------------+--------------+--------------+
-   |  action         | linewise     | blockwise    |
+   |  action	     | linewise     | blockwise    |
    +-----------------+--------------|--------------|
-   | move-up/down    |      o       |      o       |
-   | move-right/left |      o       |      o       |
-   | dup-up/down     |      o       |      o       |
-   | dup-righ/left   |     N/A      |   TODO       |
+   | move-up/down    |	    o	    |	   o	   |
+   | move-right/left |	    o	    |	   o	   |
+   | dup-up/down     |	    o	    |	   o	   |
+   | dup-righ/left   |	   N/A	    |	TODO	   |
    +-----------------+--------------+--------------+
 <
 ==============================================================================
-TODO                                                          *textmanip-todo*
+TODO							      *textmanip-todo*
 
-- support replace mode [up/down => o] [right/left => o ]: DONE
-- duplicate right/left => yet
-- duplicate replacemode: DONE
-- refactoring( file separate, further oop style) => 100% done
+DONE
+- support replace mode [up/down => o] [right/left => o ]
+- duplicate right/left
+- duplicate up/down replacemode
+- refactoring( file separate, further oop style), 90% done
+
+STACK
+- Corner case handling in replace mode( I know its include bug )
 - ?? option to automatically delete trailing space?
-- ?? option to automatically indent( I'm not in mood ).
+- ?? option to automatically indent( I'm not in mood )
 - stabilize, kickout action or delete this action?
 - ?? move block or line to ^,$ with one command. I'm not in mood.
-- Corner case handling in replace mode( I know its include bug ). => yet
 
 ==============================================================================
-BUG                                                             *textmanip-bug*
+BUG								*textmanip-bug*
 
 When you movement visually selected text to right or left, then |:undo|, cursor
 position not restored to original position.
@@ -359,49 +423,53 @@ position not restored to original position.
 layout.
 
 ==============================================================================
-CHANGELOG                                                *textmanip-changelog*
+CHANGELOG						 *textmanip-changelog*
+2013-11-04: v2.0
+	- [new] now duplicate right/left support.
+	- refactoring
+	- [bugfix] adjust count
 2013-11-04: v1.9
-        - refactoring
+	- refactoring
 	- [bugfix] count now properly work in replace mode.
 2013-11-02: v1.8
-        - greatly improve stability. greatly refactored.
-        - count and replace move is now stable.
+	- greatly improve stability. greatly refactored.
+	- count and replace move is now stable.
 2013-10-30: v1.3
-        - [bugfix] error when global var not defined.
+	- [bugfix] error when global var not defined.
 2013-10-27: v1.2
-        - [bugfix] count not properly handled.
+	- [bugfix] count not properly handled.
 2013-10-26:
-        - fix bug when cusuros at BOL and move to left with linewise.
+	- fix bug when cusuros at BOL and move to left with linewise.
 2013-10-24:
-        - support blockwise duplication.
+	- support blockwise duplication.
 2013-10-24: v1.0
-        - completely rewriten code, and now suppport blockwise movement
-          all direction and undoable!!
-          keep cursor pos for all movement.
+	- completely rewriten code, and now suppport blockwise movement
+	  all direction and undoable!!
+	  keep cursor pos for all movement.
 2013-10-02:
-        - just [experiment] new action textmanip-kickout.
+	- just [experiment] new action textmanip-kickout.
 2011-12-18:
-        - [bugfix] move right or left did '>' twice. should do once.
+	- [bugfix] move right or left did '>' twice. should do once.
 2011-08-16: v0.7
-        - [bugfix] extend_eol not worked in some situation.
+	- [bugfix] extend_eol not worked in some situation.
 2011-08-15: v0.6
-        - [bugfix] better handling for redraw problem
+	- [bugfix] better handling for redraw problem
 2011-08-14: v0.5
-        - [bugfix] handle left and up movement limit.
-        - [bugfix] more strict check to determine continuous execution.
-        - [bugfix] remove unnecessarily `undojoin` twice, and remove
-          catch clause(E790)
+	- [bugfix] handle left and up movement limit.
+	- [bugfix] more strict check to determine continuous execution.
+	- [bugfix] remove unnecessarily `undojoin` twice, and remove
+	  catch clause(E790)
 2011-08-14: v0.4
-        - support count for duplicate and move
-        - bug fix for `undojoin`
-        - refactoring,, support duplicate text to upper direction.
-        - change keymap for consistency, sorry.
-        - autoloadize!
+	- support count for duplicate and move
+	- bug fix for `undojoin`
+	- refactoring,, support duplicate text to upper direction.
+	- change keymap for consistency, sorry.
+	- autoloadize!
 2011-06-13: v0.3
-        - Fix typo
+	- Fix typo
 2011-06-13: v0.2
-        - Fix typo
+	- Fix typo
 2011-03-10: v0.1
-        - First release
+	- First release
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:

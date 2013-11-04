@@ -198,3 +198,4 @@ endfunction
 function! textmanip#area#new(data) "{{{1
   return s:area.new(a:data)
 endfunction
+" vim: foldmethod=marker
