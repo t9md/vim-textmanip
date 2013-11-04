@@ -211,10 +211,19 @@ function! s:selection.dup(dir, count, emode) "{{{1
   " work following case
   " * normal duplicate(insert/replace) allways linewise
   " * visual duplicate(insert/replace) linewise/blockwise
+  if a:dir =~# 'l' && self.linewise
+    normal! gv
+    return
+  endif
+
   let [c, h, w ]  = [a:count, self.height, self.width ]
-  if a:dir =~# 'l\|r' && self.linewise
+  if a:dir =~# 'r' && self.linewise
+    " dirty hacks
     let c += 1
   endif
+
+  " change mode before yank with content()
+  call self.mode_switch()
   let selected = self.content()
   let ward =
         \ a:dir =~# 'u\|d' ? 'v' :
@@ -223,7 +232,7 @@ function! s:selection.dup(dir, count, emode) "{{{1
   let selected.content = duplicated.data()
   let self.vars = { 'c': c, 'h': h, 'w': w }
 
-  if a:dir =~# 'l\|r' && self.linewise
+  if a:dir =~# 'r' && self.linewise
     call self.paste(selected).select()
     return
   endif
@@ -239,7 +248,7 @@ function! s:selection.dup(dir, count, emode) "{{{1
     if self.mode ==# 'n'
       call cursor( self[a:dir].pos() )
     else
-      call self.select()
+      call self.mode_restore().select()
     endif
   elseif a:emode ==# "replace"
     let chg =  {
@@ -248,8 +257,9 @@ function! s:selection.dup(dir, count, emode) "{{{1
           \ "r": ['l :+w'    , 'r :+(w*c)' ],
           \ "l": ['r :-w'    , 'l :-(w*c)' ],
           \ }[a:dir]
+
     call self.select(chg)
-    call self.paste(selected).select()
+    call self.paste(selected).mode_restore().select()
   endif
 endfunction
 
