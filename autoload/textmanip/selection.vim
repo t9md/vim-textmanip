@@ -212,7 +212,9 @@ function! s:selection.dup(dir, count, emode) "{{{1
   " * normal duplicate(insert/replace) allways linewise
   " * visual duplicate(insert/replace) linewise/blockwise
   let [c, h, w ]  = [a:count, self.height, self.width ]
-  " let dir      = a:dir[0]
+  if a:dir =~# 'l\|r' && self.linewise
+    let c += 1
+  endif
   let selected = self.content()
   let ward =
         \ a:dir =~# 'u\|d' ? 'v' :
@@ -221,10 +223,8 @@ function! s:selection.dup(dir, count, emode) "{{{1
   let selected.content = duplicated.data()
   let self.vars = { 'c': c, 'h': h, 'w': w }
 
-
   if a:dir =~# 'l\|r' && self.linewise
-    echo "NOT SUPPORT" "\n"
-    normal! gv
+    call self.paste(selected).select()
     return
   endif
 
