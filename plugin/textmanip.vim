@@ -7,7 +7,7 @@
 " GUARD: {{{1
 "============================================================
 if exists('g:loaded_textmanip')
-  " finish
+  finish
 endif
 let g:loaded_textmanip = 1
 
@@ -17,7 +17,7 @@ set cpo&vim
 " VARIABLES: {{{1
 "=================================================================
 let g:textmanip_debug = 0
-let global_variables = {
+let s:global_variables = {
       \ "textmanip_enable_mappings" : 0,
       \ "textmanip_startup_mode"    : "insert",
       \ "textmanip_move_ignore_shiftwidth" : 0,
@@ -31,7 +31,7 @@ function! s:set_default(dict) "{{{
   endfor
 endfunction "}}}
 
-call s:set_default(global_variables)
+call s:set_default(s:global_variables)
 let g:textmanip_current_mode = g:textmanip_startup_mode
 
 " KEYMAP: {{{1
