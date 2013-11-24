@@ -112,7 +112,7 @@ xmap  <Down>  <Plug>(textmanip-move-down-r)
 xmap  <Left>  <Plug>(textmanip-move-left-r)
 xmap  <Right> <Plug>(textmanip-move-right-r)
 
-      " toggle insert/replace with <F10>
+" toggle insert/replace with <F10>
 nmap <F10> <Plug>(textmanip-toggle-mode)
 xmap <F10> <Plug>(textmanip-toggle-mode)
 ```
