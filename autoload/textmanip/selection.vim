@@ -1,9 +1,9 @@
-let s:selection = {}
 
 function! s:gsub(str,pat,rep) "{{{1
   return substitute(a:str,'\v\C'.a:pat, a:rep,'g')
 endfunction
 
+let s:selection = {}
 function! s:selection.new(s, e, mode) "{{{1
 "    u--- s----+----+
 "      |  |    |    |
