@@ -26,7 +26,7 @@ function! s:textmanip.init(env) "{{{1
   if get(b:, "textmanip_status", {}) == self.varea.state() &&
         \ a:env.action ==# 'move'
     " continuous move
-    call self.undojoin()
+    silent! undojoin
   else
     let b:textmanip_replaced = self.varea.new_replace()
   endif
@@ -87,16 +87,6 @@ function! s:cant_move(desc, expr) "{{{1
   endif
 endfunction
 
-function! s:textmanip.undojoin() "{{{1
-  try
-    silent undojoin
-  catch /E790/
-    " after move and exit at the same position(actully at cosmetic level no
-    " change you made), and 'u'(undo), then restart move.
-    " This read to situation 'undojoin is not allowed after undo' error.
-    " But this cannot detect, so simply suppress this error.
-  endtry
-endfunction
 
 function! s:textmanip.preserve_selection() "{{{1
   if self.env.mode ==# 'n'
