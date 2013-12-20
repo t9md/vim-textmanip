@@ -3,8 +3,9 @@ let s:textmanip = {}
 
 function! s:textmanip.start(env) "{{{1
   try
-    let sw = g:textmanip_move_ignore_shiftwidth ? g:textmanip_move_shiftwidth : &sw
-    call textmanip#options#set({ 've': 'all', 'sw': sw })
+    let sw = g:textmanip_move_ignore_shiftwidth
+          \ ? g:textmanip_move_shiftwidth : &shiftwidth
+    call textmanip#options#set({ '&virtualedit': 'all', '&shiftwidth': sw })
     call self.init(a:env)
     call self.varea[self.env.action](a:env.dir, a:env.count, a:env.emode)
 
@@ -103,8 +104,8 @@ function! s:textmanip.preserve_selection() "{{{1
     let s = getpos('.')
     let e = s
   else
-    exe 'normal! gvo' | let s = getpos('.') | exe "normal! " . "\<Esc>"
-    exe 'normal! gvo' | let e = getpos('.') | exe "normal! " . "\<Esc>"
+    exe 'normal! gvo' | let s = getpos('.') | exe "normal! \<Esc>"
+    exe 'normal! gvo' | let e = getpos('.') | exe "normal! \<Esc>"
   endif
   return textmanip#selection#new(s, e, self.env.mode)
 endfunction

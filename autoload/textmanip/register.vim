@@ -1,8 +1,12 @@
 let s:register = {}
+
 function! s:register.save(registers) "{{{1
   let s:register._data = {}
   for r in a:registers
-    let s:register._data[r] = { "content": getreg(r, 1), "type": getregtype(r) }
+    let s:register._data[r] = {
+          \ "content": getreg(r, 1),
+          \ "type": getregtype(r)
+          \ }
   endfor
   return deepcopy(self)
 endfunction
