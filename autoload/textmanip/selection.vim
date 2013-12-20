@@ -95,8 +95,8 @@ function! s:selection.paste(data) "{{{1
     if a:data.regtype ==# 'V'
       " setline() will not clear visual mode , at least my
       " environment. So ensure return to normal mode before setline()
-      exe "normal! " . "\<Esc>"
-      " using 'p' is not perfect when date include blankline.
+      exe "normal! \<Esc>"
+      " using 'p' is not perfect when data include blankline.
       " It's unnecessarily kindly omit empty blankline when paste!
       " so I choose setline its more precies to original data
       call setline(self.u.line(), a:data.content)
