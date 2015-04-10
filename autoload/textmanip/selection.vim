@@ -21,8 +21,8 @@ function! s:selection.new(s, e, mode) "{{{1
 "         |--width--|
 "         l         r
   let self.mode = a:mode
-  let self.s = textmanip#pos#new(a:s)
-  let self.e = textmanip#pos#new(a:e)
+  let self.s    = textmanip#pos#new(a:s)
+  let self.e    = textmanip#pos#new(a:e)
 
   " let self.toward = "vertical" or "horizontal"
   " let self.toward = a:dir =~# 'u\|d' ? 'V' :
