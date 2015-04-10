@@ -38,40 +38,47 @@ let s:plug_suffix = {
       \ "replace": '-r',
       \ }
 
-function! s:keymap(mode, action, direction) "{{{1
+let s:direction_map = {
+      \ '^': 'up',
+      \ 'v': 'down',
+      \ '>': 'right',
+      \ '<': 'left',
+      \ }
+
+function! s:keymap(mode, action, dir) "{{{1
   for [emode, suffix] in items(s:plug_suffix)
     let plug = printf('<Plug>(textmanip-%s-%s%s)',
-          \ a:action, a:direction, suffix )
+          \ a:action, s:direction_map[a:dir], suffix )
 
     let action_short = a:action is 'duplicate' ? 'dup' : a:action
 
     let key = printf('%snoremap <silent> %s', a:mode, plug)
     let cmd = printf(':<C-u>call textmanip#do("%s", "%s", "%s", "%s")<CR>',
-          \ action_short, a:direction[0], a:mode, emode)
+          \ action_short, a:dir, a:mode, emode)
     execute key cmd
   endfor
 endfunction "}}}
 
 " Normal:
-call s:keymap('n', 'duplicate', 'down')
-call s:keymap('n', 'duplicate', 'up')
-
-call s:keymap('n', 'move', 'down')
-call s:keymap('n', 'move', 'up')
+call s:keymap('n', 'duplicate', 'v')
+call s:keymap('n', 'duplicate', '^')
+call s:keymap('n', 'move',      'v')
+call s:keymap('n', 'move',      '^')
 " [TODO]
-" call s:keymap('n', 'move', 'right')
-" call s:keymap('n', 'move', 'left')
+" call s:keymap('n', 'move',      '>')
+" call s:keymap('n', 'move',      '<')
 
 " Visual:
-call s:keymap('x', 'duplicate', 'down')
-call s:keymap('x', 'duplicate', 'up')
-call s:keymap('x', 'duplicate', 'right')
-call s:keymap('x', 'duplicate', 'left')
+call s:keymap('x', 'duplicate', 'v')
+call s:keymap('x', 'duplicate', '^')
+call s:keymap('x', 'duplicate', '>')
+call s:keymap('x', 'duplicate', '<')
 
-call s:keymap('x', 'move', 'down')
-call s:keymap('x', 'move', 'up')
-call s:keymap('x', 'move', 'right')
-call s:keymap('x', 'move', 'left')
+call s:keymap('x', 'move',      'v')
+call s:keymap('x', 'move',      '^')
+call s:keymap('x', 'move',      '>')
+call s:keymap('x', 'move',      '<')
+
 
 " FIXME
 function! s:setup_keymap() "{{{
@@ -79,17 +86,17 @@ function! s:setup_keymap() "{{{
     let mov_r_1 = 'textmanip-move-right-1col' . suffix
     let mov_l_1 = 'textmanip-move-left-1col'  . suffix
 
-    exe "xnoremap <silent> <Plug>(" . mov_l_1 . ") :<C-u>call textmanip#do1('move', 'l', 'x', '" . emode . "')<CR>"
-    exe "xnoremap <silent> <Plug>(" . mov_r_1 . ") :<C-u>call textmanip#do1('move', 'r', 'x', '" . emode . "')<CR>"
+    exe "xnoremap <silent> <Plug>(" . mov_l_1 . ") :<C-u>call textmanip#do1('move', '<', 'x', '" . emode . "')<CR>"
+    exe "xnoremap <silent> <Plug>(" . mov_r_1 . ") :<C-u>call textmanip#do1('move', '>', 'x', '" . emode . "')<CR>"
   endfor
 endfunction "}}}
 call s:setup_keymap()
 
-nnoremap <silent> <Plug>(textmanip-blank-above)  :<C-u>call textmanip#do('blank', 'u', 'n', 'auto')<CR>
-nnoremap <silent> <Plug>(textmanip-blank-below)  :<C-u>call textmanip#do('blank', 'd', 'n', 'auto')<CR>
+nnoremap <silent> <Plug>(textmanip-blank-above)  :<C-u>call textmanip#do('blank', '^', 'n', 'auto')<CR>
+nnoremap <silent> <Plug>(textmanip-blank-below)  :<C-u>call textmanip#do('blank', 'v', 'n', 'auto')<CR>
 
-xnoremap <silent> <Plug>(textmanip-blank-above)  :<C-u>call textmanip#do('blank', 'u', 'x', 'auto')<CR>
-xnoremap <silent> <Plug>(textmanip-blank-below)  :<C-u>call textmanip#do('blank', 'd', 'x', 'auto')<CR>
+xnoremap <silent> <Plug>(textmanip-blank-above)  :<C-u>call textmanip#do('blank', '^', 'x', 'auto')<CR>
+xnoremap <silent> <Plug>(textmanip-blank-below)  :<C-u>call textmanip#do('blank', 'v', 'x', 'auto')<CR>
 
 nnoremap <Plug>(textmanip-debug) :<C-u>call textmanip#debug()<CR>
 xnoremap <Plug>(textmanip-debug) :<C-u>call textmanip#debug()<CR>

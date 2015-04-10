@@ -14,6 +14,12 @@
 
 let s:u = textmanip#util#get()
 
+function! s:toward(dir) "{{{1
+  return
+        \ a:dir =~#  '\^\|v' ? 'V' :
+        \ a:dir =~#   '>\|<' ? 'H' : throw
+endfunction
+
 function! s:height(val) "{{{1
   return len(a:val)
 endfunction
@@ -63,14 +69,13 @@ endfunction
 " add
 function! s:area.add(dir, val) "{{{1
   let lis = type(a:val) ==# 3 ? a:val : [a:val]
-  let dir = toupper(a:dir)
 
-  if dir is 'U'
+  if a:dir is '^'
     call self.data(lis + self.data())
     return self
   endif
 
-  if dir is 'D'
+  if a:dir is 'v'
     call self.data(self.data() + lis) 
     return self
   endif
@@ -80,16 +85,17 @@ function! s:area.add(dir, val) "{{{1
     return self
   endif
 
-  if dir is 'L'
+  if a:dir is '<'
     cal map(self.data(), 'lis[v:key] . v:val')
     return self
   endif
 
-  if dir is 'R'
+  if a:dir is '>'
     call map(self.data(), 'v:val . lis[v:key]')
     return self
   endif
 
+  call Plog(a:dir)
   throw 'never happen!'
 endfunction
 
@@ -97,59 +103,52 @@ endfunction
 " cut
 function! s:area.cut(dir, n) "{{{1
   " n: number of cut
-  let dir = toupper(a:dir)
 
-  if dir is 'U'
+  if a:dir is '^'
     let end = min([a:n, self.height()]) - 1
     return remove(self.data(), 0, end)
   endif
 
-  if dir is 'D'
+  if a:dir is 'v'
     let last = self.height()
     return remove(self.data(), last-a:n, last-1)
   endif
 
-  if dir is 'L'
+  if a:dir is '<'
     let R = map(copy(self.data()), 'v:val[ : a:n-1]')
     call map(self.data(), 'v:val[a:n :]')
     return R
   endif
 
-  if dir is 'R'
+  if a:dir is '>'
     let R = map(copy(self.data()), 'v:val[-a:n : -1]')
     call map(self.data(), 'v:val[:-a:n-1]')
     return R
   endif
 
+  " call Plog(a:dir)
   throw 'never happen!'
 endfunction
 
 " swap
 function! s:area.swap(dir, val) "{{{1
-  let dir = toupper(a:dir)
-  let n = dir =~# 'U\|D' ? s:height(a:val) : s:width(a:val)
-
-  let R = self.cut(dir, n)
-  call self.add(dir, a:val)
+  let n = s:toward(a:dir) is 'V' ? s:height(a:val) : s:width(a:val)
+  let R = self.cut(a:dir, n)
+  call self.add(a:dir, a:val)
   return R
-  throw 'never happen!'
 endfunction
 
 " pushout
 function! s:area.pushout(dir, val) "{{{1
-  let dir = toupper(a:dir)
-
-  let n = dir =~# 'U\|D' ? s:height(a:val) : s:width(a:val)
-
-  call self.add(dir, a:val)
-  return self.cut(s:u.opposite(dir), n)
+  let n = s:toward(a:dir) is 'V' ? s:height(a:val) : s:width(a:val)
+  call self.add(a:dir, a:val)
+  return self.cut(s:u.opposite(a:dir), n)
 endfunction
 
 " rotate
 function! s:area.rotate(dir, n)
-  let dir = toupper(a:dir)
-  let add = s:u.opposite(dir)
-  call self.add(add, self.cut(dir, a:n))
+  call self.add(
+        \ s:u.opposite(a:dir), self.cut(a:dir, a:n))
   return self
 endfunction
 

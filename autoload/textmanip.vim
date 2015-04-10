@@ -1,6 +1,14 @@
 let s:textmanip = {}
+function! s:toward(dir) "{{{1
+  return
+        \ a:dir =~# '\cU\|D' ? 'V' :
+        \ a:dir =~#  '\^\|v' ? 'V' :
+        \ a:dir =~# '\cL\|R' ? 'H' :
+        \ a:dir =~#   '>\|<' ? 'H' : throw
+endfunction
 
 function! s:textmanip.start(env) "{{{1
+  " call Plog(a:env)
   try
     let sw = g:textmanip_move_ignore_shiftwidth
           \ ? g:textmanip_move_shiftwidth : &shiftwidth
@@ -32,26 +40,27 @@ function! s:textmanip.init(env) "{{{1
   endif
   let self.varea.replaced = b:textmanip_replaced
 
+  let self.env.toward = s:toward(self.env.dir)
   if self.env.mode   ==# 'n'                                  | return | endif
   if self.env.action ==# 'blank'                              | return | endif
   if self.env.action ==# 'dup' && self.env.emode ==# 'insert' | return | endif
-  if self.env.dir    =~# 'd\|r'                               | return | endif
+  if self.env.dir =~# 'v\|>'  | return | endif
 
   call self.adjust_count()
 
   try
     call s:cant_move( "topmost line",
-          \ self.env.dir ==# 'u' && self.varea.u.line() ==# 1
+          \ self.env.dir ==# '^' && self.varea.T.line() ==# 1
           \ )
     call s:cant_move( "all line have no-blank char",
-          \ self.env.dir ==# 'l' &&
+          \ self.env.dir ==# '<' &&
           \ self.varea.linewise &&
           \ empty(filter(self.varea.content().content, "v:val =~# '^\\s'"))
           \ )
     call s:cant_move( "no space to left",
-          \ self.env.dir ==# 'l' &&
+          \ self.env.dir ==# '<' &&
           \ !self.varea.linewise &&
-          \ self.varea.l.col() == 1 && self.env.mode ==# "\<C-v>"
+          \ self.varea.L.col() == 1 && self.env.mode ==# "\<C-v>"
           \ )
     call s:cant_move( "count 0", self.env.count ==# 0 )
   endtry
@@ -60,19 +69,19 @@ endfunction
 function! s:textmanip.adjust_count() "{{{1
   let dir = self.env.dir
 
-  if dir ==# 'u'
-    let max = self.varea.u.line() - 1
-  elseif dir ==# 'l'
+  if dir ==# '^'
+    let max = self.varea.T.line() - 1
+  elseif dir ==# '<'
     if ! self.varea.linewise
-      let max = self.varea.l.col()  - 1
+      let max = self.varea.L.col()  - 1
     else
       let max = self.env.count
     endif
   endif
 
   if self.env.emode ==# 'replace' && self.env.action ==# 'dup'
-    if     dir ==# 'u' | let max = max / self.varea.height
-    elseif dir ==# 'l' | let max = max / self.varea.width
+    if     dir ==# '^' | let max = max / self.varea.height
+    elseif dir ==# '<' | let max = max / self.varea.width
     endif
   endif
   let self.env.count = min([max, self.env.count])
@@ -110,10 +119,10 @@ function! s:textmanip.kickout(num, guide) "{{{1
   return new_str
 endfunction
 
-function! textmanip#do(action, direction, mode, emode) "{{{1
+function! textmanip#do(action, dir, mode, emode) "{{{1
   let env = {
         \ "action": a:action,
-        \ "dir": a:direction,
+        \ "dir": a:dir,
         \ "mode": a:mode ==# 'x' ? visualmode() : a:mode,
         \ "emode": (a:emode ==# 'auto') ? g:textmanip_current_mode : a:emode,
         \ "count": v:count1,
@@ -122,14 +131,14 @@ function! textmanip#do(action, direction, mode, emode) "{{{1
 endfunction
 
 " [FIXME] Dirty!!
-function! textmanip#do1(action, direction, mode, emode) "{{{1
+function! textmanip#do1(action, dir, mode, emode) "{{{1
   try
     let _textmanip_move_ignore_shiftwidth = g:textmanip_move_ignore_shiftwidth
     let _textmanip_move_shiftwidth        = g:textmanip_move_shiftwidth
 
     let g:textmanip_move_ignore_shiftwidth = 1
     let g:textmanip_move_shiftwidth        = 1
-    call textmanip#do(a:action, a:direction, a:mode, a:emode)
+    call textmanip#do(a:action, a:dir, a:mode, a:emode)
   finally
     let g:textmanip_move_ignore_shiftwidth = _textmanip_move_ignore_shiftwidth
     let g:textmanip_move_shiftwidth        = _textmanip_move_shiftwidth
