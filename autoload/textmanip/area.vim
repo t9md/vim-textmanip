@@ -127,10 +127,9 @@ endfunction
 " swap
 function! s:area.swap(dir, val) "{{{1
   let dir = toupper(a:dir)
-  let count =
-        \ dir =~# 'U\|D' ? s:height(a:val) : s:width(a:val)
+  let n = dir =~# 'U\|D' ? s:height(a:val) : s:width(a:val)
 
-  let R = self.cut(dir, count)
+  let R = self.cut(dir, n)
   call self.add(dir, a:val)
   return R
   throw 'never happen!'
@@ -140,11 +139,10 @@ endfunction
 function! s:area.pushout(dir, val) "{{{1
   let dir = toupper(a:dir)
 
-  let count =
-        \ dir =~# 'U\|D' ? s:height(a:val) : s:width(a:val)
+  let n = dir =~# 'U\|D' ? s:height(a:val) : s:width(a:val)
 
   call self.add(dir, a:val)
-  return self.cut(s:u.opposite(dir), count)
+  return self.cut(s:u.opposite(dir), n)
 endfunction
 
 " rotate

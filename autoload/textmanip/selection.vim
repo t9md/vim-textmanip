@@ -33,16 +33,16 @@ function! s:selection.new(s, e, mode) "{{{1
         \ (s.line() >= e.line()) && (s.col() <=  e.col()) ? 4 :
         \ throw
 
-  let [u, d, l, r ] =
+  let [self.u, self.d, self.l, self.r ] =
         \ case ==# 1 ?  [ s, e, s, e ] :
         \ case ==# 2 ?  [ e, s, e, s ] :
         \ case ==# 3 ?  [ s, e, e, s ] :
         \ case ==# 4 ?  [ e, s, s, e ] :
         \ throw
 
-                 let self.u = u
-  let self.l = l       |       let self.r = r
-                 let self.d = d
+                 " let self.u = u
+  " let self.l = l       |       let self.r = r
+                 " let self.d = d
 
   " pleserve original height and width since it's may change while operation
   let self.height = self.d.line() - self.u.line() + 1
@@ -277,8 +277,8 @@ endfunction
 function! s:selection.replace(dir, content, c) "{{{1
   let area  = textmanip#area#new(a:content)
   let overwritten = area.cut(a:dir, a:c)
-  let reveal = self.replaced.pushout(dir, overwritten)
-  return area.add(s:u.opposite(dir), reveal).data()
+  let reveal = self.replaced.pushout(a:dir, overwritten)
+  return area.add(s:u.opposite(a:dir), reveal).data()
 endfunction
 
 function! s:selection.new_replace()
