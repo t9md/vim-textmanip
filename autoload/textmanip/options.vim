@@ -1,27 +1,29 @@
 let s:options = {}
 
-function! s:options.set(opts) "{{{1
+function! s:options.new() "{{{1
   let self._opts = {}
+  return copy(self)
+endfunction 
 
+function! s:options.replace(opts) "{{{1
   let curbuf = bufname('')
-  for [var, val] in items(a:opts)
-    let self._opts[var] = getbufvar(curbuf, var)
-    call setbufvar(curbuf, var, val)
+  for [name, val] in items(a:opts)
+    let self._opts[name] = getbufvar(curbuf, name)
+    call setbufvar(curbuf, name, val)
   endfor
 endfunction
 
 function! s:options.restore() "{{{1
-  for [ var, val ] in items(self._opts)
-    call setbufvar(bufname(''), var, val)
+  for [name, val] in items(self._opts)
+    call setbufvar(bufname(''), name, val)
   endfor
+  let self._opts = {}
 endfunction
+"}}}
 
-function! textmanip#options#set(opts) "{{{1
-  call s:options.set(a:opts)
-endfunction
-
-function! textmanip#options#restore() "{{{1
-  call s:options.restore()
+" Api:
+function! textmanip#options#new() "{{{1
+  return s:options.new()
 endfunction
 "}}}
 " vim: foldmethod=marker

@@ -11,6 +11,18 @@
 "   d_cut/add -> +-+---------+-+ ---   len(_.data)
 "                |             |
 "                +<-- width -->+
+
+let s:u = textmanip#util#get()
+
+function! s:height(val) "{{{1
+  return len(a:val)
+endfunction
+
+function! s:width(val) "{{{1
+  return len(a:val[0])
+endfunction
+"}}}
+
 let s:area = {}
 function! s:area.new(data) "{{{1
   " data is array of string
@@ -44,159 +56,120 @@ function! s:area.width() "{{{1
   return len(self.data()[0])
 endfunction
 
-function! s:area.reset() "{{{1
-  call self.data([])
-endfunction
-
 function! s:area.dump() "{{{1
   return PP(self.data())
 endfunction
 
 " add
-function! s:area.u_add(val) "{{{1
-  " add to top
-  let v = type(a:val) ==# 3 ? a:val : [a:val]
-  call self.data(v + self.data())
-  return self
-endfunction
+function! s:area.add(dir, val) "{{{1
+  let lis = type(a:val) ==# 3 ? a:val : [a:val]
+  let dir = toupper(a:dir)
 
-function! s:area.d_add(val) "{{{1
-  " add to bottom
-  let v = type(a:val) ==# 3 ? a:val : [a:val]
-  call self.data(self.data() + v)
-  return self
-endfunction
-
-function! s:area.r_add(lis) "{{{1
-  " add to right
-  if self.is_empty()
-    call self.data(a:lis)
-  else
-    call map(self.data(), 'v:val . a:lis[v:key]')
+  if dir is 'U'
+    call self.data(lis + self.data())
+    return self
   endif
-  return self
+
+  if dir is 'D'
+    call self.data(self.data() + lis) 
+    return self
+  endif
+
+  if self.is_empty()
+    call self.data(lis)
+    return self
+  endif
+
+  if dir is 'L'
+    cal map(self.data(), 'lis[v:key] . v:val')
+    return self
+  endif
+
+  if dir is 'R'
+    call map(self.data(), 'v:val . lis[v:key]')
+    return self
+  endif
+
+  throw 'never happen!'
 endfunction
 
-function! s:area.l_add(val) "{{{1
-  " add to left
-  if self.is_empty()
-    call self.data(a:lis)
-  else
-    cal map(self._data, 'a:val[v:key] . v:val')
-  endif
-  return self
-endfunction
 
 " cut
-function! s:area.u_cut(n) "{{{1
+function! s:area.cut(dir, n) "{{{1
   " n: number of cut
-  let end = min([a:n, self.height()]) - 1
-  return remove(self.data(), 0, end)
-endfunction
+  let dir = toupper(a:dir)
 
-function! s:area.d_cut(n) "{{{1
-  " n: number of cut
-  let last = self.height()
-  return remove(self.data(), last-a:n, last-1)
-endfunction
+  if dir is 'U'
+    let end = min([a:n, self.height()]) - 1
+    return remove(self.data(), 0, end)
+  endif
 
-function! s:area.r_cut(n) "{{{1
-  let R = map(copy(self.data()), 'v:val[-a:n : -1]')
-  call map(self.data(), 'v:val[:-a:n-1]')
-  return R
-endfunction
+  if dir is 'D'
+    let last = self.height()
+    return remove(self.data(), last-a:n, last-1)
+  endif
 
-function! s:area.l_cut(n) "{{{1
-  let R = map(copy(self.data()), 'v:val[ : a:n-1]')
-  call map(self.data(), 'v:val[a:n :]')
-  return R
+  if dir is 'L'
+    let R = map(copy(self.data()), 'v:val[ : a:n-1]')
+    call map(self.data(), 'v:val[a:n :]')
+    return R
+  endif
+
+  if dir is 'R'
+    let R = map(copy(self.data()), 'v:val[-a:n : -1]')
+    call map(self.data(), 'v:val[:-a:n-1]')
+    return R
+  endif
+
+  throw 'never happen!'
 endfunction
 
 " swap
-function! s:area.u_swap(v) "{{{1
-  let R = self.u_cut(len(a:v))
-  call self.u_add(a:v)
-  return R
-endfunction
+function! s:area.swap(dir, val) "{{{1
+  let dir = toupper(a:dir)
+  let count =
+        \ dir =~# 'U\|D' ? s:height(a:val) : s:width(a:val)
 
-function! s:area.d_swap(v) "{{{1
-  let R = self.d_cut(len(a:v))
-  call self.d_add(a:v)
+  let R = self.cut(dir, count)
+  call self.add(dir, a:val)
   return R
-endfunction
-
-function! s:area.r_swap(v) "{{{1
-  " Assumption:
-  "  'v' is List
-  "  'v': all member have same width,
-  "  'v': len(v) ==# self.height()
-  " assume all member have same width,
-  let R = self.r_cut(len(a:v[0]))
-  call self.r_add(a:v)
-  return R
-endfunction
-
-function! s:area.l_swap(v) "{{{1
-  " assume all member have same width
-  let R = self.l_cut(len(a:v[0]))
-  call self.l_add(a:v)
-  return R
+  throw 'never happen!'
 endfunction
 
 " pushout
-function! s:area.u_pushout(v) "{{{1
-  call self.u_add(a:v)
-  return self.d_cut(len(a:v))
-endfunction
+function! s:area.pushout(dir, val) "{{{1
+  let dir = toupper(a:dir)
 
-function! s:area.d_pushout(v) "{{{1
-  call self.d_add(a:v)
-  return self.u_cut(len(a:v))
-endfunction
+  let count =
+        \ dir =~# 'U\|D' ? s:height(a:val) : s:width(a:val)
 
-function! s:area.r_pushout(v) "{{{1
-  call self.r_add(a:v)
-  return self.l_cut(len(a:v[0]))
-endfunction
-
-function! s:area.l_pushout(v) "{{{1
-  call self.l_add(a:v)
-  return self.r_cut(len(a:v[0]))
+  call self.add(dir, a:val)
+  return self.cut(s:u.opposite(dir), count)
 endfunction
 
 " rotate
-function! s:area.u_rotate(n) "{{{1
-  call self.d_add(self.u_cut(a:n))
-  return self
-endfunction
-
-function! s:area.d_rotate(n) "{{{1
-  call self.u_add(self.d_cut(a:n))
-  return self
-endfunction
-
-function! s:area.l_rotate(n) "{{{1
-  call self.r_add(self.l_cut(a:n))
-  return self
-endfunction
-
-function! s:area.r_rotate(n) "{{{1
-  call self.l_add(self.r_cut(a:n))
+function! s:area.rotate(dir, n)
+  let dir = toupper(a:dir)
+  let add = s:u.opposite(dir)
+  call self.add(add, self.cut(dir, a:n))
   return self
 endfunction
 
 " duplcate vertical/horizontal(=side)
-function! s:area.v_duplicate(n) "{{{1
-  " vertical
-  call self.data(repeat(self.data(), a:n))
-  return self
-endfunction
+function! s:area.duplicate(dir, n) "{{{1
+  let dir = toupper(a:dir)
+  if dir is 'V' " vertical
+    call self.data(repeat(self.data(), a:n))
+    return self
+  endif
 
-function! s:area.h_duplicate(n) "{{{1
-  " horizontal, map have side effect, so no need to updata with data()
-  call map(self.data(), 'repeat(v:val, a:n)')
-  return self
+  if dir is 'H' " horizontal
+    " horizontal, map have side effect, so no need to updata with data()
+    call map(self.data(), 'repeat(v:val, a:n)')
+    return self
+  endif
 endfunction
+"}}}
 
 " Public:
 function! textmanip#area#new(data) "{{{1

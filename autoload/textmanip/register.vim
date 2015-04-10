@@ -1,28 +1,29 @@
 let s:register = {}
 
-function! s:register.save(registers) "{{{1
-  let s:register._data = {}
-  for r in a:registers
-    let s:register._data[r] = {
-          \ "content": getreg(r, 1),
-          \ "type": getregtype(r)
+function! s:register.new() "{{{1
+  let self._data = {}
+  return copy(self)
+endfunction
+
+function! s:register.save(...) "{{{1
+  for reg in a:000
+    let s:register._data[reg] = {
+          \ "content": getreg(reg, 1),
+          \ "type": getregtype(reg)
           \ }
   endfor
-  return deepcopy(self)
 endfunction
 
 function! s:register.restore() "{{{1
-  for [r, val] in items(self._data)
-    call setreg(r, val.content, val.type)
+  for [reg, val] in items(self._data)
+    call setreg(reg, val.content, val.type)
   endfor
   let self._data = {}
 endfunction
+"}}}
 
-function! textmanip#register#save(...) "{{{1
-  return s:register.save(a:000)
-endfunction
-
-function! textmanip#register#restore(...) "{{{1
-  call s:register.restore()
+" API:
+function! textmanip#register#new() "{{{1
+  return s:register.new()
 endfunction
 " vim: foldmethod=marker

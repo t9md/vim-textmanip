@@ -5,7 +5,8 @@ function! s:pos.new(pos) "{{{1
   " off is offset from actual col when virtual edit(ve) mode,
   " so, to respect ve position, we sum "col" + "off"
   let self._data = [a:pos[1], a:pos[2] + a:pos[3]]
-  return deepcopy(self)
+  return copy(self)
+  " return deepcopy(self)
 endfunction
 
 function! s:pos.pos() "{{{1

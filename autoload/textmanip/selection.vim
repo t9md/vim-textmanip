@@ -1,3 +1,5 @@
+let s:u = textmanip#util#get()
+
 function! s:gsub(str,pat,rep) "{{{1
   return substitute(a:str,'\v\C'.a:pat, a:rep,'g')
 endfunction
@@ -70,13 +72,15 @@ function! s:selection.move_pos(ope) "{{{1
 endfunction
 
 function! s:selection.content(...) "{{{1
+
   call self.move_pos(a:0 ? a:1 : '')
   if self.linewise
     let content = getline( self.u.line(), self.d.line() )
     let R = { "content": content, "regtype": "V" }
   else
     try
-      let register = textmanip#register#save("x")
+      let register = textmanip#register#new()
+      call register.save("x")
       silent exe "normal! " . "\<Esc>"
       call self.select()
       silent normal! "xy
@@ -100,7 +104,8 @@ function! s:selection.paste(data) "{{{1
       " so I choose setline its more precies to original data
       call setline(self.u.line(), a:data.content)
     else
-      let register = textmanip#register#save("x")
+      let register = textmanip#register#new()
+      call register.save("x")
       let content = join(a:data.content, "\n")
       call setreg("x", content, a:data.regtype)
       normal! "xp
@@ -198,7 +203,7 @@ function! s:selection.move(dir, count, emode) "{{{1
   let selected = self.content(chg)
   if a:emode ==# 'insert'
     let selected.content =
-          \ textmanip#area#new(selected.content)[a:dir ."_rotate"](c).data()
+          \ textmanip#area#new(selected.content).rotate(a:dir, c).data()
   elseif a:emode ==# 'replace'
     let selected.content =
           \ self.replace(a:dir, selected.content, c)
@@ -225,9 +230,9 @@ function! s:selection.dup(dir, count, emode) "{{{1
   call self.mode_switch()
   let selected = self.content()
   let ward =
-        \ a:dir =~# 'u\|d' ? 'v' :
-        \ a:dir =~# 'l\|r' ? 'h' : throw
-  let duplicated = textmanip#area#new(selected.content)[ward . "_duplicate"](c)
+        \ a:dir =~# 'u\|d' ? 'V' :
+        \ a:dir =~# 'l\|r' ? 'H' : throw
+  let duplicated = textmanip#area#new(selected.content).duplicate(ward, c)
   let selected.content = duplicated.data()
   let self.vars = { 'c': c, 'h': h, 'w': w }
 
@@ -271,16 +276,9 @@ endfunction
 
 function! s:selection.replace(dir, content, c) "{{{1
   let area  = textmanip#area#new(a:content)
-  " opposite direction
-  let od  =
-        \ a:dir ==# 'u' ? 'd':
-        \ a:dir ==# 'd' ? 'u':
-        \ a:dir ==# 'l' ? 'r':
-        \ a:dir ==# 'r' ? 'l': throw
-
-  let overwritten = area[a:dir . '_cut'](a:c)
-  let reveal = self.replaced[a:dir . '_pushout'](overwritten)
-  return area[od . '_add'](reveal).data()
+  let overwritten = area.cut(a:dir, a:c)
+  let reveal = self.replaced.pushout(dir, overwritten)
+  return area.add(s:u.opposite(dir), reveal).data()
 endfunction
 
 function! s:selection.new_replace()

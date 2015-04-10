@@ -4,7 +4,8 @@ function! s:textmanip.start(env) "{{{1
   try
     let sw = g:textmanip_move_ignore_shiftwidth
           \ ? g:textmanip_move_shiftwidth : &shiftwidth
-    call textmanip#options#set({ '&virtualedit': 'all', '&shiftwidth': sw })
+    let options = textmanip#options#new()
+    call options.replace({ '&virtualedit': 'all', '&shiftwidth': sw })
     call self.init(a:env)
     call self.varea[self.env.action](a:env.dir, a:env.count, a:env.emode)
 
@@ -12,10 +13,9 @@ function! s:textmanip.start(env) "{{{1
       let b:textmanip_status = self.varea.state()
     endif
   catch /CANT_MOVE/
-    " echo v:exception "\n"
     normal! gv
   finally
-    call textmanip#options#restore()
+    call options.restore()
   endtry
 endfunction
 
@@ -86,7 +86,7 @@ endfunction
 
 
 function! s:textmanip.preserve_selection() "{{{1
-  if self.env.mode ==# 'n'
+  if self.env.mode is 'n'
     let s = getpos('.')
     let e = s
   else
