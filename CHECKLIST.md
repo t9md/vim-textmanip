@@ -2,14 +2,14 @@
 =====================
  restore original vim options
  restore original visual mode
- restore original cursor pos including where 'o'pposit pos in visual mode.
- count reflect result.
+ restore original cursor pos including where 'o'posit pos in visual mode.
+ count aware
  undoable for continuous move by one 'undo' command.
  care when move across corner( TOF,EOF, BOL, EOL )
   - by adjusting cursor to appropriate value
   u => TOF
   d => EOF
-  r => EOL(but ve care this!)
+  r => EOL(but be care this!)
   l => BOF
 
  Supported: [O: Finish][X: Not Yet][P: Partially impremented]

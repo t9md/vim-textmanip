@@ -1,4 +1,3 @@
-
 let s:textmanip = {}
 
 function! s:textmanip.start(env) "{{{1
@@ -115,7 +114,7 @@ function! textmanip#do(action, direction, mode, emode) "{{{1
   let env = {
         \ "action": a:action,
         \ "dir": a:direction,
-        \ "mode": a:mode ==# 'v' ? visualmode() : a:mode,
+        \ "mode": a:mode ==# 'x' ? visualmode() : a:mode,
         \ "emode": (a:emode ==# 'auto') ? g:textmanip_current_mode : a:emode,
         \ "count": v:count1,
         \ }

@@ -1,4 +1,3 @@
-
 function! s:gsub(str,pat,rep) "{{{1
   return substitute(a:str,'\v\C'.a:pat, a:rep,'g')
 endfunction
@@ -74,7 +73,7 @@ function! s:selection.content(...) "{{{1
   call self.move_pos(a:0 ? a:1 : '')
   if self.linewise
     let content = getline( self.u.line(), self.d.line() )
-    let r = { "content": content, "regtype": "V" }
+    let R = { "content": content, "regtype": "V" }
   else
     try
       let register = textmanip#register#save("x")
@@ -82,12 +81,12 @@ function! s:selection.content(...) "{{{1
       call self.select()
       silent normal! "xy
       let content = split(getreg("x"), "\n")
-      let r = { "content": content, "regtype": getregtype("x") }
+      let R = { "content": content, "regtype": getregtype("x") }
     finally
       call register.restore()
     endtry
   endif
-  return r
+  return R
 endfunction
 
 function! s:selection.paste(data) "{{{1
