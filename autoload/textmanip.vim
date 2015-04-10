@@ -59,8 +59,6 @@ function! s:textmanip.init(env) "{{{1
 endfunction
 
 function! s:textmanip.adjust_count() "{{{1
-  " care only 'u' and 'l'
-  " echo "pre :" self.env.count
   let dir = self.env.dir
 
   if dir ==# 'u'
@@ -79,7 +77,6 @@ function! s:textmanip.adjust_count() "{{{1
     endif
   endif
   let self.env.count = min([max, self.env.count])
-  " echo "post :" self.env.count
 endfunction
 
 function! s:cant_move(desc, expr) "{{{1
@@ -125,6 +122,7 @@ function! textmanip#do(action, direction, mode, emode) "{{{1
   call s:textmanip.start(env)
 endfunction
 
+" [FIXME] Dirty!!
 function! textmanip#do1(action, direction, mode, emode) "{{{1
   try
     let _textmanip_move_ignore_shiftwidth = g:textmanip_move_ignore_shiftwidth

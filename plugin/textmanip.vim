@@ -6,6 +6,9 @@
 
 " GUARD: {{{1
 "============================================================
+if expand("%:p") ==# expand("<sfile>:p")
+  unlet! g:loaded_textmanip
+endif
 if exists('g:loaded_textmanip')
   finish
 endif
@@ -68,11 +71,17 @@ function! s:setup_keymap() "{{{
     exe "xnoremap <silent> <Plug>(" . dup_l . ") :<C-u>call textmanip#do('dup', 'l', 'v', '" . mode . "')<CR>"
     exe "xnoremap <silent> <Plug>(" . dup_r . ") :<C-u>call textmanip#do('dup', 'r', 'v', '" . mode . "')<CR>"
 
-    " echo '"move-visual'
+    " move: visual'
     exe "xnoremap <silent> <Plug>(" . mov_u . ") :<C-u>call textmanip#do('move', 'u', 'v', '" . mode . "')<CR>"
     exe "xnoremap <silent> <Plug>(" . mov_d . ") :<C-u>call textmanip#do('move', 'd', 'v', '" . mode . "')<CR>"
     exe "xnoremap <silent> <Plug>(" . mov_l . ") :<C-u>call textmanip#do('move', 'l', 'v', '" . mode . "')<CR>"
     exe "xnoremap <silent> <Plug>(" . mov_r . ") :<C-u>call textmanip#do('move', 'r', 'v', '" . mode . "')<CR>"
+
+    " move: normal
+    exe "nnoremap <silent> <Plug>(" . mov_u . ") :<C-u>call textmanip#do('move', 'u', 'n', '" . mode . "')<CR>"
+    exe "nnoremap <silent> <Plug>(" . mov_d . ") :<C-u>call textmanip#do('move', 'd', 'n', '" . mode . "')<CR>"
+    " exe "nnoremap <silent> <Plug>(" . mov_l . ") :<C-u>call textmanip#do('move', 'l', 'n', '" . mode . "')<CR>"
+    " exe "nnoremap <silent> <Plug>(" . mov_r . ") :<C-u>call textmanip#do('move', 'r', 'n', '" . mode . "')<CR>"
 
     exe "xnoremap <silent> <Plug>(" . mov_l_1 . ") :<C-u>call textmanip#do1('move', 'l', 'v', '" . mode . "')<CR>"
     exe "xnoremap <silent> <Plug>(" . mov_r_1 . ") :<C-u>call textmanip#do1('move', 'r', 'v', '" . mode . "')<CR>"
@@ -128,7 +137,6 @@ command! -range -nargs=* TextmanipToggleMode call textmanip#toggle_mode()
 command! TextmanipToggleIgnoreShiftWidth
       \ let g:textmanip_move_ignore_shiftwidth = ! g:textmanip_move_ignore_shiftwidth
       \ <bar> echo g:textmanip_move_ignore_shiftwidth
-
 
 " FINISH: {{{1
 let &cpo = s:old_cpo
