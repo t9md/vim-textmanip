@@ -1,19 +1,43 @@
 let s:u = textmanip#util#get()
 
-let s:textmanip = {}
+" Util:
+function! s:getpos(mode)
+  if a:mode is 'n'
+    let s = getpos('.')
+    return [s, s]
+  endif
 
-function! s:textmanip.start(env) "{{{1
+  exe 'normal! gvo' | let s = getpos('.') | exe "normal! \<Esc>"
+  exe 'normal! gvo' | let e = getpos('.') | exe "normal! \<Esc>"
+
+  return [s, e]
+endfunction
+
+function! s:cant_move(desc, expr) "{{{1
+  if a:expr
+    throw "CANT_MOVE " . a:desc
+  endif
+endfunction
+"}}}
+
+" Main:
+let s:Textmanip = {}
+
+function! s:Textmanip.start(env) "{{{1
   try
     let shiftwidth = g:textmanip_move_ignore_shiftwidth
           \ ? g:textmanip_move_shiftwidth
           \ : &shiftwidth
     let options = textmanip#options#new()
     call options.replace({'&virtualedit': 'all', '&shiftwidth': shiftwidth })
-
     call self.init(a:env)
-    call self.varea[self.env.action](a:env.dir, a:env.count, a:env.emode)
 
-    if self.env.action ==# 'move'
+    let action = a:env.action
+    let dir    = a:env.dir
+
+    call self.varea[action](dir, a:env.count, a:env.emode)
+
+    if action is 'move'
       let b:textmanip_status = self.varea.state()
     endif
   catch /CANT_MOVE/
@@ -23,14 +47,19 @@ function! s:textmanip.start(env) "{{{1
   endtry
 endfunction
 
-function! s:textmanip.init(env) "{{{1
+function! s:Textmanip.init(env) "{{{1
+  let [s, e] = s:getpos(a:env.mode)
+  let pos_s  = textmanip#pos#new(s)
+  let pos_e  = textmanip#pos#new(e)
+  " call Plog(a:env)
+  let self.varea  = textmanip#selection#new(pos_s, pos_e, a:env.mode, a:env.dir)
+
   let self.env = a:env
-  let [s, e] = self.getpos()
-  let pos_s = textmanip#pos#new(s)
-  let pos_e = textmanip#pos#new(e)
-  let varea = textmanip#selection#new(pos_s, pos_e, self.env.mode)
-  if get(b:, "textmanip_status", {}) == self.varea.state() &&
-        \ a:env.action ==# 'move'
+
+  " v FIXME shoud delete?
+  let self.env.toward = s:u.toward(a:env.dir)
+
+  if get(b:, "textmanip_status", {}) == self.varea.state() && a:env.action ==# 'move'
     " continuous move
     silent! undojoin
   else
@@ -38,7 +67,6 @@ function! s:textmanip.init(env) "{{{1
   endif
   let self.varea.replaced = b:textmanip_replaced
 
-  let self.env.toward = s:u.toward(self.env.dir)
   if self.env.mode   ==# 'n'                                  | return | endif
   if self.env.action ==# 'blank'                              | return | endif
   if self.env.action ==# 'dup' && self.env.emode ==# 'insert' | return | endif
@@ -48,7 +76,7 @@ function! s:textmanip.init(env) "{{{1
 
   try
     call s:cant_move("Topmost line",
-          \ self.env.dir ==# '^' && self.varea.T.line ==# 1
+          \ self.env.dir ==# '^' && self.varea.pos.T.line ==# 1
           \ )
     call s:cant_move( "all line have no-blank char",
           \ self.env.dir ==# '<' &&
@@ -58,22 +86,22 @@ function! s:textmanip.init(env) "{{{1
     call s:cant_move( "no space to left",
           \ self.env.dir ==# '<' &&
           \ !self.varea.linewise &&
-          \ self.varea.L.colm == 1 && self.env.mode ==# "\<C-v>"
+          \ self.varea.pos.L.colm == 1 && self.env.mode ==# "\<C-v>"
           \ )
     call s:cant_move("count 0", self.env.count ==# 0 )
   endtry
 endfunction
 
-function! s:textmanip.adjust_count() "{{{1
+function! s:Textmanip.adjust_count() "{{{1
   let dir = self.env.dir
 
   if dir ==# '^'
-    let max = self.varea.T.line - 1
+    let max = self.varea.pos.T.line - 1
   elseif dir ==# '<'
-    if ! self.varea.linewise
-      let max = self.varea.L.colm  - 1
-    else
+    if self.varea.linewise
       let max = self.env.count
+    else
+      let max = self.varea.pos.L.colm  - 1
     endif
   endif
 
@@ -85,29 +113,8 @@ function! s:textmanip.adjust_count() "{{{1
   let self.env.count = min([max, self.env.count])
 endfunction
 
-function! s:cant_move(desc, expr) "{{{1
-  if a:expr
-    throw "CANT_MOVE " . a:desc
-  endif
-endfunction
-
-function! s:textmanip.getpos() "{{{1
-  if self.env.mode is 'n'
-    let s = getpos('.')
-    return [s, s]
-  endif
-
-  exe 'normal! gvo' | let s = getpos('.') | exe "normal! \<Esc>"
-  exe 'normal! gvo' | let e = getpos('.') | exe "normal! \<Esc>"
-
-  return [s, e]
-endfunction
-
-function! s:textmanip.debug() "{{{1
-  return PP(b:textmanip_status)
-endfunction
-
-function! s:textmanip.kickout(num, guide) "{{{1
+function! s:Textmanip.kickout(num, guide) "{{{1
+  " FIXME
   let orig_str = getline(a:num)
   let s1       = orig_str[ : col('.')- 2 ]
   let s2       = orig_str[ col('.')-1 : ]
@@ -117,6 +124,12 @@ function! s:textmanip.kickout(num, guide) "{{{1
   return new_str
 endfunction
 
+function! s:Textmanip.debug() "{{{1
+  return PP(b:textmanip_status)
+endfunction
+"}}}
+
+" API:
 function! textmanip#do(action, dir, mode, emode) "{{{1
   let env = {
         \ "action": a:action,
@@ -125,7 +138,7 @@ function! textmanip#do(action, dir, mode, emode) "{{{1
         \ "emode": (a:emode is 'auto') ? g:textmanip_current_mode : a:emode,
         \ "count": v:count1,
         \ }
-  call s:textmanip.start(env)
+  call s:Textmanip.start(env)
 endfunction
 
 " [FIXME] Dirty!!
@@ -152,7 +165,7 @@ function! textmanip#kickout(guide) range "{{{1
     normal! gv
   endif
   for n in range(a:firstline, a:lastline)
-    call setline(n, s:textmanip.kickout(n, guide))
+    call setline(n, s:Textmanip.kickout(n, guide))
   endfor
   call setpos('.', orig_pos)
 endfunction
@@ -169,7 +182,6 @@ function! textmanip#mode() "{{{1
 endfunction
 
 function! textmanip#debug() "{{{1
-  echo s:textmanip.debug()
+  echo s:Textmanip.debug()
 endfunction
-
 " vim: foldmethod=marker

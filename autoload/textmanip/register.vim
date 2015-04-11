@@ -1,11 +1,11 @@
-let s:r = {}
+let s:Register = {}
 
-function! s:r.new() "{{{1
+function! s:Register.new() "{{{1
   let self._data = {}
   return copy(self)
 endfunction
 
-function! s:r.save(...) "{{{1
+function! s:Register.save(...) "{{{1
   for reg in a:000
     let self._data[reg] = {
           \ "content": getreg(reg, 1),
@@ -14,7 +14,7 @@ function! s:r.save(...) "{{{1
   endfor
 endfunction
 
-function! s:r.restore() "{{{1
+function! s:Register.restore() "{{{1
   for [reg, val] in items(self._data)
     call setreg(reg, val.content, val.type)
   endfor
@@ -24,6 +24,6 @@ endfunction
 
 " API:
 function! textmanip#register#new() "{{{1
-  return s:r.new()
+  return s:Register.new()
 endfunction
 " vim: foldmethod=marker

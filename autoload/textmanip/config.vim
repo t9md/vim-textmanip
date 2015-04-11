@@ -6,9 +6,9 @@ let s:default = {
       \ }
 
 " Config:
-let s:config = {}
+let s:Config = {}
 
-function! s:config.user() "{{{1
+function! s:Config.user() "{{{1
   let R = {}
   let prefix = 'textmanip_'
   for [name, default] in items(s:default)
@@ -18,14 +18,14 @@ function! s:config.user() "{{{1
   return R
 endfunction
 
-function! s:config.get() "{{{1
+function! s:Config.get() "{{{1
   return self.user()
 endfunction
 "}}}
 
 " API:
 function! textmanip#config#get() "{{{1
-  return s:config.get()
+  return s:Config.get()
 endfunction
 "}}}
 

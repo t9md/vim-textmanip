@@ -1,25 +1,36 @@
 let s:u = textmanip#util#get()
 
+" Util:
 function! s:gsub(str,pat,rep) "{{{1
   return substitute(a:str,'\v\C'.a:pat, a:rep,'g')
 endfunction
 
-let s:selection = {}
+function! s:template(string, data) "{{{1
+  " String interpolation from vars Dictionary.
+  " ex)
+  "   string = "%{L+1}l%{C+2}c" 
+  "   data   = { "L+1": 1, "C+2", 2 }
+  "   Result => "%1l%2c"
+  let mark = '\v\{(.{-})\}'
+  return substitute(a:string, mark,'\=a:data[submatch(1)]', 'g')
+endfunction
+  " let wv.pattern   = s:template(font.pattern, s:vars([line_s, col], font))
+"}}}
 
-function! s:selection.new(s, e, mode) "{{{1
+" Main:
+" @action = [ 'move', 'duplicate', 'blank']
+" @direction = [ '^', 'v', '<', '>' ]
+" @count = Number
+let s:Selection = {}
+function! s:Selection.new(s, e, mode, dir) "{{{1
 " both `s` and `e` are instance of textmanip#pos
 
-"    T--- s----+----+
-"      |  |    |    |
-"  height +----+----+  s => start  e => end
-"      |  |    |    |  T => Top    B => Bottom
-"    B--- +----+----e  L => Left   r => Right
-"         |--width--|
-"         L         R
-  let [s, e]           = [a:s, a:e]
-  let [self.s, self.e] = [s, e]
-  let self.mode        = a:mode
-  let self.vars        = {}
+  let [s, e]      = [a:s, a:e]
+  let self.pos    = {}
+  let self.pos    = { 'S': s, 'E': e }
+  let self.mode   = a:mode
+  let self.vars   = {}
+  let self.toward = s:u.toward(a:dir)
 
 "     [   1   ]    [   2   ]    [   3   ]    [   4   ]
 "    s----+----+  e----+----+  +----+----s  +----+----e
@@ -27,42 +38,57 @@ function! s:selection.new(s, e, mode) "{{{1
 "    +----+----+  +----+----+  +----+----+  +----+----+
 "    |    |    |  |    |    |  |    |    |  |    |    |
 "    +----+----e  +----+----s  e----+----+  s----+----+
-  let [self.T, self.B, self.L, self.R ] =
+"
+  let [top, bottom, left, right] =
         \ 1 && (s.line <= e.line) && (s.colm <= e.colm) ? [ s, e, s, e ] :
         \ 2 && (s.line >= e.line) && (s.colm >= e.colm) ? [ e, s, e, s ] :
         \ 3 && (s.line <= e.line) && (s.colm >= e.colm) ? [ s, e, e, s ] :
         \ 4 && (s.line >= e.line) && (s.colm <= e.colm) ? [ e, s, s, e ] :
         \ throw
+  call extend(self.pos, { 'T': top, 'B': bottom, 'L': left, 'R': right })
 
   " Preserve original height and width since it's may change while operation
-  let self.height = self.B.line - self.T.line + 1
-  let self.width  = self.R.colm - self.L.colm + 1
-
-  let self.linewise =
-        \ (self.mode ==# 'n' ) ||
-        \ (self.mode ==# 'V' ) ||
-        \ (self.mode ==# 'v' && self.height > 1)
+  let self.toward   = s:u.toward(a:dir)
+  let self.height   = self.pos['B'].line - self.pos['T'].line + 1
+  let self.width    = self.pos['R'].colm - self.pos['L'].colm + 1
+  let self.linewise = self.is_linewise()
   return self
 endfunction
 
-function! s:selection.move_pos(ope) "{{{1
-  let ope = type(a:ope) ==# type([]) ? a:ope : [a:ope]
-  for o in ope
-    if empty(o) | continue | endif
+function! s:Selection.is_linewise()
+  return 
+        \ (self.mode is 'n' ) ||
+        \ (self.mode is 'V' ) ||
+        \ (self.mode is 'v' && self.height > 1)
+endfunction
+
+function! s:Selection.move_pos(ope) "{{{1
+  for o in s:u.toList(a:ope)
+    if empty(o)
+      continue
+    endif
     for [k,v] in items(self.vars)
       let o = s:gsub(o, k, v)
     endfor
     let p = self._parse(o)
-    call self[p.target].move(p.arg[0], p.arg[1])
+    call self.pos[p.where].move(p.arg[0], p.arg[1])
   endfor
   return self
 endfunction
 
-function! s:selection.content(...) "{{{1
-  call self.move_pos(a:0 ? a:1 : '')
+function! s:Selection._parse(s) "{{{1
+  let where = a:s[0]
+  let arg   = split(a:s[1:], '\v:\s*', 1)
+  return {"where" : where, "arg" : arg }
+endfunction
+
+function! s:Selection.content(...) "{{{1
+  if a:0
+    call self.move_pos(a:1)
+  endif
 
   if self.linewise
-    let content = getline(self.T.line, self.B.line)
+    let content = getline(self.pos.T.line, self.pos.B.line)
     let R = { "content": content, "regtype": "V" }
   else
     try
@@ -80,7 +106,7 @@ function! s:selection.content(...) "{{{1
   return R
 endfunction
 
-function! s:selection.paste(data) "{{{1
+function! s:Selection.paste(data) "{{{1
   try
     if a:data.regtype ==# 'V'
       " setline() will not clear visual mode , at least my
@@ -89,7 +115,7 @@ function! s:selection.paste(data) "{{{1
       " using 'p' is not perfect when data include blankline.
       " It's unnecessarily kindly omit empty blankline when paste!
       " so I choose setline its more precies to original data
-      call setline(self.T.line, a:data.content)
+      call setline(self.pos.T.line, a:data.content)
     else
       let register = textmanip#register#new()
       call register.save("x")
@@ -105,41 +131,36 @@ function! s:selection.paste(data) "{{{1
   return self
 endfunction
 
-
-function! s:selection.insert_blank(dir, num) "{{{1
+function! s:Selection.insert_blank(dir, num) "{{{1
   let where =
-        \ a:dir ==# '^' ? self.T.line-1 :
-        \ a:dir ==# 'v' ? self.B.line   :
-        \ a:dir ==# '>' ? self.R.colm   :
-        \ a:dir ==# '<' ? self.L.colm-1 : throw
-  if s:u.toward(a:dir) is 'V'
+        \ a:dir ==# '^' ? self.pos.T.line-1 :
+        \ a:dir ==# 'v' ? self.pos.B.line   :
+        \ a:dir ==# '>' ? self.pos.R.colm   :
+        \ a:dir ==# '<' ? self.pos.L.colm-1 : throw   
+  if self.toward is '<>'
     call append(where, map(range(a:num), '""'))
   else
-    let lines = map(getline(self.T.line, self.B.line),
+    let lines = map(getline(self.pos.T.line, self.pos.B.line),
           \ 'v:val[0 : where - 1 ] . repeat(" ", a:num) . v:val[ where : ]')
-    call setline(self.T.line, lines)
+    call setline(self.pos.T.line, lines)
   endif
   return self
 endfunction
 
-function! s:selection._parse(s) "{{{1
-  let target = a:s[0]
-  let arg  = split(a:s[1:], '\v:\s*', 1)
-  return {"target" : target, "arg" : arg }
-endfunction
+function! s:Selection.select(...) "{{{1
+  if a:0
+    call self.move_pos(a:1)
+  endif
 
-function! s:selection.select(...) "{{{1
-  call self.move_pos(a:0 ? a:1 : '')
-
-  call cursor(self.s.pos()+[0])
+  call cursor(self.pos.S.pos()+[0])
   if self.mode !=# 'n'
     execute "normal! " . self.mode
   endif
-  call cursor(self.e.pos()+[0])
+  call cursor(self.pos.E.pos()+[0])
   return self
 endfunction
 
-function! s:selection.mode_switch() "{{{1
+function! s:Selection.mode_switch() "{{{1
   if self.mode ==# 'v' && !self.linewise
     let self._mode_org = self.mode
     let self.mode = "\<C-v>"
@@ -147,25 +168,55 @@ function! s:selection.mode_switch() "{{{1
   return self
 endfunction
 
-function! s:selection.mode_restore() "{{{1
+function! s:Selection.mode_restore() "{{{1
   if has_key(self, "_mode_org")
     let self.mode = self._mode_org
   endif
   return self
 endfunction
 
-function! s:selection.extend_EOF(n) "{{{1
-  let amount = (self.B.line + a:n) - line('$')
+function! s:Selection.extend_EOF(n) "{{{1
+  let amount = (self.pos.B.line + a:n) - line('$')
   if amount > 0
     call append(line('$'), map(range(amount), '""'))
   endif
 endfunction
 
-function! s:selection.move(dir, count, emode) "{{{1
+function! s:Selection.replace(dir, content, c) "{{{1
+  let area        = textmanip#area#new(a:content)
+  let overwritten = area.cut(a:dir, a:c)
+  let reveal      = self.replaced.pushout(a:dir, overwritten)
+  return area.add(s:u.opposite(a:dir), reveal).data()
+endfunction
+
+function! s:Selection.new_replace()
+  let self.replaced = textmanip#area#new([])
+  let emptyline     = self.linewise ? [''] : [repeat(" ", self.width)]
+  return textmanip#area#new(repeat(emptyline, self.height))
+endfunction
+
+function! s:Selection.state() "{{{1
+  " should not depend current visual selction to keep selection state
+  " unchanged. So need to extract rectangle region from colum.
+  let content = getline(self.pos.T.line, self.pos.B.line)
+  if !self.linewise
+    let content = getline(self.pos.T.line, self.pos.B.line)
+    let content = map(content, 'v:val[ self.pos.L.colm - 1 : self.pos.R.colm - 1]')
+  endif
+  return  {
+        \ 'line_top':    self.pos.T.line,
+        \ 'line_bottom': self.pos.B.line,
+        \ 'len':         len(content),
+        \ 'content':     content,
+        \ }
+endfunction
+
+" Action:
+function! s:Selection.move(dir, count, emode) "{{{1
   " support both line and block
   let c = a:count
    
-  if s:u.toward(a:dir) is 'H' && self.linewise
+  if self.toward is '<>' && self.linewise
     " a:dir is '<' or '>', yes its valid Vim operator! so I can pass as-is
     exe "'<,'>" . repeat(a:dir, c)
     call self.select()
@@ -196,7 +247,7 @@ function! s:selection.move(dir, count, emode) "{{{1
   call self.select().paste(selected).mode_restore().select(last)
 endfunction
 
-function! s:selection.dup(dir, count, emode) "{{{1
+function! s:Selection.duplicate(dir, count, emode) "{{{1
   " - normal duplicate(insert/replace) allways linewise
   " - visual duplicate(insert/replace) linewise/blockwise
   if a:dir =~# '<' && self.linewise
@@ -213,7 +264,7 @@ function! s:selection.dup(dir, count, emode) "{{{1
   " change mode before yank with content()
   call self.mode_switch()
   let selected = self.content()
-  let duplicated = textmanip#area#new(selected.content).duplicate(s:u.toward(a:dir), c)
+  let duplicated = textmanip#area#new(selected.content).duplicate(a:dir, c)
   let selected.content = duplicated.data()
   let self.vars = { 'c': c, 'h': h, 'w': w }
 
@@ -232,12 +283,12 @@ function! s:selection.dup(dir, count, emode) "{{{1
     call self.insert_blank(a:dir, duplicated[w_h]()).select(chg).paste(selected)
     if self.mode ==# 'n'
       let where = {
-            \ "^": 'T':
-            \ "v": 'B':
-            \ ">": 'L':
+            \ "^": 'T',
+            \ "v": 'B',
+            \ ">": 'L',
             \ "<": 'R',
             \ }[a:dir]
-      call cursor( self[where].pos() )
+      call cursor( self.pos[where].pos() )
     else
       call self.mode_restore().select()
     endif
@@ -254,48 +305,21 @@ function! s:selection.dup(dir, count, emode) "{{{1
   endif
 endfunction
 
-function! s:selection.blank(dir, count, emode) "{{{1
+function! s:Selection.blank(dir, count, emode) "{{{1
   call self.insert_blank(a:dir, a:count)
   if !(self.mode ==# 'n')
     normal! gv
   endif
 endfunction
 
-function! s:selection.replace(dir, content, c) "{{{1
-  let area        = textmanip#area#new(a:content)
-  let overwritten = area.cut(a:dir, a:c)
-  let reveal      = self.replaced.pushout(a:dir, overwritten)
-  return area.add(s:u.opposite(a:dir), reveal).data()
-endfunction
+"}}}
 
-function! s:selection.new_replace()
-  let self.replaced = textmanip#area#new([])
-  let emptyline     = self.linewise ? [''] : [repeat(" ", self.width)]
-  return textmanip#area#new(repeat(emptyline, self.height))
-endfunction
-
-function! s:selection.state() "{{{1
-  " should not depend current visual selction to keep selection state
-  " unchanged. So need to extract rectangle region from colum.
-  let content = getline(self.T.line, self.B.line)
-  if !self.linewise
-    let content = getline(self.T.line, self.B.line)
-    let content = map(content, 'v:val[ self.L.colm - 1 : self.R.colm - 1]')
-  endif
-  return  {
-        \ 'line_top':    self.T.line,
-        \ 'line_bottom': self.B.line,
-        \ 'len':         len(content),
-        \ 'content':     content,
-        \ }
-endfunction
-
-" Pulic:
-function! textmanip#selection#new(start, end, mode) "{{{1
-  return s:selection.new(a:start, a:end, a:mode)
+" Api:
+function! textmanip#selection#new(...) "{{{1
+  return call(s:Selection.new, a:000, s:Selection)
 endfunction
 
 function! textmanip#selection#dump() "{{{1
-  return s:selection.dump()
+  return s:Selection.dump()
 endfunction
 " vim: foldmethod=marker

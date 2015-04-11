@@ -1,6 +1,6 @@
-let s:pos = {}
+let s:Pos = {}
 
-function! s:pos.new(pos) "{{{1
+function! s:Pos.new(pos) "{{{1
   " pos is result of `getpos()`
 
   " getpos() return [bufnum, lnum, col, off]
@@ -12,11 +12,11 @@ function! s:pos.new(pos) "{{{1
   return copy(self)
 endfunction
 
-function! s:pos.pos() "{{{1
+function! s:Pos.pos() "{{{1
   return [self.line, self.colm]
 endfunction
 
-function! s:pos.move(line_ope, col_ope) "{{{1
+function! s:Pos.move(line_ope, col_ope) "{{{1
   let self.line = eval(self.line . a:line_ope)
   let self.colm = eval(self.colm . a:col_ope)
   return self
@@ -24,6 +24,6 @@ endfunction
 
 function! textmanip#pos#new(pos) "{{{1
   " pos = [line, col]
-  return s:pos.new(a:pos)
+  return s:Pos.new(a:pos)
 endfunction
 " vim: foldmethod=marker

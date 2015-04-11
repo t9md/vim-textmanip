@@ -23,8 +23,8 @@ function! s:width(val) "{{{1
 endfunction
 "}}}
 
-let s:area = {}
-function! s:area.new(data) "{{{1
+let s:Area = {}
+function! s:Area.new(data) "{{{1
   " data is array of string
   "  ex) [ 'string1', 'string2'...]
   "
@@ -35,33 +35,33 @@ function! s:area.new(data) "{{{1
   return o
 endfunction
 
-function! s:area.data(...) "{{{1
+function! s:Area.data(...) "{{{1
   if a:0
     let self._data = a:1
   endif
   return self._data
 endfunction
 
-function! s:area.height() "{{{1
+function! s:Area.height() "{{{1
   return len(self.data())
 endfunction
 
-function! s:area.is_empty() "{{{1
+function! s:Area.is_empty() "{{{1
   return empty(self.data())
 endfunction
 
-function! s:area.width() "{{{1
+function! s:Area.width() "{{{1
   " assume all data have same width, so this function is useless!
   " FIXME should delete this function?
   return len(self.data()[0])
 endfunction
 
-function! s:area.dump() "{{{1
+function! s:Area.dump() "{{{1
   return PP(self.data())
 endfunction
 
 " add
-function! s:area.add(dir, val) "{{{1
+function! s:Area.add(dir, val) "{{{1
   let lis = type(a:val) ==# 3 ? a:val : [a:val]
 
   if a:dir is '^'
@@ -95,7 +95,7 @@ endfunction
 
 
 " cut
-function! s:area.cut(dir, n) "{{{1
+function! s:Area.cut(dir, n) "{{{1
   " n: number of cut
 
   if a:dir is '^'
@@ -125,45 +125,45 @@ function! s:area.cut(dir, n) "{{{1
 endfunction
 
 " swap
-function! s:area.swap(dir, val) "{{{1
-  let n = s:u.toward(a:dir) is 'V' ? s:height(a:val) : s:width(a:val)
+function! s:Area.swap(dir, val) "{{{1
+  let n = s:u.toward(a:dir) is '^v' ? s:height(a:val) : s:width(a:val)
   let R = self.cut(a:dir, n)
   call self.add(a:dir, a:val)
   return R
 endfunction
 
 " pushout
-function! s:area.pushout(dir, val) "{{{1
-  let n = s:u.toward(a:dir) is 'V' ? s:height(a:val) : s:width(a:val)
+function! s:Area.pushout(dir, val) "{{{1
+  let n = s:u.toward(a:dir) is '^v' ? s:height(a:val) : s:width(a:val)
   call self.add(a:dir, a:val)
   return self.cut(s:u.opposite(a:dir), n)
 endfunction
 
 " rotate
-function! s:area.rotate(dir, n)
+function! s:Area.rotate(dir, n)
   call self.add(
         \ s:u.opposite(a:dir), self.cut(a:dir, a:n))
   return self
 endfunction
 
 " duplcate vertical/horizontal(=side)
-function! s:area.duplicate(dir, n) "{{{1
-  let dir = toupper(a:dir)
-  if dir is 'V' " vertical
+function! s:Area.duplicate(dir, n) "{{{1
+  if a:dir =~# '\^\|v' " vertical
     call self.data(repeat(self.data(), a:n))
     return self
   endif
 
-  if dir is 'H' " horizontal
+  if a:dir =~# '>\|<' " horizontal
     " horizontal, map have side effect, so no need to updata with data()
     call map(self.data(), 'repeat(v:val, a:n)')
     return self
   endif
+  throw 'never happen!'
 endfunction
 "}}}
 
 " Public:
 function! textmanip#area#new(data) "{{{1
-  return s:area.new(a:data)
+  return s:Area.new(a:data)
 endfunction
 " vim: foldmethod=marker

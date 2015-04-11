@@ -50,11 +50,9 @@ function! s:keymap(mode, action, dir) "{{{1
     let plug = printf('<Plug>(textmanip-%s-%s%s)',
           \ a:action, s:direction_map[a:dir], suffix )
 
-    let action_short = a:action is 'duplicate' ? 'dup' : a:action
-
     let key = printf('%snoremap <silent> %s', a:mode, plug)
     let cmd = printf(':<C-u>call textmanip#do("%s", "%s", "%s", "%s")<CR>',
-          \ action_short, a:dir, a:mode, emode)
+          \ a:action, a:dir, a:mode, emode)
     execute key cmd
   endfor
 endfunction "}}}
