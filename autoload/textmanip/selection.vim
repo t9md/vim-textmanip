@@ -4,24 +4,14 @@ let s:u = textmanip#util#get()
 function! s:gsub(str,pat,rep) "{{{1
   return substitute(a:str,'\v\C'.a:pat, a:rep,'g')
 endfunction
-
-function! s:template(string, data) "{{{1
-  " String interpolation from vars Dictionary.
-  " ex)
-  "   string = "%{L+1}l%{C+2}c" 
-  "   data   = { "L+1": 1, "C+2", 2 }
-  "   Result => "%1l%2c"
-  let mark = '\v\{(.{-})\}'
-  return substitute(a:string, mark,'\=a:data[submatch(1)]', 'g')
-endfunction
-  " let wv.pattern   = s:template(font.pattern, s:vars([line_s, col], font))
 "}}}
 
 " Main:
 " @action = [ 'move', 'duplicate', 'blank']
 " @direction = [ '^', 'v', '<', '>' ]
 " @count = Number
-let s:Selection = {}
+let s:Selection = {} 
+
 function! s:Selection.new(s, e, mode, dir) "{{{1
 " both `s` and `e` are instance of textmanip#pos
 
@@ -49,9 +39,14 @@ function! s:Selection.new(s, e, mode, dir) "{{{1
 
   " Preserve original height and width since it's may change while operation
   let self.toward   = s:u.toward(a:dir)
-  let self.height   = self.pos['B'].line - self.pos['T'].line + 1
-  let self.width    = self.pos['R'].colm - self.pos['L'].colm + 1
+  let self.height   = self.pos.B.line - self.pos.T.line + 1
+  let self.width    = self.pos.R.colm - self.pos.L.colm + 1
   let self.linewise = self.is_linewise()
+
+  if self.mode is 'v' && !self.linewise
+    let self.mode = "\<C-v>"
+  endif
+
   return self
 endfunction
 
@@ -82,53 +77,51 @@ function! s:Selection._parse(s) "{{{1
   return {"where" : where, "arg" : arg }
 endfunction
 
-function! s:Selection.content(...) "{{{1
-  if a:0
-    call self.move_pos(a:1)
-  endif
-
+function! s:Selection.yank() "{{{1
   if self.linewise
-    let content = getline(self.pos.T.line, self.pos.B.line)
-    let R = { "content": content, "regtype": "V" }
-  else
-    try
-      let register = textmanip#register#new()
-      call register.save("x")
-      silent exe "normal! " . "\<Esc>"
-      call self.select()
-      silent normal! "xy
-      let content = split(getreg("x"), "\n")
-      let R = { "content": content, "regtype": getregtype("x") }
-    finally
-      call register.restore()
-    endtry
-  endif
-  return R
+    return {
+          \ "content": getline(self.pos.T.line, self.pos.B.line),
+          \ "regtype": "V"
+          \ }
+  endif 
+
+  try
+    let register = textmanip#register#new()
+    call register.save("x")
+    silent execute "normal! \<Esc>"
+    call self.select()
+    silent execute 'normal! "xy'
+    return {
+          \ "content": split(getreg("x"), "\n"),
+          \ "regtype": getregtype("x")
+          \ }
+  finally
+    call register.restore()
+  endtry
 endfunction
 
 function! s:Selection.paste(data) "{{{1
+  if a:data.regtype ==# 'V'
+    " setline() will not clear visual mode , at least my
+    " environment. So ensure return to normal mode before setline()
+    exe "normal! \<Esc>"
+    " using 'p' is not perfect when data include blankline.
+    " It's unnecessarily kindly omit empty blankline when paste!
+    " so I choose setline its more precies to original data
+    call setline(self.pos.T.line, a:data.content)
+    return self
+  endif
+
   try
-    if a:data.regtype ==# 'V'
-      " setline() will not clear visual mode , at least my
-      " environment. So ensure return to normal mode before setline()
-      exe "normal! \<Esc>"
-      " using 'p' is not perfect when data include blankline.
-      " It's unnecessarily kindly omit empty blankline when paste!
-      " so I choose setline its more precies to original data
-      call setline(self.pos.T.line, a:data.content)
-    else
-      let register = textmanip#register#new()
-      call register.save("x")
-      let content = join(a:data.content, "\n")
-      call setreg("x", content, a:data.regtype)
-      normal! "xp
-    endif
+    let register = textmanip#register#new()
+    call register.save("x")
+    let content = join(a:data.content, "\n")
+    call setreg("x", content, a:data.regtype)
+    normal! "xp
+    return self
   finally
-    if exists("register")
-      call register.restore()
-    endif
+    call register.restore()
   endtry
-  return self
 endfunction
 
 function! s:Selection.insert_blank(dir, num) "{{{1
@@ -137,61 +130,32 @@ function! s:Selection.insert_blank(dir, num) "{{{1
         \ a:dir ==# 'v' ? self.pos.B.line   :
         \ a:dir ==# '>' ? self.pos.R.colm   :
         \ a:dir ==# '<' ? self.pos.L.colm-1 : throw   
-  if self.toward is '<>'
+  if self.toward is '^v'
     call append(where, map(range(a:num), '""'))
   else
     let lines = map(getline(self.pos.T.line, self.pos.B.line),
-          \ 'v:val[0 : where - 1 ] . repeat(" ", a:num) . v:val[ where : ]')
+          \ 'v:val[0 : where-1] . repeat(" ", a:num) . v:val[ where : ]')
     call setline(self.pos.T.line, lines)
   endif
   return self
 endfunction
 
-function! s:Selection.select(...) "{{{1
-  if a:0
-    call self.move_pos(a:1)
-  endif
-
+function! s:Selection.select() "{{{1
   call cursor(self.pos.S.pos()+[0])
-  if self.mode !=# 'n'
-    execute "normal! " . self.mode
-  endif
+
+  let mode =
+        \ self.mode is 'v' && !self.linewise
+        \ ? "\<C-v>"
+        \ : self.mode
+
+  execute 'normal! ' . mode
   call cursor(self.pos.E.pos()+[0])
   return self
 endfunction
 
-function! s:Selection.mode_switch() "{{{1
-  if self.mode ==# 'v' && !self.linewise
-    let self._mode_org = self.mode
-    let self.mode = "\<C-v>"
-  endif
-  return self
-endfunction
-
-function! s:Selection.mode_restore() "{{{1
-  if has_key(self, "_mode_org")
-    let self.mode = self._mode_org
-  endif
-  return self
-endfunction
-
-function! s:Selection.extend_EOF(n) "{{{1
-  let amount = (self.pos.B.line + a:n) - line('$')
-  if amount > 0
-    call append(line('$'), map(range(amount), '""'))
-  endif
-endfunction
-
-function! s:Selection.replace(dir, content, c) "{{{1
-  let area        = textmanip#area#new(a:content)
-  let overwritten = area.cut(a:dir, a:c)
-  let reveal      = self.replaced.pushout(a:dir, overwritten)
-  return area.add(s:u.opposite(a:dir), reveal).data()
-endfunction
-
 function! s:Selection.new_replace()
   let self.replaced = textmanip#area#new([])
-  let emptyline     = self.linewise ? [''] : [repeat(" ", self.width)]
+  let emptyline     = self.linewise ? [''] : [repeat(' ', self.width)]
   return textmanip#area#new(repeat(emptyline, self.height))
 endfunction
 
@@ -210,103 +174,126 @@ function! s:Selection.state() "{{{1
         \ 'content':     content,
         \ }
 endfunction
+"}}}
 
 " Action:
 function! s:Selection.move(dir, count, emode) "{{{1
   " support both line and block
   let c = a:count
-   
   if self.toward is '<>' && self.linewise
     " a:dir is '<' or '>', yes its valid Vim operator! so I can pass as-is
-    exe "'<,'>" . repeat(a:dir, c)
+    execute "'<,'>" . repeat(a:dir, c)
     call self.select()
     return
   endif
 
   if a:dir is 'v'
-    call self.extend_EOF(c)
+    " Extend EOF
+    let amount = (self.pos.B.line + c) - line('$')
+    if amount > 0
+      call append(line('$'), map(range(amount), '""'))
+    endif
   endif
 
   let self.vars = { "c": c }
-  let [ chg, last ] =  {
+  let [ before, after ] =  {
         \ "^": [ 'T-c:  ', 'B-c:  ' ],
         \ "v": [ 'B+c:  ', 'T+c:  ' ],
         \ ">": [ 'R  :+c', 'L  :+c' ],
         \ "<": [ 'L  :-c', 'R  :-c' ],
         \ }[a:dir]
 
-  call self.mode_switch()
-  let selected = self.content(chg)
+  call self.move_pos(before)
+  let Y = self.yank()
+
   if a:emode ==# 'insert'
-    let selected.content =
-          \ textmanip#area#new(selected.content).rotate(a:dir, c).data()
-  elseif a:emode ==# 'replace'
-    let selected.content =
-          \ self.replace(a:dir, selected.content, c)
+    let Y.content = textmanip#area#new(Y.content).rotate(a:dir, c).data()
+    call self.select()
+          \.paste(Y)
+          \.move_pos(after)
+          \.select()
+    return
   endif
-  call self.select().paste(selected).mode_restore().select(last)
+
+  if a:emode ==# 'replace'
+    let area        = textmanip#area#new(Y.content)
+    let overwritten = area.cut(a:dir, c)
+    let reveal      = self.replaced.pushout(a:dir, overwritten)
+    call area.add(s:u.opposite(a:dir), reveal)
+    let Y.content = area.data()
+    call self.select()
+          \.paste(Y)
+          \.move_pos(after)
+          \.select()
+    return
+  endif
 endfunction
 
 function! s:Selection.duplicate(dir, count, emode) "{{{1
-  " - normal duplicate(insert/replace) allways linewise
-  " - visual duplicate(insert/replace) linewise/blockwise
   if a:dir =~# '<' && self.linewise
+    " Nothing to do
     normal! gv
     return
   endif
 
-  let [c, h, w ]  = [a:count, self.height, self.width ]
+  let _count = a:count
   if a:dir is '>' && self.linewise
     " dirty hacks
-    let c += 1
+    let _count += 1
   endif
 
-  " change mode before yank with content()
-  call self.mode_switch()
-  let selected = self.content()
-  let duplicated = textmanip#area#new(selected.content).duplicate(a:dir, c)
-  let selected.content = duplicated.data()
-  let self.vars = { 'c': c, 'h': h, 'w': w }
+  let Y = self.yank()
+  let area       = textmanip#area#new(Y.content)
+  let duplicated = area.duplicate(a:dir, _count)
+  let Y.content = duplicated.data()
+  let self.vars = { 'c': _count, 'h': self.height, 'w': self.width }
 
   if a:dir is '>' && self.linewise
-    call self.paste(selected).select()
+    call self.paste(Y).select()
     return
   endif
 
   if a:emode ==# "insert"
-    let [ w_h, chg] =  {
+    let [ w_h, before] =  {
           \ "^": [ "height", 'B+(h*(c-1)):'         ] ,
           \ "v": [ "height", ['T+h: ', 'B+(h*c):'  ]] ,
           \ ">": [ "width" , ['L :+w', 'R :+(w*c)' ]] ,
           \ "<": [ "width" , 'R :+(w*(c-1))'       ] ,
           \ }[a:dir]
-    call self.insert_blank(a:dir, duplicated[w_h]()).select(chg).paste(selected)
+    call self.insert_blank(a:dir, duplicated[w_h]())
+          \.move_pos(before)
+          \.select()
+          \.paste(Y)
     if self.mode ==# 'n'
-      let where = {
-            \ "^": 'T',
-            \ "v": 'B',
-            \ ">": 'L',
-            \ "<": 'R',
-            \ }[a:dir]
-      call cursor( self.pos[where].pos() )
+      let where = { "^": 'T', "v": 'B', ">": 'L', "<": 'R', }[a:dir]
+      call cursor(self.pos[where].pos())
     else
-      call self.mode_restore().select()
+      call self.select()
     endif
-  elseif a:emode ==# "replace"
-    let chg =  {
+    return 
+  endif
+
+  if a:emode ==# "replace"
+    let before =  {
           \ "^": ['T-(h*c):',  'B-h:'],
           \ "v": ['T+h:'    ,  'B+(h*c):' ],
           \ ">": ['L :+w'    , 'R :+(w*c)' ],
           \ "<": ['R :-w'    , 'L :-(w*c)' ],
           \ }[a:dir]
 
-    call self.select(chg)
-    call self.paste(selected).mode_restore().select()
+    call self.move_pos(before)
+          \.select()
+          \.paste(Y)
+          \.select()
   endif
 endfunction
 
 function! s:Selection.blank(dir, count, emode) "{{{1
-  call self.insert_blank(a:dir, a:count)
+  " DONE:
+  let where =
+        \ a:dir ==# '^' ? self.pos.T.line-1 :
+        \ a:dir ==# 'v' ? self.pos.B.line   : throw
+  call append(where, map(range(a:count), '""'))
   if !(self.mode ==# 'n')
     normal! gv
   endif
@@ -322,4 +309,4 @@ endfunction
 function! textmanip#selection#dump() "{{{1
   return s:Selection.dump()
 endfunction
-" vim: foldmethod=marker
+" vim: foldmethod=marker                 

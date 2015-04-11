@@ -1,7 +1,7 @@
 let s:u = textmanip#util#get()
 
 " Util:
-function! s:getpos(mode)
+function! s:getpos(mode) "{{{1
   if a:mode is 'n'
     let s = getpos('.')
     return [s, s]
@@ -13,7 +13,7 @@ function! s:getpos(mode)
   return [s, e]
 endfunction
 
-function! s:cant_move(desc, expr) "{{{1
+function! s:error(desc, expr) "{{{1
   if a:expr
     throw "CANT_MOVE " . a:desc
   endif
@@ -72,23 +72,23 @@ function! s:Textmanip.init(env) "{{{1
   if self.env.action ==# 'dup' && self.env.emode ==# 'insert' | return | endif
   if self.env.dir =~# 'v\|>'  | return | endif
 
-  call self.adjust_count()
+  call self.adjust_count() 
+  let dir = self.env.dir
+  let linewise = self.varea.linewise
 
   try
-    call s:cant_move("Topmost line",
-          \ self.env.dir ==# '^' && self.varea.pos.T.line ==# 1
+    call s:error("Topmost line",
+          \ dir is '^' && self.varea.pos.T.line ==# 1
           \ )
-    call s:cant_move( "all line have no-blank char",
-          \ self.env.dir ==# '<' &&
-          \ self.varea.linewise &&
-          \ empty(filter(self.varea.content().content, "v:val =~# '^\\s'"))
+    call s:error( "all line have no-blank char",
+          \ dir is '<' && linewise &&
+          \ empty(filter(self.varea.yank().content, "v:val =~# '^\\s'"))
           \ )
-    call s:cant_move( "no space to left",
-          \ self.env.dir ==# '<' &&
-          \ !self.varea.linewise &&
+    call s:error( "no space to left",
+          \ self.env.dir ==# '<' && !linewise &&
           \ self.varea.pos.L.colm == 1 && self.env.mode ==# "\<C-v>"
           \ )
-    call s:cant_move("count 0", self.env.count ==# 0 )
+    call s:error("count 0", self.env.count ==# 0 )
   endtry
 endfunction
 
@@ -130,7 +130,7 @@ endfunction
 "}}}
 
 " API:
-function! textmanip#do(action, dir, mode, emode) "{{{1
+function! textmanip#do(action, dir, mode, emode, ...) "{{{1
   let env = {
         \ "action": a:action,
         \ "dir": a:dir,
