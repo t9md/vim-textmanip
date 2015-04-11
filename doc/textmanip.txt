@@ -134,8 +134,8 @@ v_<Plug>(textmanip-move-right)
     able to across original EOL.
 
 * Force 1column movement in right/left move~
-v_<Plug>(textmanip-move-left-1col)
-v_<Plug>(textmanip-move-right-1col)
+v_<Plug>(textmanip-move1-left)
+v_<Plug>(textmanip-move1-right)
 
 * Toggle Mode between 'insert' and 'replace'~
 n_<Plug>(textmanip-toggle-mode)
@@ -164,8 +164,8 @@ v_<Plug>(textmanip-move-down-i)
 v_<Plug>(textmanip-move-left-i)
 v_<Plug>(textmanip-move-right-i)
 
-v_<Plug>(textmanip-move-left-1col-i)
-v_<Plug>(textmanip-move-right-1col-i)
+v_<Plug>(textmanip-move1-left-i)
+v_<Plug>(textmanip-move1-right-i)
 
 Replace~
 Have '-r' suffix
@@ -183,8 +183,8 @@ v_<Plug>(textmanip-move-down-r)
 v_<Plug>(textmanip-move-left-r)
 v_<Plug>(textmanip-move-right-r)
 
-v_<Plug>(textmanip-move-left-1col-r)
-v_<Plug>(textmanip-move-right-1col-r)
+v_<Plug>(textmanip-move1-left-r)
+v_<Plug>(textmanip-move1-right-r)
 ==============================================================================
 FUNCTION						 *textmanip-functions*
 
@@ -424,6 +424,10 @@ layout.
 
 ==============================================================================
 CHANGELOG						 *textmanip-changelog*
+2015-04-12:
+	- [caution]
+	  rename <Plug>(textmanip-move-*-1col) to <Plug>(textmanip-move1-*)
+
 2013-11-04: v2.0
 	- [new] now duplicate right/left support.
 	- refactoring

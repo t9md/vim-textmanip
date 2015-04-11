@@ -60,9 +60,6 @@ function! s:Textmanip.init(env) "{{{1
 
   let self.env = a:env
 
-  " v FIXME shoud delete?
-  let self.env.toward = s:u.toward(a:env.dir)
-
   if get(b:, "textmanip_status", {}) == self.varea.state() && a:env.action ==# 'move'
     " continuous move
     silent! undojoin
@@ -127,37 +124,36 @@ function! s:Textmanip.kickout(num, guide) "{{{1
   let new_str  = join([s1, pad, s2],'')
   return new_str
 endfunction
-
-function! s:Textmanip.debug() "{{{1
-  return PP(b:textmanip_status)
-endfunction
 "}}}
 
 " API:
-function! textmanip#do(action, dir, mode, emode, ...) "{{{1
-  let env = {
-        \ "action": a:action,
-        \ "dir": a:dir,
-        \ "mode": a:mode ==# 'x' ? visualmode() : a:mode,
-        \ "emode": (a:emode ==# 'auto') ? g:textmanip_current_mode : a:emode,
-        \ "count": v:count1,
-        \ }
-  call s:Textmanip.start(env)
-endfunction
+function! textmanip#start(action, dir, mode, emode) "{{{1
+  let action = a:action ==# 'move1' ? 'move' a:action
 
-" [FIXME] Dirty!!
-function! textmanip#do1(action, dir, mode, emode) "{{{1
   try
-    let _textmanip_move_ignore_shiftwidth = g:textmanip_move_ignore_shiftwidth
-    let _textmanip_move_shiftwidth        = g:textmanip_move_shiftwidth
+    if a:action ==# 'move1'
+      let _ignore_shiftwidth  = g:textmanip_move_ignore_shiftwidth
+      let _shiftwidth         = g:textmanip_move_shiftwidth
+      let g:textmanip_move_ignore_shiftwidth = 1
+      let g:textmanip_move_shiftwidth        = 1
+    endif
 
-    let g:textmanip_move_ignore_shiftwidth = 1
-    let g:textmanip_move_shiftwidth        = 1
-    call textmanip#do(a:action, a:dir, a:mode, a:emode)
+    let env = {
+          \ "action": action,
+          \ "dir": a:dir,
+          \ "mode": a:mode ==# 'x' ? visualmode() : a:mode,
+          \ "emode": (a:emode ==# 'auto') ? g:textmanip_current_mode : a:emode,
+          \ "count": v:count1,
+          \ }
+    call s:Textmanip.start(env)
+
   finally
-    let g:textmanip_move_ignore_shiftwidth = _textmanip_move_ignore_shiftwidth
-    let g:textmanip_move_shiftwidth        = _textmanip_move_shiftwidth
+    if a:action ==# 'move1'
+      let g:textmanip_move_ignore_shiftwidth = _ignore_shiftwidth
+      let g:textmanip_move_shiftwidth        = _shiftwidth
+    endif
   endtry
+endif
 endfunction
 
 " [FIXME] very rough state.
@@ -184,8 +180,6 @@ endfunction
 function! textmanip#mode() "{{{1
   return g:textmanip_current_mode
 endfunction
+"}}}
 
-function! textmanip#debug() "{{{1
-  echo s:Textmanip.debug()
-endfunction
 " vim: foldmethod=marker
