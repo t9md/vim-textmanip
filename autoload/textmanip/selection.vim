@@ -84,6 +84,14 @@ endfunction
 
 function! s:Selection.yank() "{{{1
   " DONE:
+  if self.linewise
+    " CAUTION: `y` ignore blank-line, need to use getline().
+    return {
+          \ "content": getline( self.pos.T.line, self.pos.B.line),
+          \ "regtype": "V"
+          \ }
+  endif
+
   try
     let reg = textmanip#register#save('x')
     silent execute "normal! \<Esc>"
@@ -193,7 +201,6 @@ function! s:Selection.move(dir, count, emode) "{{{1
     " a:dir is '<' or '>', yes its valid Vim operator! so I can pass as-is
     execute "'<,'>" . repeat(a:dir, c)
     call self.select()
-    call Plog('hoge')
     return
   endif
 

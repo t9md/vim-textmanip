@@ -38,9 +38,7 @@ function! s:Textmanip.start(env) "{{{1
     call self.varea[action](dir, a:env.count, a:env.emode)
 
 
-    call Plog(a:env.mode)
     if a:env.mode ==# 'v'
-      call Plog('change')
       execute 'normal! v'
     endif
 
@@ -58,7 +56,6 @@ function! s:Textmanip.init(env) "{{{1
   let [s, e] = s:getpos(a:env.mode)
   let pos_s  = textmanip#pos#new(s)
   let pos_e  = textmanip#pos#new(e)
-  " call Plog(a:env)
   let self.varea  = textmanip#selection#new(pos_s, pos_e, a:env.mode, a:env.dir)
 
   let self.env = a:env
