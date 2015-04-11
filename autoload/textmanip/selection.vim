@@ -43,10 +43,6 @@ function! s:Selection.new(s, e, mode, dir) "{{{1
   let self.width    = self.pos.R.colm - self.pos.L.colm + 1
   let self.linewise = self.is_linewise()
 
-  if self.mode is 'v' && !self.linewise
-    let self.mode = "\<C-v>"
-  endif
-
   return self
 endfunction
 
@@ -55,6 +51,64 @@ function! s:Selection.is_linewise()
         \ (self.mode is 'n' ) ||
         \ (self.mode is 'V' ) ||
         \ (self.mode is 'v' && self.height > 1)
+endfunction
+
+function! s:Selection.select() "{{{1
+  call cursor(self.pos.S.pos()+[0])
+  if self.mode is 'n'
+    return self
+  endif
+
+  let mode = self.mode
+  if self.mode is 'v' 
+    let mode = (self.height is 1) ? "\<C-v>" : 'V'
+  endif
+  execute 'normal! ' . mode
+  call cursor(self.pos.E.pos()+[0])
+  return self
+endfunction
+
+function! s:Selection.yank() "{{{1
+  try
+    let reg = textmanip#register#save('x')
+    silent execute "normal! \<Esc>"
+    call self.select()
+    if self.mode is 'n'
+      silent execute 'normal! "xyy'
+    else
+      silent execute 'normal! "xy'
+    endif
+    return {
+          \ "content": split(getreg('x'), "\n"),
+          \ "regtype": getregtype('x')
+          \ }
+  finally
+    call reg.restore()
+  endtry
+endfunction
+
+function! s:Selection.paste(data) "{{{1
+  if a:data.regtype ==# 'V'
+    execute "normal! \<Esc>"
+
+    " Vim BUG?
+    " Using 'p' is not perfect when data include blank-line.
+    " It's unnecessarily omit empty blank-line when paste.
+    " So I choose setline() to respect blank-line.
+    call setline(self.pos.T.line, a:data.content)
+    return self
+  endif
+
+  try
+    let reg = textmanip#register#save('x')
+    call setreg('x',
+          \ join(a:data.content, "\n"),
+          \ a:data.regtype)
+    silent execute 'normal! "xp'
+    return self
+  finally
+    call reg.restore()
+  endtry
 endfunction
 
 function! s:Selection.move_pos(ope) "{{{1
@@ -77,53 +131,6 @@ function! s:Selection._parse(s) "{{{1
   return {"where" : where, "arg" : arg }
 endfunction
 
-function! s:Selection.yank() "{{{1
-  if self.linewise
-    return {
-          \ "content": getline(self.pos.T.line, self.pos.B.line),
-          \ "regtype": "V"
-          \ }
-  endif 
-
-  try
-    let register = textmanip#register#new()
-    call register.save("x")
-    silent execute "normal! \<Esc>"
-    call self.select()
-    silent execute 'normal! "xy'
-    return {
-          \ "content": split(getreg("x"), "\n"),
-          \ "regtype": getregtype("x")
-          \ }
-  finally
-    call register.restore()
-  endtry
-endfunction
-
-function! s:Selection.paste(data) "{{{1
-  if a:data.regtype ==# 'V'
-    " setline() will not clear visual mode , at least my
-    " environment. So ensure return to normal mode before setline()
-    exe "normal! \<Esc>"
-    " using 'p' is not perfect when data include blankline.
-    " It's unnecessarily kindly omit empty blankline when paste!
-    " so I choose setline its more precies to original data
-    call setline(self.pos.T.line, a:data.content)
-    return self
-  endif
-
-  try
-    let register = textmanip#register#new()
-    call register.save("x")
-    let content = join(a:data.content, "\n")
-    call setreg("x", content, a:data.regtype)
-    normal! "xp
-    return self
-  finally
-    call register.restore()
-  endtry
-endfunction
-
 function! s:Selection.insert_blank(dir, num) "{{{1
   let where =
         \ a:dir ==# '^' ? self.pos.T.line-1 :
@@ -140,18 +147,6 @@ function! s:Selection.insert_blank(dir, num) "{{{1
   return self
 endfunction
 
-function! s:Selection.select() "{{{1
-  call cursor(self.pos.S.pos()+[0])
-
-  let mode =
-        \ self.mode is 'v' && !self.linewise
-        \ ? "\<C-v>"
-        \ : self.mode
-
-  execute 'normal! ' . mode
-  call cursor(self.pos.E.pos()+[0])
-  return self
-endfunction
 
 function! s:Selection.new_replace()
   let self.replaced = textmanip#area#new([])

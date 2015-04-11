@@ -12,6 +12,7 @@ function! s:Register.save(...) "{{{1
           \ "type":    getregtype(reg)
           \ }
   endfor
+  return self
 endfunction
 
 function! s:Register.restore() "{{{1
@@ -23,7 +24,8 @@ endfunction
 "}}}
 
 " API:
-function! textmanip#register#new() "{{{1
-  return s:Register.new()
+function! textmanip#register#save(...) "{{{1
+  let reg = s:Register.new()
+  return call(reg.save, a:000, reg)
 endfunction
 " vim: foldmethod=marker
