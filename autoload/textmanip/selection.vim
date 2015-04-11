@@ -4,6 +4,16 @@ let s:u = textmanip#util#get()
 function! s:gsub(str,pat,rep) "{{{1
   return substitute(a:str,'\v\C'.a:pat, a:rep,'g')
 endfunction
+
+function! s:template(string, vars) "{{{1
+  " String interpolation from vars Dictionary.
+  " ex)
+  "   string = "%{L+1}l%{C+2}c" 
+  "   data   = { "L+1": 1, "C+2", 2 }
+  "   Result => "%1l%2c"
+  let mark = '\v\{(.{-})\}'
+  return substitute(a:string, mark,'\=a:vars[submatch(1)]', 'g')
+endfunction
 "}}}
 
 " Main:
@@ -13,7 +23,8 @@ endfunction
 let s:Selection = {} 
 
 function! s:Selection.new(s, e, mode, dir) "{{{1
-" both `s` and `e` are instance of textmanip#pos
+  "DONE:
+  " both `s` and `e` are instance of textmanip#pos
 
   let [s, e]      = [a:s, a:e]
   let self.pos    = {}
@@ -22,13 +33,13 @@ function! s:Selection.new(s, e, mode, dir) "{{{1
   let self.vars   = {}
   let self.toward = s:u.toward(a:dir)
 
-"     [   1   ]    [   2   ]    [   3   ]    [   4   ]
-"    s----+----+  e----+----+  +----+----s  +----+----e
-"    |    |    |  |    |    |  |    |    |  |    |    |
-"    +----+----+  +----+----+  +----+----+  +----+----+
-"    |    |    |  |    |    |  |    |    |  |    |    |
-"    +----+----e  +----+----s  e----+----+  s----+----+
-"
+  "     [   1   ]    [   2   ]    [   3   ]    [   4   ]
+  "    s----+----+  e----+----+  +----+----s  +----+----e
+  "    |    |    |  |    |    |  |    |    |  |    |    |
+  "    +----+----+  +----+----+  +----+----+  +----+----+
+  "    |    |    |  |    |    |  |    |    |  |    |    |
+  "    +----+----e  +----+----s  e----+----+  s----+----+
+  "
   let [top, bottom, left, right] =
         \ 1 && (s.line <= e.line) && (s.colm <= e.colm) ? [ s, e, s, e ] :
         \ 2 && (s.line >= e.line) && (s.colm >= e.colm) ? [ e, s, e, s ] :
@@ -47,33 +58,37 @@ function! s:Selection.new(s, e, mode, dir) "{{{1
 endfunction
 
 function! s:Selection.is_linewise()
+  " may be unnecessary
   return 
-        \ (self.mode is 'n' ) ||
-        \ (self.mode is 'V' ) ||
-        \ (self.mode is 'v' && self.height > 1)
+        \ (self.mode ==# 'n' ) ||
+        \ (self.mode ==# 'V' ) ||
+        \ (self.mode ==# 'v' && self.height > 1)
 endfunction
 
 function! s:Selection.select() "{{{1
+  " DONE:
   call cursor(self.pos.S.pos()+[0])
-  if self.mode is 'n'
+
+  if self.mode ==# 'n'
     return self
   endif
 
-  let mode = self.mode
-  if self.mode is 'v' 
-    let mode = (self.height is 1) ? "\<C-v>" : 'V'
-  endif
+  let mode =
+        \ self.mode ==# 'v' ? ( self.height ==# 1 ? "\<C-v>" : 'V' ) :
+        \ self.mode
+
   execute 'normal! ' . mode
   call cursor(self.pos.E.pos()+[0])
   return self
 endfunction
 
 function! s:Selection.yank() "{{{1
+  " DONE:
   try
     let reg = textmanip#register#save('x')
     silent execute "normal! \<Esc>"
     call self.select()
-    if self.mode is 'n'
+    if self.mode ==# 'n'
       silent execute 'normal! "xyy'
     else
       silent execute 'normal! "xy'
@@ -91,7 +106,6 @@ function! s:Selection.paste(data) "{{{1
   if a:data.regtype ==# 'V'
     execute "normal! \<Esc>"
 
-    " Vim BUG?
     " Using 'p' is not perfect when data include blank-line.
     " It's unnecessarily omit empty blank-line when paste.
     " So I choose setline() to respect blank-line.
@@ -111,12 +125,12 @@ function! s:Selection.paste(data) "{{{1
   endtry
 endfunction
 
-function! s:Selection.move_pos(ope) "{{{1
+function! s:Selection.move_pos(ope, vars) "{{{1
   for o in s:u.toList(a:ope)
     if empty(o)
       continue
     endif
-    for [k,v] in items(self.vars)
+    for [k,v] in items(a:vars)
       let o = s:gsub(o, k, v)
     endfor
     let p = self._parse(o)
@@ -137,7 +151,7 @@ function! s:Selection.insert_blank(dir, num) "{{{1
         \ a:dir ==# 'v' ? self.pos.B.line   :
         \ a:dir ==# '>' ? self.pos.R.colm   :
         \ a:dir ==# '<' ? self.pos.L.colm-1 : throw   
-  if self.toward is '^v'
+  if self.toward ==# '^v'
     call append(where, map(range(a:num), '""'))
   else
     let lines = map(getline(self.pos.T.line, self.pos.B.line),
@@ -175,14 +189,15 @@ endfunction
 function! s:Selection.move(dir, count, emode) "{{{1
   " support both line and block
   let c = a:count
-  if self.toward is '<>' && self.linewise
+  if self.toward ==# '<>' && self.linewise
     " a:dir is '<' or '>', yes its valid Vim operator! so I can pass as-is
     execute "'<,'>" . repeat(a:dir, c)
     call self.select()
+    call Plog('hoge')
     return
   endif
 
-  if a:dir is 'v'
+  if a:dir ==# 'v'
     " Extend EOF
     let amount = (self.pos.B.line + c) - line('$')
     if amount > 0
@@ -190,7 +205,7 @@ function! s:Selection.move(dir, count, emode) "{{{1
     endif
   endif
 
-  let self.vars = { "c": c }
+  let vars = { "c": c }
   let [ before, after ] =  {
         \ "^": [ 'T-c:  ', 'B-c:  ' ],
         \ "v": [ 'B+c:  ', 'T+c:  ' ],
@@ -198,14 +213,14 @@ function! s:Selection.move(dir, count, emode) "{{{1
         \ "<": [ 'L  :-c', 'R  :-c' ],
         \ }[a:dir]
 
-  call self.move_pos(before)
+  call self.move_pos(before, vars)
   let Y = self.yank()
 
   if a:emode ==# 'insert'
     let Y.content = textmanip#area#new(Y.content).rotate(a:dir, c).data()
     call self.select()
           \.paste(Y)
-          \.move_pos(after)
+          \.move_pos(after, vars)
           \.select()
     return
   endif
@@ -218,7 +233,7 @@ function! s:Selection.move(dir, count, emode) "{{{1
     let Y.content = area.data()
     call self.select()
           \.paste(Y)
-          \.move_pos(after)
+          \.move_pos(after, vars)
           \.select()
     return
   endif
@@ -232,7 +247,7 @@ function! s:Selection.duplicate(dir, count, emode) "{{{1
   endif
 
   let _count = a:count
-  if a:dir is '>' && self.linewise
+  if a:dir ==# '>' && self.linewise
     " dirty hacks
     let _count += 1
   endif
@@ -241,13 +256,13 @@ function! s:Selection.duplicate(dir, count, emode) "{{{1
   let area       = textmanip#area#new(Y.content)
   let duplicated = area.duplicate(a:dir, _count)
   let Y.content = duplicated.data()
-  let self.vars = { 'c': _count, 'h': self.height, 'w': self.width }
 
-  if a:dir is '>' && self.linewise
+  if a:dir ==# '>' && self.linewise
     call self.paste(Y).select()
     return
   endif
 
+  let vars = { 'c': _count, 'h': self.height, 'w': self.width }
   if a:emode ==# "insert"
     let [ w_h, before] =  {
           \ "^": [ "height", 'B+(h*(c-1)):'         ] ,
@@ -256,7 +271,7 @@ function! s:Selection.duplicate(dir, count, emode) "{{{1
           \ "<": [ "width" , 'R :+(w*(c-1))'       ] ,
           \ }[a:dir]
     call self.insert_blank(a:dir, duplicated[w_h]())
-          \.move_pos(before)
+          \.move_pos(before, vars)
           \.select()
           \.paste(Y)
     if self.mode ==# 'n'
@@ -276,7 +291,7 @@ function! s:Selection.duplicate(dir, count, emode) "{{{1
           \ "<": ['R :-w'    , 'L :-(w*c)' ],
           \ }[a:dir]
 
-    call self.move_pos(before)
+    call self.move_pos(before, vars)
           \.select()
           \.paste(Y)
           \.select()
@@ -304,4 +319,4 @@ endfunction
 function! textmanip#selection#dump() "{{{1
   return s:Selection.dump()
 endfunction
-" vim: foldmethod=marker                 
+" vim: foldmethod=marker

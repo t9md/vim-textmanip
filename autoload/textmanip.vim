@@ -2,7 +2,7 @@ let s:u = textmanip#util#get()
 
 " Util:
 function! s:getpos(mode) "{{{1
-  if a:mode is 'n'
+  if a:mode ==# 'n'
     let s = getpos('.')
     return [s, s]
   endif
@@ -37,7 +37,14 @@ function! s:Textmanip.start(env) "{{{1
 
     call self.varea[action](dir, a:env.count, a:env.emode)
 
-    if action is 'move'
+
+    call Plog(a:env.mode)
+    if a:env.mode ==# 'v'
+      call Plog('change')
+      execute 'normal! v'
+    endif
+
+    if action ==# 'move'
       let b:textmanip_status = self.varea.state()
     endif
   catch /CANT_MOVE/
@@ -78,10 +85,10 @@ function! s:Textmanip.init(env) "{{{1
 
   try
     call s:error("Topmost line",
-          \ dir is '^' && self.varea.pos.T.line ==# 1
+          \ dir ==# '^' && self.varea.pos.T.line ==# 1
           \ )
     call s:error( "all line have no-blank char",
-          \ dir is '<' && linewise &&
+          \ dir ==# '<' && linewise &&
           \ empty(filter(self.varea.yank().content, "v:val =~# '^\\s'"))
           \ )
     call s:error( "no space to left",
@@ -134,8 +141,8 @@ function! textmanip#do(action, dir, mode, emode, ...) "{{{1
   let env = {
         \ "action": a:action,
         \ "dir": a:dir,
-        \ "mode": a:mode is 'x' ? visualmode() : a:mode,
-        \ "emode": (a:emode is 'auto') ? g:textmanip_current_mode : a:emode,
+        \ "mode": a:mode ==# 'x' ? visualmode() : a:mode,
+        \ "emode": (a:emode ==# 'auto') ? g:textmanip_current_mode : a:emode,
         \ "count": v:count1,
         \ }
   call s:Textmanip.start(env)
@@ -172,7 +179,7 @@ endfunction
 
 function! textmanip#toggle_mode() "{{{1
   let g:textmanip_current_mode =
-        \ g:textmanip_current_mode is 'insert'
+        \ g:textmanip_current_mode ==# 'insert'
         \ ? 'replace' : 'insert'
   echo "textmanip-mode: " . g:textmanip_current_mode
 endfunction

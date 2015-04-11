@@ -54,7 +54,7 @@ function! s:define_type_checker() "{{{1
   for [type, number] in items(types)
     let s = ''
     let s .= 'function! s:is' . type . '(v)' . "\n"
-    let s .= '  return type(a:v) is ' . number . "\n"
+    let s .= '  return type(a:v) ==# ' . number . "\n"
     let s .= 'endfunction' . "\n"
     execute s
   endfor
