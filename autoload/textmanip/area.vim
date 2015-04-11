@@ -14,12 +14,6 @@
 
 let s:u = textmanip#util#get()
 
-function! s:toward(dir) "{{{1
-  return
-        \ a:dir =~#  '\^\|v' ? 'V' :
-        \ a:dir =~#   '>\|<' ? 'H' : throw
-endfunction
-
 function! s:height(val) "{{{1
   return len(a:val)
 endfunction
@@ -132,7 +126,7 @@ endfunction
 
 " swap
 function! s:area.swap(dir, val) "{{{1
-  let n = s:toward(a:dir) is 'V' ? s:height(a:val) : s:width(a:val)
+  let n = s:u.toward(a:dir) is 'V' ? s:height(a:val) : s:width(a:val)
   let R = self.cut(a:dir, n)
   call self.add(a:dir, a:val)
   return R
@@ -140,7 +134,7 @@ endfunction
 
 " pushout
 function! s:area.pushout(dir, val) "{{{1
-  let n = s:toward(a:dir) is 'V' ? s:height(a:val) : s:width(a:val)
+  let n = s:u.toward(a:dir) is 'V' ? s:height(a:val) : s:width(a:val)
   call self.add(a:dir, a:val)
   return self.cut(s:u.opposite(a:dir), n)
 endfunction

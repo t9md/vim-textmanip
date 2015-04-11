@@ -4,70 +4,45 @@ function! s:gsub(str,pat,rep) "{{{1
   return substitute(a:str,'\v\C'.a:pat, a:rep,'g')
 endfunction
 
-function! s:toward(dir) "{{{1
-  return
-        \ a:dir =~#  '\^\|v' ? 'V' :
-        \ a:dir =~#   '>\|<' ? 'H' : throw
-endfunction
-
 let s:selection = {}
 
 function! s:selection.new(s, e, mode) "{{{1
-"    u--- s----+----+
+" both `s` and `e` are instance of textmanip#pos
+
+"    T--- s----+----+
 "      |  |    |    |
 "  height +----+----+  s => start  e => end
-"      |  |    |    |  u => up     d => downt
-"    d--- +----+----e  l => left   r => righ
+"      |  |    |    |  T => Top    B => Bottom
+"    B--- +----+----e  L => Left   r => Right
 "         |--width--|
-"         l         r
-  let self.mode = a:mode
-  let self.s    = textmanip#pos#new(a:s)
-  let self.e    = textmanip#pos#new(a:e)
+"         L         R
+  let [s, e]           = [a:s, a:e]
+  let [self.s, self.e] = [s, e]
+  let self.mode        = a:mode
+  let self.vars        = {}
 
-  " let self.toward = "vertical" or "horizontal"
-  " let self.toward = a:dir =~# 'u\|d' ? 'V' :
-        " \ a:dir =~# 'l\|r' ? 'H' : throw
-
-  let self.vars = {}
-  let s = self.s
-  let e = self.e
-  let l_s = s.line()
-  let l_e = e.line()
-  let c_s = s.col()
-  let c_e = e.col()
-
-"     [ case1 ]    [ case2 ]    [ case3 ]    [ case4 ]
+"     [   1   ]    [   2   ]    [   3   ]    [   4   ]
 "    s----+----+  e----+----+  +----+----s  +----+----e
-"    |    |    |  |    |    |  |    |    |  +    |    |
+"    |    |    |  |    |    |  |    |    |  |    |    |
 "    +----+----+  +----+----+  +----+----+  +----+----+
 "    |    |    |  |    |    |  |    |    |  |    |    |
 "    +----+----e  +----+----s  e----+----+  s----+----+
-  let case =
-        \ (l_s <= l_e) && (c_s <= c_e) ? 1 :
-        \ (l_s >= l_e) && (c_s >= c_e) ? 2 :
-        \ (l_s <= l_e) && (c_s >= c_e) ? 3 :
-        \ (l_s >= l_e) && (c_s <= c_e) ? 4 :
-        \ throw
-
   let [self.T, self.B, self.L, self.R ] =
-        \ case ==# 1 ?  [ s, e, s, e ] :
-        \ case ==# 2 ?  [ e, s, e, s ] :
-        \ case ==# 3 ?  [ s, e, e, s ] :
-        \ case ==# 4 ?  [ e, s, s, e ] :
+        \ 1 && (s.line <= e.line) && (s.colm <= e.colm) ? [ s, e, s, e ] :
+        \ 2 && (s.line >= e.line) && (s.colm >= e.colm) ? [ e, s, e, s ] :
+        \ 3 && (s.line <= e.line) && (s.colm >= e.colm) ? [ s, e, e, s ] :
+        \ 4 && (s.line >= e.line) && (s.colm <= e.colm) ? [ e, s, s, e ] :
         \ throw
 
-  " pleserve original height and width since it's may change while operation
-  let self.height = self.B.line() - self.T.line() + 1
-  let self.width  = self.R.col()  - self.L.col()  + 1
+  " Preserve original height and width since it's may change while operation
+  let self.height = self.B.line - self.T.line + 1
+  let self.width  = self.R.colm - self.L.colm + 1
+
   let self.linewise =
         \ (self.mode ==# 'n' ) ||
         \ (self.mode ==# 'V' ) ||
         \ (self.mode ==# 'v' && self.height > 1)
-  return deepcopy(self)
-endfunction
-
-function! s:selection.dump() "{{{1
-  return PP([self.s.pos(), self.e.pos()])
+  return self
 endfunction
 
 function! s:selection.move_pos(ope) "{{{1
@@ -84,10 +59,10 @@ function! s:selection.move_pos(ope) "{{{1
 endfunction
 
 function! s:selection.content(...) "{{{1
-
   call self.move_pos(a:0 ? a:1 : '')
+
   if self.linewise
-    let content = getline( self.T.line(), self.B.line() )
+    let content = getline(self.T.line, self.B.line)
     let R = { "content": content, "regtype": "V" }
   else
     try
@@ -114,7 +89,7 @@ function! s:selection.paste(data) "{{{1
       " using 'p' is not perfect when data include blankline.
       " It's unnecessarily kindly omit empty blankline when paste!
       " so I choose setline its more precies to original data
-      call setline(self.T.line(), a:data.content)
+      call setline(self.T.line, a:data.content)
     else
       let register = textmanip#register#new()
       call register.save("x")
@@ -133,16 +108,16 @@ endfunction
 
 function! s:selection.insert_blank(dir, num) "{{{1
   let where =
-        \ a:dir ==# '^' ? self.T.line() - 1 :
-        \ a:dir ==# 'v' ? self.B.line()     :
-        \ a:dir ==# '>' ? self.R.col()      :
-        \ a:dir ==# '<' ? self.L.col() - 1  : throw
-  if s:toward(a:dir) is 'V'
+        \ a:dir ==# '^' ? self.T.line-1 :
+        \ a:dir ==# 'v' ? self.B.line   :
+        \ a:dir ==# '>' ? self.R.colm   :
+        \ a:dir ==# '<' ? self.L.colm-1 : throw
+  if s:u.toward(a:dir) is 'V'
     call append(where, map(range(a:num), '""'))
   else
-    let lines = map(getline(self.T.line(), self.B.line()),
+    let lines = map(getline(self.T.line, self.B.line),
           \ 'v:val[0 : where - 1 ] . repeat(" ", a:num) . v:val[ where : ]')
-    call setline(self.T.line(), lines)
+    call setline(self.T.line, lines)
   endif
   return self
 endfunction
@@ -180,7 +155,7 @@ function! s:selection.mode_restore() "{{{1
 endfunction
 
 function! s:selection.extend_EOF(n) "{{{1
-  let amount = (self.B.line() + a:n ) - line('$')
+  let amount = (self.B.line + a:n) - line('$')
   if amount > 0
     call append(line('$'), map(range(amount), '""'))
   endif
@@ -190,7 +165,7 @@ function! s:selection.move(dir, count, emode) "{{{1
   " support both line and block
   let c = a:count
    
-  if s:toward(a:dir) is 'H' && self.linewise
+  if s:u.toward(a:dir) is 'H' && self.linewise
     " a:dir is '<' or '>', yes its valid Vim operator! so I can pass as-is
     exe "'<,'>" . repeat(a:dir, c)
     call self.select()
@@ -222,9 +197,8 @@ function! s:selection.move(dir, count, emode) "{{{1
 endfunction
 
 function! s:selection.dup(dir, count, emode) "{{{1
-  " work following case
-  " * normal duplicate(insert/replace) allways linewise
-  " * visual duplicate(insert/replace) linewise/blockwise
+  " - normal duplicate(insert/replace) allways linewise
+  " - visual duplicate(insert/replace) linewise/blockwise
   if a:dir =~# '<' && self.linewise
     normal! gv
     return
@@ -239,7 +213,7 @@ function! s:selection.dup(dir, count, emode) "{{{1
   " change mode before yank with content()
   call self.mode_switch()
   let selected = self.content()
-  let duplicated = textmanip#area#new(selected.content).duplicate(s:toward(a:dir), c)
+  let duplicated = textmanip#area#new(selected.content).duplicate(s:u.toward(a:dir), c)
   let selected.content = duplicated.data()
   let self.vars = { 'c': c, 'h': h, 'w': w }
 
@@ -257,7 +231,13 @@ function! s:selection.dup(dir, count, emode) "{{{1
           \ }[a:dir]
     call self.insert_blank(a:dir, duplicated[w_h]()).select(chg).paste(selected)
     if self.mode ==# 'n'
-      call cursor( self[a:dir].pos() )
+      let where = {
+            \ "^": 'T':
+            \ "v": 'B':
+            \ ">": 'L':
+            \ "<": 'R',
+            \ }[a:dir]
+      call cursor( self[where].pos() )
     else
       call self.mode_restore().select()
     endif
@@ -297,16 +277,16 @@ endfunction
 function! s:selection.state() "{{{1
   " should not depend current visual selction to keep selection state
   " unchanged. So need to extract rectangle region from colum.
-  let content = getline(self.T.line(), self.B.line())
+  let content = getline(self.T.line, self.B.line)
   if !self.linewise
-    let content = getline(self.T.line(), self.B.line())
-    let content = map(content, 'v:val[ self.L.col() - 1 : self.R.col() - 1]')
+    let content = getline(self.T.line, self.B.line)
+    let content = map(content, 'v:val[ self.L.colm - 1 : self.R.colm - 1]')
   endif
   return  {
-        \ 'line_top': self.T.line(),
-        \ 'line_bottom': self.B.line(),
-        \ 'len': len(content),
-        \ 'content': content,
+        \ 'line_top':    self.T.line,
+        \ 'line_bottom': self.B.line,
+        \ 'len':         len(content),
+        \ 'content':     content,
         \ }
 endfunction
 

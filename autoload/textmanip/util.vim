@@ -6,7 +6,7 @@ endfunction
 let s:sid = s:SID()
 
 
-function! s:_opposite_init()
+function! s:_opposite_init() "{{{1
   let data = [
       \   [ 'U', 'D' ],
       \   [ 'L', 'R' ],
@@ -28,16 +28,23 @@ function! s:_opposite_init()
     endif
   endfor
   return R
-endfunction
+endfunction "}}}
 let s:opposite_data = s:_opposite_init()
 
-function! s:opposite(char)
+function! s:opposite(char) "{{{1
   return get(s:opposite_data, a:char)
+endfunction
+
+function! s:toward(dir) "{{{1
+  return
+        \ a:dir =~#  '\^\|v' ? 'V' :
+        \ a:dir =~#   '>\|<' ? 'H' : throw
 endfunction
 "}}}
 
 let s:functions = [
       \ 'opposite',
+      \ 'toward',
       \ ]
 
 let s:u = {}

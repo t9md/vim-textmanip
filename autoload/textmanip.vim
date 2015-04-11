@@ -1,19 +1,15 @@
+let s:u = textmanip#util#get()
+
 let s:textmanip = {}
-function! s:toward(dir) "{{{1
-  return
-        \ a:dir =~# '\cU\|D' ? 'V' :
-        \ a:dir =~#  '\^\|v' ? 'V' :
-        \ a:dir =~# '\cL\|R' ? 'H' :
-        \ a:dir =~#   '>\|<' ? 'H' : throw
-endfunction
 
 function! s:textmanip.start(env) "{{{1
-  " call Plog(a:env)
   try
-    let sw = g:textmanip_move_ignore_shiftwidth
-          \ ? g:textmanip_move_shiftwidth : &shiftwidth
+    let shiftwidth = g:textmanip_move_ignore_shiftwidth
+          \ ? g:textmanip_move_shiftwidth
+          \ : &shiftwidth
     let options = textmanip#options#new()
-    call options.replace({ '&virtualedit': 'all', '&shiftwidth': sw })
+    call options.replace({'&virtualedit': 'all', '&shiftwidth': shiftwidth })
+
     call self.init(a:env)
     call self.varea[self.env.action](a:env.dir, a:env.count, a:env.emode)
 
@@ -29,8 +25,10 @@ endfunction
 
 function! s:textmanip.init(env) "{{{1
   let self.env = a:env
-  let self.varea   = self.preserve_selection()
-
+  let [s, e] = self.getpos()
+  let pos_s = textmanip#pos#new(s)
+  let pos_e = textmanip#pos#new(e)
+  let varea = textmanip#selection#new(pos_s, pos_e, self.env.mode)
   if get(b:, "textmanip_status", {}) == self.varea.state() &&
         \ a:env.action ==# 'move'
     " continuous move
@@ -40,7 +38,7 @@ function! s:textmanip.init(env) "{{{1
   endif
   let self.varea.replaced = b:textmanip_replaced
 
-  let self.env.toward = s:toward(self.env.dir)
+  let self.env.toward = s:u.toward(self.env.dir)
   if self.env.mode   ==# 'n'                                  | return | endif
   if self.env.action ==# 'blank'                              | return | endif
   if self.env.action ==# 'dup' && self.env.emode ==# 'insert' | return | endif
@@ -49,8 +47,8 @@ function! s:textmanip.init(env) "{{{1
   call self.adjust_count()
 
   try
-    call s:cant_move( "topmost line",
-          \ self.env.dir ==# '^' && self.varea.T.line() ==# 1
+    call s:cant_move("Topmost line",
+          \ self.env.dir ==# '^' && self.varea.T.line ==# 1
           \ )
     call s:cant_move( "all line have no-blank char",
           \ self.env.dir ==# '<' &&
@@ -60,9 +58,9 @@ function! s:textmanip.init(env) "{{{1
     call s:cant_move( "no space to left",
           \ self.env.dir ==# '<' &&
           \ !self.varea.linewise &&
-          \ self.varea.L.col() == 1 && self.env.mode ==# "\<C-v>"
+          \ self.varea.L.colm == 1 && self.env.mode ==# "\<C-v>"
           \ )
-    call s:cant_move( "count 0", self.env.count ==# 0 )
+    call s:cant_move("count 0", self.env.count ==# 0 )
   endtry
 endfunction
 
@@ -70,10 +68,10 @@ function! s:textmanip.adjust_count() "{{{1
   let dir = self.env.dir
 
   if dir ==# '^'
-    let max = self.varea.T.line() - 1
+    let max = self.varea.T.line - 1
   elseif dir ==# '<'
     if ! self.varea.linewise
-      let max = self.varea.L.col()  - 1
+      let max = self.varea.L.colm  - 1
     else
       let max = self.env.count
     endif
@@ -93,16 +91,16 @@ function! s:cant_move(desc, expr) "{{{1
   endif
 endfunction
 
-
-function! s:textmanip.preserve_selection() "{{{1
+function! s:textmanip.getpos() "{{{1
   if self.env.mode is 'n'
     let s = getpos('.')
-    let e = s
-  else
-    exe 'normal! gvo' | let s = getpos('.') | exe "normal! \<Esc>"
-    exe 'normal! gvo' | let e = getpos('.') | exe "normal! \<Esc>"
+    return [s, s]
   endif
-  return textmanip#selection#new(s, e, self.env.mode)
+
+  exe 'normal! gvo' | let s = getpos('.') | exe "normal! \<Esc>"
+  exe 'normal! gvo' | let e = getpos('.') | exe "normal! \<Esc>"
+
+  return [s, e]
 endfunction
 
 function! s:textmanip.debug() "{{{1
@@ -123,8 +121,8 @@ function! textmanip#do(action, dir, mode, emode) "{{{1
   let env = {
         \ "action": a:action,
         \ "dir": a:dir,
-        \ "mode": a:mode ==# 'x' ? visualmode() : a:mode,
-        \ "emode": (a:emode ==# 'auto') ? g:textmanip_current_mode : a:emode,
+        \ "mode": a:mode is 'x' ? visualmode() : a:mode,
+        \ "emode": (a:emode is 'auto') ? g:textmanip_current_mode : a:emode,
         \ "count": v:count1,
         \ }
   call s:textmanip.start(env)
@@ -161,7 +159,8 @@ endfunction
 
 function! textmanip#toggle_mode() "{{{1
   let g:textmanip_current_mode =
-        \ g:textmanip_current_mode ==# 'insert' ? 'replace' : 'insert'
+        \ g:textmanip_current_mode is 'insert'
+        \ ? 'replace' : 'insert'
   echo "textmanip-mode: " . g:textmanip_current_mode
 endfunction
 

@@ -1,34 +1,25 @@
 let s:pos = {}
 
 function! s:pos.new(pos) "{{{1
+  " pos is result of `getpos()`
+
   " getpos() return [bufnum, lnum, col, off]
   " off is offset from actual col when virtual edit(ve) mode,
   " so, to respect ve position, we sum "col" + "off"
-  let self._data = [a:pos[1], a:pos[2] + a:pos[3]]
+
+  let self.line = a:pos[1]
+  let self.colm = a:pos[2] + a:pos[3]
   return copy(self)
-  " return deepcopy(self)
 endfunction
 
 function! s:pos.pos() "{{{1
-  return self._data
-endfunction
-
-function! s:pos.line() "{{{1
-  return self._data[0]
-endfunction
-
-function! s:pos.col() "{{{1
-  return self._data[1]
+  return [self.line, self.colm]
 endfunction
 
 function! s:pos.move(line_ope, col_ope) "{{{1
-  let self._data[0] = eval(self._data[0] . a:line_ope)
-  let self._data[1] = eval(self._data[1] . a:col_ope)
+  let self.line = eval(self.line . a:line_ope)
+  let self.colm = eval(self.colm . a:col_ope)
   return self
-endfunction
-
-function! s:pos.dump() "{{{1
-  return self._data
 endfunction
 
 function! textmanip#pos#new(pos) "{{{1
