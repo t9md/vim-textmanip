@@ -40,6 +40,11 @@ function! s:toward(dir) "{{{1
         \ a:dir =~#   '>\|<' ? '<>' : throw
 endfunction
 
+function! s:template(string, vars) "{{{1
+  let pattern = '\v(' . join(keys(a:vars), '|') . ')'
+  return substitute(a:string, pattern,'\=a:vars[submatch(1)]', 'g')
+endfunction
+
 function! s:define_type_checker() "{{{1
   " dynamically define s:isNumber(v)  etc..
   let types = {
@@ -77,6 +82,7 @@ let s:functions = [
       \ "isDictionary",
       \ "isFloat",
       \ "toList",
+      \ "template",
       \ ]
 
 let s:Util = {}

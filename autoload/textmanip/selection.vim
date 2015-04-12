@@ -1,12 +1,5 @@
-let s:u = textmanip#util#get()
-
 " Util:
-function! s:template(string, vars) "{{{1
-  " DONE:
-  let pattern = '\v(' . join(keys(a:vars), '|') . ')'
-  return substitute(a:string, pattern,'\=a:vars[submatch(1)]', 'g')
-endfunction
-"}}}
+let s:u = textmanip#util#get()
 
 " Main:
 " @action = [ 'move', 'duplicate', 'blank']
@@ -49,7 +42,7 @@ function! s:Selection.new(s, e, mode, dir) "{{{1
   return self
 endfunction
 
-function! s:Selection.is_linewise()
+function! s:Selection.is_linewise() "{{{1
   " may be unnecessary
   return 
         \ (self.mode ==# 'n' ) ||
@@ -130,7 +123,7 @@ function! s:Selection.move_pos(opes, vars) "{{{1
   for ope in s:u.toList(a:opes)
     let pos = ope[0]
     let _ope = split(ope[1:], '\v\s*:\s*', 1)
-    call map(_ope, 's:template(v:val, a:vars)')
+    call map(_ope, 's:u.template(v:val, a:vars)')
     call self.pos[pos].move(_ope)
   endfor
   return self
@@ -153,7 +146,7 @@ function! s:Selection.insert_blank(dir, num) "{{{1
 endfunction
 
 
-function! s:Selection.new_replace()
+function! s:Selection.new_replace() "{{{1
   let self.replaced = textmanip#area#new([])
   let emptyline     = self.linewise ? [''] : [repeat(' ', self.width)]
   return textmanip#area#new(repeat(emptyline, self.height))
@@ -178,6 +171,7 @@ endfunction
 
 " Action:
 function! s:Selection.move(dir, count, emode) "{{{1
+  " DONE:
   " support both line and block
   let c = a:count
   if self.toward ==# '<>' && self.linewise
@@ -211,7 +205,6 @@ function! s:Selection.move(dir, count, emode) "{{{1
         \ : area.overlap(a:dir,c).data()
 
   call self.select().paste(Y).move_pos(after, vars).select()
-  return
 endfunction
 
 function! s:Selection.duplicate(dir, count, emode) "{{{1
@@ -291,7 +284,4 @@ function! textmanip#selection#new(...) "{{{1
   return call(s:Selection.new, a:000, s:Selection)
 endfunction
 
-function! textmanip#selection#dump() "{{{1
-  return s:Selection.dump()
-endfunction
 " vim: foldmethod=marker
