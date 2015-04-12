@@ -39,6 +39,11 @@ function! s:Selection.new(s, e, mode, dir) "{{{1
   return self
 endfunction
 
+function! s:Selection.cursor(pos) "{{{1
+  call cursor(self.pos[a:pos].pos())
+  return self
+endfunction
+
 function! s:Selection.is_linewise() "{{{1
   " may be unnecessary
   return 
@@ -91,26 +96,27 @@ function! s:Selection.yank() "{{{1
   endtry
 endfunction
 
-function! s:Selection.paste(data) "{{{1
-  " DONE:
-  " if a:data.regtype ==# 'V'
-    " execute "normal! \<Esc>"
-
-    " " Using 'p' is not perfect when data include blank-line.
-    " " It's unnecessarily omit empty blank-line when paste.
-    " " So I choose setline() to respect blank-line.
-    " call setline(self.pos.T.line, a:data.content)
-    " return self
-  " endif
-
+function! s:Selection._paste(data, cmd) "{{{1
   try
     let reg = textmanip#register#save('x')
     call setreg('x', a:data.content, a:data.regtype)
-    silent execute 'normal! "xp'
+    silent execute 'normal! "x' . a:cmd
     return self
   finally
     call reg.restore()
   endtry
+endfunction
+
+function! s:Selection.paste(data) "{{{1
+  return self._paste(a:data, 'p')
+endfunction
+
+function! s:Selection.p(data) "{{{1
+  return self._paste(a:data, 'p')
+endfunction
+
+function! s:Selection.P(data) "{{{1
+  return self._paste(a:data, 'P')
 endfunction
 
 function! s:Selection.move_pos(opes, vars) "{{{1
@@ -200,31 +206,54 @@ function! s:Selection.move(dir, c, emode) "{{{1
   call self.select().paste(Y).move_pos(after, vars).select()
 endfunction
 
-function! s:Selection.duplicate(dir, count, emode) "{{{1
-  if a:dir =~# '<' && self.linewise
-    " Nothing to do
-    normal! gv
-    return
-  endif
 
-  let _count = a:count
-  if a:dir ==# '>' && self.linewise
-    " FIXME dirty hacks
-    let _count += 1
-  endif
-
+function! s:Selection.duplicate(dir, c, emode) "{{{1
   let Y = self.yank()
-  let area       = textmanip#area#new(Y.content)
-  let duplicated = area.duplicate(a:dir, _count)
-  let Y.content = duplicated.data()
+  " let area       = textmanip#area#new(Y.content)
+  " let duplicated = area.duplicate(a:dir, a:c)
+  " let Y.content = duplicated.data()
 
-  if a:dir ==# '>' && self.linewise
-    call self.paste(Y).select()
-    return
-  endif
-
-  let vars = { 'c': _count, 'h': self.height, 'w': self.width }
+  let vars = { 'c': a:c, 'h': self.height, 'w': self.width }
   if a:emode ==# "insert"
+    if self.linewise
+      if a:dir ==# '^'
+        let Y.content = textmanip#area#new(Y.content).duplicate('v', a:c).data()
+        call self.cursor('T').P(Y).move_pos('B +h*(c-1):', vars).select()
+        return
+      endif
+
+      if a:dir ==# 'v'
+        let Y.content = textmanip#area#new(Y.content).duplicate('v', a:c).data()
+        call self.cursor('B').p(Y).move_pos(['T +h:', 'B +h*c:'], vars).select()
+        return
+      endif
+
+      if a:dir ==# '<'
+        call self.select()
+        return
+      endif
+
+      if a:dir ==# '>'
+        let Y.content = textmanip#area#new(Y.content).duplicate('>', a:c +1).data()
+        call self.select().p(Y).select()
+        return
+      endif
+    else
+      if a:dir ==# '^'
+        let Y.content = textmanip#area#new(Y.content).duplicate('v', a:c).data()
+        call self.insert_blank('^', self.height*a:c)
+        call self.move_pos('B +h*(c-1):', vars).select().p(Y).select()
+        return
+      endif
+
+      if a:dir ==# 'v'
+        let Y.content = textmanip#area#new(Y.content).duplicate('v', a:c).data()
+        call self.insert_blank('v', self.height*a:c)
+        call self.move_pos(['T +h:', 'B +(h*c):'], vars).select().p(Y).select()
+        return
+      endif
+    endif
+
     let [ w_h, before] =  {
           \ "^": [ "height", ['B +(h*(c-1)):          '                   ]],
           \ "v": [ "height", ['T +h        :          ', 'B +(h*c):      ']],
