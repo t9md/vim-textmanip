@@ -142,17 +142,13 @@ endfunction
 
 " rotate
 function! s:Area.rotate(dir, n)
-  call self.add(
-        \ s:u.opposite(a:dir), self.cut(a:dir, a:n))
-  return self
-endfunction
+  let _cut = self.cut(a:dir, a:n)
 
-" overlap
-" for replace mode
-function! s:Area.overlap(dir,n) "{{{1
-  let disappear = self.cut(a:dir, a:n)
-  let appear    = self._overlapped.pushout(a:dir, disappear)
-  call self.add(s:u.opposite(a:dir), appear)
+  if has_key(self, '_overlapped')
+    let _cut = self._overlapped.pushout(a:dir, _cut)
+  endif
+
+  call self.add( s:u.opposite(a:dir), _cut)
   return self
 endfunction
 

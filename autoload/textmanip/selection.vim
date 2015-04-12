@@ -12,8 +12,6 @@ function! s:Selection.new(s, e, mode, dir) "{{{1
   " both `s` and `e` are instance of textmanip#pos
 
   let [s, e]      = [a:s, a:e]
-  let self.pos    = {}
-  let self.pos    = { 'S': s, 'E': e }
   let self.mode   = a:mode
   let self.vars   = {}
   let self.toward = s:u.toward(a:dir)
@@ -25,20 +23,19 @@ function! s:Selection.new(s, e, mode, dir) "{{{1
   "    |    |    |  |    |    |  |    |    |  |    |    |
   "    +----+----e  +----+----s  e----+----+  s----+----+
   "
-  let [top, bottom, left, right] =
+  let [T, B, L, R] =
         \ 1 && (s.line <= e.line) && (s.colm <= e.colm) ? [ s, e, s, e ] :
         \ 2 && (s.line >= e.line) && (s.colm >= e.colm) ? [ e, s, e, s ] :
         \ 3 && (s.line <= e.line) && (s.colm >= e.colm) ? [ s, e, e, s ] :
         \ 4 && (s.line >= e.line) && (s.colm <= e.colm) ? [ e, s, s, e ] :
         \ throw
-  call extend(self.pos, { 'T': top, 'B': bottom, 'L': left, 'R': right })
+  let self.pos = { 'S': s, 'E': e, 'T': T, 'B': B, 'L': L, 'R': R }
 
   " Preserve original height and width since it's may change while operation
   let self.toward   = s:u.toward(a:dir)
   let self.height   = self.pos.B.line - self.pos.T.line + 1
   let self.width    = self.pos.R.colm - self.pos.L.colm + 1
   let self.linewise = self.is_linewise()
-
   return self
 endfunction
 
@@ -69,14 +66,6 @@ endfunction
 
 function! s:Selection.yank() "{{{1
   " DONE:
-  if self.linewise
-    " CAUTION: `y` ignore blank-line, need to use getline().
-    return {
-          \ "content": getline( self.pos.T.line, self.pos.B.line),
-          \ "regtype": "V"
-          \ }
-  endif
-
   try
     let reg = textmanip#register#save('x')
     silent execute "normal! \<Esc>"
@@ -86,9 +75,16 @@ function! s:Selection.yank() "{{{1
     else
       silent execute 'normal! "xy'
     endif
+
+    let regtype = getregtype('x')
+    let content =  split(getreg('x'), "\n", 1)
+    " if linewise, content have empty string('') entry at end of List.
+    if regtype ==# 'V'
+      let content =  content[0:-2]
+    endif
     return {
-          \ "content": split(getreg('x'), "\n"),
-          \ "regtype": getregtype('x')
+          \ "content": content, 
+          \ "regtype": regtype,
           \ }
   finally
     call reg.restore()
@@ -97,21 +93,19 @@ endfunction
 
 function! s:Selection.paste(data) "{{{1
   " DONE:
-  if a:data.regtype ==# 'V'
-    execute "normal! \<Esc>"
+  " if a:data.regtype ==# 'V'
+    " execute "normal! \<Esc>"
 
-    " Using 'p' is not perfect when data include blank-line.
-    " It's unnecessarily omit empty blank-line when paste.
-    " So I choose setline() to respect blank-line.
-    call setline(self.pos.T.line, a:data.content)
-    return self
-  endif
+    " " Using 'p' is not perfect when data include blank-line.
+    " " It's unnecessarily omit empty blank-line when paste.
+    " " So I choose setline() to respect blank-line.
+    " call setline(self.pos.T.line, a:data.content)
+    " return self
+  " endif
 
   try
     let reg = textmanip#register#save('x')
-    call setreg('x',
-          \ join(a:data.content, "\n"),
-          \ a:data.regtype)
+    call setreg('x', a:data.content, a:data.regtype)
     silent execute 'normal! "xp'
     return self
   finally
@@ -170,26 +164,24 @@ endfunction
 "}}}
 
 " Action:
-function! s:Selection.move(dir, count, emode) "{{{1
+function! s:Selection.move(dir, c, emode) "{{{1
   " DONE:
-  " support both line and block
-  let c = a:count
   if self.toward ==# '<>' && self.linewise
     " a:dir is '<' or '>', yes its valid Vim operator! so I can pass as-is
-    execute "'<,'>" . repeat(a:dir, c)
+    execute "'<,'>" . repeat(a:dir, a:c)
     call self.select()
     return
   endif
 
   if a:dir ==# 'v'
     " Extend EOF if needed
-    let amount = (self.pos.B.line + c) - line('$')
+    let amount = (self.pos.B.line + a:c) - line('$')
     if amount > 0
       call append(line('$'), map(range(amount), '""'))
     endif
   endif
 
-  let vars = { "c": c }
+  let vars = { "c": a:c }
   let [ before, after ] =  {
         \ "^": [ 'T -c:  ', 'B -c:  ' ],
         \ "v": [ 'B +c:  ', 'T +c:  ' ],
@@ -198,11 +190,12 @@ function! s:Selection.move(dir, count, emode) "{{{1
         \ }[a:dir]
 
   call self.move_pos(before, vars)
-  let Y         = self.yank()
-  let area      = textmanip#area#new(Y.content, self.replaced)
-  let Y.content = a:emode ==# 'insert'
-        \ ? area.rotate(a:dir, c).data()
-        \ : area.overlap(a:dir,c).data()
+  let Y    = self.yank()
+  let args = [Y.content]
+  if a:emode ==# 'replace'
+    let args += [self.replaced]
+  endif
+  let Y.content = call('textmanip#area#new', args).rotate(a:dir, a:c).data()
 
   call self.select().paste(Y).move_pos(after, vars).select()
 endfunction
