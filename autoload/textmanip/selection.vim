@@ -187,13 +187,13 @@ function! s:Selection.move(dir, count, emode) "{{{1
     return
   endif
 
-  " if a:dir ==# 'v'
-    " " Extend EOF if needed
-    " let amount = (self.pos.B.line + c) - line('$')
-    " if amount > 0
-      " call append(line('$'), map(range(amount), '""'))
-    " endif
-  " endif
+  if a:dir ==# 'v'
+    " Extend EOF if needed
+    let amount = (self.pos.B.line + c) - line('$')
+    if amount > 0
+      call append(line('$'), map(range(amount), '""'))
+    endif
+  endif
 
   let vars = { "c": c }
   let [ before, after ] =  {
