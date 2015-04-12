@@ -24,7 +24,7 @@ endfunction
 "}}}
 
 let s:Area = {}
-function! s:Area.new(data) "{{{1
+function! s:Area.new(data, ...) "{{{1
   " data is array of string
   "  ex) [ 'string1', 'string2'...]
   "
@@ -32,6 +32,9 @@ function! s:Area.new(data) "{{{1
   " So we dont' need deepcopy, shallow copy is ok here.
   let o = copy(self)
   let o._data = a:data
+  if a:0
+    let o._overlapped = a:1
+  endif
   return o
 endfunction
 
@@ -144,6 +147,15 @@ function! s:Area.rotate(dir, n)
   return self
 endfunction
 
+" overlap
+" for replace mode
+function! s:Area.overlap(dir,n) "{{{1
+  let disappear = self.cut(a:dir, a:n)
+  let appear    = self._overlapped.pushout(a:dir, disappear)
+  call self.add(s:u.opposite(a:dir), appear)
+  return self
+endfunction
+
 " duplcate vertical/horizontal(=side)
 function! s:Area.duplicate(dir, n) "{{{1
   if a:dir =~# '\^\|v' " vertical
@@ -161,7 +173,7 @@ endfunction
 "}}}
 
 " Public:
-function! textmanip#area#new(data) "{{{1
-  return s:Area.new(a:data)
+function! textmanip#area#new(...) "{{{1
+  return call(s:Area.new, a:000, s:Area)
 endfunction
 " vim: foldmethod=marker

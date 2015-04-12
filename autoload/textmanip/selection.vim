@@ -1,18 +1,10 @@
 let s:u = textmanip#util#get()
 
 " Util:
-function! s:gsub(str,pat,rep) "{{{1
-  return substitute(a:str,'\v\C'.a:pat, a:rep,'g')
-endfunction
-
 function! s:template(string, vars) "{{{1
-  " String interpolation from vars Dictionary.
-  " ex)
-  "   string = "%{L+1}l%{C+2}c" 
-  "   data   = { "L+1": 1, "C+2", 2 }
-  "   Result => "%1l%2c"
-  let mark = '\v\{(.{-})\}'
-  return substitute(a:string, mark,'\=a:vars[submatch(1)]', 'g')
+  " DONE:
+  let pattern = '\v(' . join(keys(a:vars), '|') . ')'
+  return substitute(a:string, pattern,'\=a:vars[submatch(1)]', 'g')
 endfunction
 "}}}
 
@@ -111,6 +103,7 @@ function! s:Selection.yank() "{{{1
 endfunction
 
 function! s:Selection.paste(data) "{{{1
+  " DONE:
   if a:data.regtype ==# 'V'
     execute "normal! \<Esc>"
 
@@ -133,24 +126,14 @@ function! s:Selection.paste(data) "{{{1
   endtry
 endfunction
 
-function! s:Selection.move_pos(ope, vars) "{{{1
-  for o in s:u.toList(a:ope)
-    if empty(o)
-      continue
-    endif
-    for [k,v] in items(a:vars)
-      let o = s:gsub(o, k, v)
-    endfor
-    let p = self._parse(o)
-    call self.pos[p.where].move(p.arg[0], p.arg[1])
+function! s:Selection.move_pos(opes, vars) "{{{1
+  for ope in s:u.toList(a:opes)
+    let pos = ope[0]
+    let _ope = split(ope[1:], '\v\s*:\s*', 1)
+    call map(_ope, 's:template(v:val, a:vars)')
+    call self.pos[pos].move(_ope)
   endfor
   return self
-endfunction
-
-function! s:Selection._parse(s) "{{{1
-  let where = a:s[0]
-  let arg   = split(a:s[1:], '\v:\s*', 1)
-  return {"where" : where, "arg" : arg }
 endfunction
 
 function! s:Selection.insert_blank(dir, num) "{{{1
@@ -204,46 +187,31 @@ function! s:Selection.move(dir, count, emode) "{{{1
     return
   endif
 
-  if a:dir ==# 'v'
-    " Extend EOF
-    let amount = (self.pos.B.line + c) - line('$')
-    if amount > 0
-      call append(line('$'), map(range(amount), '""'))
-    endif
-  endif
+  " if a:dir ==# 'v'
+    " " Extend EOF if needed
+    " let amount = (self.pos.B.line + c) - line('$')
+    " if amount > 0
+      " call append(line('$'), map(range(amount), '""'))
+    " endif
+  " endif
 
   let vars = { "c": c }
   let [ before, after ] =  {
-        \ "^": [ 'T-c:  ', 'B-c:  ' ],
-        \ "v": [ 'B+c:  ', 'T+c:  ' ],
-        \ ">": [ 'R  :+c', 'L  :+c' ],
-        \ "<": [ 'L  :-c', 'R  :-c' ],
+        \ "^": [ 'T -c:  ', 'B -c:  ' ],
+        \ "v": [ 'B +c:  ', 'T +c:  ' ],
+        \ ">": [ 'R   :+c', 'L   :+c' ],
+        \ "<": [ 'L   :-c', 'R   :-c' ],
         \ }[a:dir]
 
   call self.move_pos(before, vars)
-  let Y = self.yank()
+  let Y         = self.yank()
+  let area      = textmanip#area#new(Y.content, self.replaced)
+  let Y.content = a:emode ==# 'insert'
+        \ ? area.rotate(a:dir, c).data()
+        \ : area.overlap(a:dir,c).data()
 
-  if a:emode ==# 'insert'
-    let Y.content = textmanip#area#new(Y.content).rotate(a:dir, c).data()
-    call self.select()
-          \.paste(Y)
-          \.move_pos(after, vars)
-          \.select()
-    return
-  endif
-
-  if a:emode ==# 'replace'
-    let area        = textmanip#area#new(Y.content)
-    let overwritten = area.cut(a:dir, c)
-    let reveal      = self.replaced.pushout(a:dir, overwritten)
-    call area.add(s:u.opposite(a:dir), reveal)
-    let Y.content = area.data()
-    call self.select()
-          \.paste(Y)
-          \.move_pos(after, vars)
-          \.select()
-    return
-  endif
+  call self.select().paste(Y).move_pos(after, vars).select()
+  return
 endfunction
 
 function! s:Selection.duplicate(dir, count, emode) "{{{1
@@ -255,7 +223,7 @@ function! s:Selection.duplicate(dir, count, emode) "{{{1
 
   let _count = a:count
   if a:dir ==# '>' && self.linewise
-    " dirty hacks
+    " FIXME dirty hacks
     let _count += 1
   endif
 
@@ -272,10 +240,10 @@ function! s:Selection.duplicate(dir, count, emode) "{{{1
   let vars = { 'c': _count, 'h': self.height, 'w': self.width }
   if a:emode ==# "insert"
     let [ w_h, before] =  {
-          \ "^": [ "height", 'B+(h*(c-1)):'         ] ,
-          \ "v": [ "height", ['T+h: ', 'B+(h*c):'  ]] ,
-          \ ">": [ "width" , ['L :+w', 'R :+(w*c)' ]] ,
-          \ "<": [ "width" , 'R :+(w*(c-1))'       ] ,
+          \ "^": [ "height", ['B +(h*(c-1)):          '                   ]],
+          \ "v": [ "height", ['T +h        :          ', 'B +(h*c):      ']],
+          \ ">": [ "width" , ['L           :+w        ', 'R       :+(w*c)']],
+          \ "<": [ "width" , ['R           :+(w*(c-1))'                   ]],
           \ }[a:dir]
     call self.insert_blank(a:dir, duplicated[w_h]())
           \.move_pos(before, vars)
@@ -292,10 +260,10 @@ function! s:Selection.duplicate(dir, count, emode) "{{{1
 
   if a:emode ==# "replace"
     let before =  {
-          \ "^": ['T-(h*c):',  'B-h:'],
-          \ "v": ['T+h:'    ,  'B+(h*c):' ],
-          \ ">": ['L :+w'    , 'R :+(w*c)' ],
-          \ "<": ['R :-w'    , 'L :-(w*c)' ],
+          \ "^": ['T -(h*c):  ', 'B -h    :      '],
+          \ "v": ['T +h    :  ', 'B +(h*c):      '],
+          \ ">": ['L       :+w', 'R       :+(w*c)'],
+          \ "<": ['R       :-w', 'L       :-(w*c)'],
           \ }[a:dir]
 
     call self.move_pos(before, vars)

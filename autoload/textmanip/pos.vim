@@ -16,9 +16,9 @@ function! s:Pos.pos() "{{{1
   return [self.line, self.colm]
 endfunction
 
-function! s:Pos.move(line_ope, col_ope) "{{{1
-  let self.line = eval(self.line . a:line_ope)
-  let self.colm = eval(self.colm . a:col_ope)
+function! s:Pos.move(ope) "{{{1
+  let self.line = eval(self.line . a:ope[0])
+  let self.colm = eval(self.colm . a:ope[1])
   return self
 endfunction
 

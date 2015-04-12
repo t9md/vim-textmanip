@@ -128,7 +128,7 @@ endfunction
 
 " API:
 function! textmanip#start(action, dir, mode, emode) "{{{1
-  let action = a:action ==# 'move1' ? 'move' a:action
+  let action = a:action ==# 'move1' ? 'move' : a:action
 
   try
     if a:action ==# 'move1'
@@ -153,7 +153,6 @@ function! textmanip#start(action, dir, mode, emode) "{{{1
       let g:textmanip_move_shiftwidth        = _shiftwidth
     endif
   endtry
-endif
 endfunction
 
 " [FIXME] very rough state.
@@ -170,15 +169,15 @@ function! textmanip#kickout(guide) range "{{{1
   call setpos('.', orig_pos)
 endfunction
 
-function! textmanip#toggle_mode() "{{{1
-  let g:textmanip_current_mode =
-        \ g:textmanip_current_mode ==# 'insert'
-        \ ? 'replace' : 'insert'
-  echo "textmanip-mode: " . g:textmanip_current_mode
-endfunction
 
-function! textmanip#mode() "{{{1
-  return g:textmanip_current_mode
+function! textmanip#mode(...) "{{{1
+  if a:0 ==# 0
+    return g:textmanip_current_mode
+  endif
+
+  let g:textmanip_current_mode =
+        \ g:textmanip_current_mode ==# 'insert' ? 'replace' : 'insert'
+  echo "textmanip-mode: " . g:textmanip_current_mode
 endfunction
 "}}}
 
