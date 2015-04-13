@@ -82,7 +82,7 @@ function! s:Selection.yank() "{{{1
     endif
 
     let regtype = getregtype('x')
-    let content =  split(getreg('x'), "\n", 1)
+    let content = split(getreg('x'), "\n", 1)
     " if linewise, content have empty string('') entry at end of List.
     if regtype ==# 'V'
       let content =  content[0:-2]
@@ -97,6 +97,11 @@ function! s:Selection.yank() "{{{1
 endfunction
 
 function! s:Selection._paste(data, cmd) "{{{1
+  if a:data.regtype ==# 'V'
+    exe "normal! \<Esc>"
+    call setline(self.pos.T.line, a:data.content)
+    return
+  endif
   try
     let reg = textmanip#register#save('x')
     call setreg('x', a:data.content, a:data.regtype)
@@ -202,74 +207,38 @@ function! s:Selection.move(dir, c, emode) "{{{1
     let args += [self.replaced]
   endif
   let Y.content = call('textmanip#area#new', args).rotate(a:dir, a:c).data()
-
   call self.select().paste(Y).move_pos(after, vars).select()
 endfunction
 
-
 function! s:Selection.duplicate(dir, c, emode) "{{{1
   let Y = self.yank()
-  " let area       = textmanip#area#new(Y.content)
-  " let duplicated = area.duplicate(a:dir, a:c)
-  " let Y.content = duplicated.data()
+  if self.toward ==# '<>' && self.linewise
+    let Y.content = textmanip#area#new(Y.content).duplicate(a:dir, a:c+1).data()
+    call self.select().paste(Y).select()
+    return
+  endif
+
+  let area       = textmanip#area#new(Y.content)
+  let duplicated = area.duplicate(a:dir, a:c)
+  let Y.content  = duplicated.data()
 
   let vars = { 'c': a:c, 'h': self.height, 'w': self.width }
   if a:emode ==# "insert"
-    if self.linewise
-      if a:dir ==# '^'
-        let Y.content = textmanip#area#new(Y.content).duplicate('v', a:c).data()
-        call self.cursor('T').P(Y).move_pos('B +h*(c-1):', vars).select()
-        return
-      endif
-
-      if a:dir ==# 'v'
-        let Y.content = textmanip#area#new(Y.content).duplicate('v', a:c).data()
-        call self.cursor('B').p(Y).move_pos(['T +h:', 'B +h*c:'], vars).select()
-        return
-      endif
-
-      if a:dir ==# '<'
-        call self.select()
-        return
-      endif
-
-      if a:dir ==# '>'
-        let Y.content = textmanip#area#new(Y.content).duplicate('>', a:c +1).data()
-        call self.select().p(Y).select()
-        return
-      endif
-    else
-      if a:dir ==# '^'
-        let Y.content = textmanip#area#new(Y.content).duplicate('v', a:c).data()
-        call self.insert_blank('^', self.height*a:c)
-        call self.move_pos('B +h*(c-1):', vars).select().p(Y).select()
-        return
-      endif
-
-      if a:dir ==# 'v'
-        let Y.content = textmanip#area#new(Y.content).duplicate('v', a:c).data()
-        call self.insert_blank('v', self.height*a:c)
-        call self.move_pos(['T +h:', 'B +(h*c):'], vars).select().p(Y).select()
-        return
-      endif
-    endif
-
-    let [ w_h, before] =  {
-          \ "^": [ "height", ['B +(h*(c-1)):          '                   ]],
-          \ "v": [ "height", ['T +h        :          ', 'B +(h*c):      ']],
-          \ ">": [ "width" , ['L           :+w        ', 'R       :+(w*c)']],
-          \ "<": [ "width" , ['R           :+(w*(c-1))'                   ]],
+    let before = {
+          \ "^": ['B +h*(c-1):          '                   ],
+          \ "v": ['T +h        :        ', 'B +(h*c):      '],
+          \ ">": ['L           :+w      ', 'R       :+(w*c)'],
+          \ "<": ['R           :+w*(c-1)'                   ],
           \ }[a:dir]
-    call self.insert_blank(a:dir, duplicated[w_h]())
-          \.move_pos(before, vars)
-          \.select()
-          \.paste(Y)
+    call self.insert_blank(a:dir, self[self.toward ==# '^v' ? 'height' : 'width'] * a:c)
+          \.move_pos(before, vars).select().paste(Y)
+
     if self.mode ==# 'n'
       let where = { "^": 'T', "v": 'B', ">": 'L', "<": 'R', }[a:dir]
       call cursor(self.pos[where].pos())
-    else
-      call self.select()
+      return
     endif
+    call self.select()
     return 
   endif
 
