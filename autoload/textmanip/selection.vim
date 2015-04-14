@@ -1,5 +1,6 @@
 " Util:
-let s:u = textmanip#util#get()
+let s:u       = textmanip#util#get()
+let s:newArea = function('textmanip#area#new')
 
 " Main:
 " @action = [ 'move', 'duplicate', 'blank']
@@ -36,6 +37,8 @@ function! s:Selection.new(s, e, mode, dir) "{{{1
   let self.height   = self.pos.B.line - self.pos.T.line + 1
   let self.width    = self.pos.R.colm - self.pos.L.colm + 1
   let self.linewise = self.is_linewise()
+  let self.content  = []
+  let self.regtype  = ''
   return self
 endfunction
 
@@ -52,19 +55,20 @@ function! s:Selection.is_linewise() "{{{1
         \ (self.mode ==# 'v' && self.height > 1)
 endfunction
 
-function! s:Selection.select() "{{{1
-  " DONE:
-  call cursor(self.pos.S.pos()+[0])
-
-  if self.mode ==# 'n'
-    return self
+function! s:Selection.select(...) "{{{1
+  if a:0
+    call call(self.move_pos, a:000, self)
   endif
+
+  silent execute "normal! \<Esc>"
+  call cursor(self.pos.S.pos()+[0])
 
   let mode =
         \ self.mode ==# 'v' ? ( self.height ==# 1 ? "\<C-v>" : 'V' ) :
-        \ self.mode
+        \ self.mode ==# 'n' ? 'V' : self.mode
 
   execute 'normal! ' . mode
+
   call cursor(self.pos.E.pos()+[0])
   return self
 endfunction
@@ -73,8 +77,6 @@ function! s:Selection.yank() "{{{1
   " DONE:
   try
     let reg = textmanip#register#save('x')
-    silent execute "normal! \<Esc>"
-    call self.select()
     if self.mode ==# 'n'
       silent execute 'normal! "xyy'
     else
@@ -87,41 +89,35 @@ function! s:Selection.yank() "{{{1
     if regtype ==# 'V'
       let content =  content[0:-2]
     endif
-    return {
-          \ "content": content, 
-          \ "regtype": regtype,
-          \ }
-  finally
-    call reg.restore()
-  endtry
-endfunction
-
-function! s:Selection._paste(data, cmd) "{{{1
-  if a:data.regtype ==# 'V'
-    exe "normal! \<Esc>"
-    call setline(self.pos.T.line, a:data.content)
-    return
-  endif
-  try
-    let reg = textmanip#register#save('x')
-    call setreg('x', a:data.content, a:data.regtype)
-    silent execute 'normal! "x' . a:cmd
+    let self.content = content
+    let self.regtype = regtype
     return self
   finally
     call reg.restore()
   endtry
 endfunction
 
-function! s:Selection.paste(data) "{{{1
-  return self._paste(a:data, 'p')
+function! s:Selection.paste() "{{{1
+  call self.select()
+  try
+    let reg = textmanip#register#save('x')
+    call setreg('x', self.content, self.regtype)
+    silent execute 'normal! "xp'
+    return self
+  finally
+    call reg.restore()
+  endtry
 endfunction
 
-function! s:Selection.p(data) "{{{1
-  return self._paste(a:data, 'p')
-endfunction
+function! s:Selection.manipulate(action, emode, dir, c) "{{{1
+  let args = [self.content]
+  if a:action ==# 'rotate' && a:emode ==# 'replace'
+    let args += [self.replaced]
+  endif
 
-function! s:Selection.P(data) "{{{1
-  return self._paste(a:data, 'P')
+  let area = call('textmanip#area#new', args)
+  let self.content = area[a:action](a:dir, a:c).data()
+  return self
 endfunction
 
 function! s:Selection.move_pos(opes, vars) "{{{1
@@ -192,7 +188,6 @@ function! s:Selection.move(dir, c, emode) "{{{1
     endif
   endif
 
-  let vars = { "c": a:c }
   let [ before, after ] =  {
         \ "^": [ 'T -c:  ', 'B -c:  ' ],
         \ "v": [ 'B +c:  ', 'T +c:  ' ],
@@ -200,29 +195,21 @@ function! s:Selection.move(dir, c, emode) "{{{1
         \ "<": [ 'L   :-c', 'R   :-c' ],
         \ }[a:dir]
 
+  let vars = {'c': a:c }
   call self.move_pos(before, vars)
-  let Y    = self.yank()
-  let args = [Y.content]
-  if a:emode ==# 'replace'
-    let args += [self.replaced]
-  endif
-  let Y.content = call('textmanip#area#new', args).rotate(a:dir, a:c).data()
-  call self.select().paste(Y).move_pos(after, vars).select()
+        \.select().yank()
+        \.manipulate('rotate', a:emode, a:dir, a:c)
+        \.select().paste().move_pos(after, vars).select()
 endfunction
 
 function! s:Selection.duplicate(dir, c, emode) "{{{1
-  let Y = self.yank()
+  call self.select().yank()
+
   if self.toward ==# '<>' && self.linewise
-    let Y.content = textmanip#area#new(Y.content).duplicate(a:dir, a:c+1).data()
-    call self.select().paste(Y).select()
+    call self.manipulate('duplicate', a:emode, a:dir, a:c+1).paste().select()
     return
   endif
 
-  let area       = textmanip#area#new(Y.content)
-  let duplicated = area.duplicate(a:dir, a:c)
-  let Y.content  = duplicated.data()
-
-  let vars = { 'c': a:c, 'h': self.height, 'w': self.width }
   if a:emode ==# "insert"
     let before = {
           \ "^": ['B +h*(c-1):          '                   ],
@@ -230,30 +217,25 @@ function! s:Selection.duplicate(dir, c, emode) "{{{1
           \ ">": ['L           :+w      ', 'R       :+(w*c)'],
           \ "<": ['R           :+w*(c-1)'                   ],
           \ }[a:dir]
+
     call self.insert_blank(a:dir, self[self.toward ==# '^v' ? 'height' : 'width'] * a:c)
-          \.move_pos(before, vars).select().paste(Y)
 
-    if self.mode ==# 'n'
-      let where = { "^": 'T', "v": 'B', ">": 'L', "<": 'R', }[a:dir]
-      call cursor(self.pos[where].pos())
-      return
-    endif
-    call self.select()
-    return 
-  endif
-
-  if a:emode ==# "replace"
+  elseif a:emode ==# "replace"
     let before =  {
           \ "^": ['T -(h*c):  ', 'B -h    :      '],
           \ "v": ['T +h    :  ', 'B +(h*c):      '],
           \ ">": ['L       :+w', 'R       :+(w*c)'],
           \ "<": ['R       :-w', 'L       :-(w*c)'],
           \ }[a:dir]
+  endif
 
-    call self.move_pos(before, vars)
-          \.select()
-          \.paste(Y)
-          \.select()
+  let vars = { 'c': a:c, 'h': self.height, 'w': self.width }
+  call self.manipulate('duplicate', a:emode, a:dir, a:c)
+        \.select(before, vars).paste().select()
+
+  if self.mode ==# 'n'
+    execute "normal! \<Esc>"
+    call self.cursor(a:dir ==# '^' ? 'T': 'B')
   endif
 endfunction
 
