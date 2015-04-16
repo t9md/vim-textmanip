@@ -11,6 +11,7 @@ function! s:Options.replace(opts) "{{{1
     let self._opts[name] = getbufvar(curbuf, name)
     call setbufvar(curbuf, name, val)
   endfor
+  return self
 endfunction
 
 function! s:Options.restore() "{{{1
@@ -18,12 +19,14 @@ function! s:Options.restore() "{{{1
     call setbufvar(bufname(''), name, val)
   endfor
   let self._opts = {}
+  return self
 endfunction
 "}}}
 
 " Api:
-function! textmanip#options#new() "{{{1
-  return s:Options.new()
+function! textmanip#options#replace(...) "{{{1
+  let opts = s:Options.new()
+  return call(opts.replace, a:000, opts)
 endfunction
 "}}}
 " vim: foldmethod=marker

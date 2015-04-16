@@ -28,22 +28,25 @@ function! s:Textmanip.start(env) "{{{1
     let shiftwidth = g:textmanip_move_ignore_shiftwidth
           \ ? g:textmanip_move_shiftwidth
           \ : &shiftwidth
-    let options = textmanip#options#new()
-    call options.replace({'&virtualedit': 'all', '&shiftwidth': shiftwidth })
-    call self.init(a:env)
 
-    let action = a:env.action
-    let dir    = a:env.dir
+    let options = textmanip#options#replace({'&virtualedit': 'all', '&shiftwidth': shiftwidth })
 
-    call self.varea[action](dir, a:env.count, a:env.emode)
+    let self.env = a:env
+    let [s, e] = s:getpos(a:env.mode)
+    let pos_s  = textmanip#pos#new(s)
+    let pos_e  = textmanip#pos#new(e)
+    let selection  = textmanip#selection#new(pos_s, pos_e, a:env)
 
+    let action = self.env.action
+    " if self.env.mode ==# 'n' || action ==# 'blank'
+          " \ || (action ==# 'dup' && self.env.emode  ==# 'insert' )
+          " \ || self.env.dir =~# 'v\|>'
+      " " return
+    " endif
+    call selection[action]()
 
     if a:env.mode ==# 'v'
       execute 'normal! v'
-    endif
-
-    if action ==# 'move'
-      let b:textmanip_status = self.varea.state()
     endif
   catch /CANT_MOVE/
     normal! gv
@@ -56,23 +59,17 @@ function! s:Textmanip.init(env) "{{{1
   let [s, e] = s:getpos(a:env.mode)
   let pos_s  = textmanip#pos#new(s)
   let pos_e  = textmanip#pos#new(e)
-  let self.varea  = textmanip#selection#new(pos_s, pos_e, a:env.mode, a:env.dir)
-
+  let self.varea  = textmanip#selection#new(pos_s, pos_e, a:env)
   let self.env = a:env
 
-  if get(b:, "textmanip_status", {}) == self.varea.state() && a:env.action ==# 'move'
-    " continuous move
-    silent! undojoin
-  else
-    let b:textmanip_replaced = self.varea.new_replace()
+  let action = self.env.action
+  if self.env.mode ==# 'n' || action ==# 'blank'
+        \ || (action ==# 'dup' && self.env.emode  ==# 'insert' )
+        \ || self.env.dir =~# 'v\|>'
+    return
   endif
-  let self.varea.replaced = b:textmanip_replaced
 
-  if self.env.mode   ==# 'n'                                  | return | endif
-  if self.env.action ==# 'blank'                              | return | endif
-  if self.env.action ==# 'dup' && self.env.emode ==# 'insert' | return | endif
-  if self.env.dir =~# 'v\|>'  | return | endif
-
+  return
   call self.adjust_count() 
   let dir = self.env.dir
   let linewise = self.varea.linewise

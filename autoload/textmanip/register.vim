@@ -1,31 +1,39 @@
 let s:Register = {}
 
-function! s:Register.new() "{{{1
-  let self._data = {}
+function! s:Register.use(reg) "{{{1
+  let self.name = a:reg
+  let self._org = {
+        \ "content": getreg(a:reg, 1),
+        \ "type":    getregtype(a:reg)
+        \ }
+  let self.content = []
+  let self.type    = ''
   return copy(self)
 endfunction
 
-function! s:Register.save(...) "{{{1
-  for reg in a:000
-    let self._data[reg] = {
-          \ "content": getreg(reg, 1),
-          \ "type":    getregtype(reg)
-          \ }
-  endfor
+function! s:Register.yank() "{{{1
+  silent execute 'normal! "' . self.name . 'y'
+  let self.type    = getregtype(self.name)
+  let self.content = split(getreg(self.name), "\n", 1)
+  if self.type ==# 'V'
+    call remove(self.content, -1)
+  endif
   return self
 endfunction
 
+function! s:Register.paste() "{{{1
+  call setreg(self.name, self.content, self.type)
+  silent execute 'normal! "' . self.name . 'p'
+endfunction
+
 function! s:Register.restore() "{{{1
-  for [reg, val] in items(self._data)
-    call setreg(reg, val.content, val.type)
-  endfor
-  let self._data = {}
+  call setreg(self.name, self._org.content, self._org.type)
+  let self._org = {}
 endfunction
 "}}}
 
 " API:
-function! textmanip#register#save(...) "{{{1
-  let reg = s:Register.new()
-  return call(reg.save, a:000, reg)
+function! textmanip#register#use(...) "{{{1
+  return call(s:Register.use, a:000, s:Register)
 endfunction
 " vim: foldmethod=marker
