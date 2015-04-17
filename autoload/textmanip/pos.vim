@@ -16,6 +16,10 @@ function! s:Pos.pos() "{{{1
   return [self.line, self.colm]
 endfunction
 
+function! s:Pos.set_cursor() "{{{1
+  call cursor(self.pos())
+endfunction
+
 function! s:Pos.move(ope) "{{{1
   let self.line = eval(self.line . a:ope[0])
   let self.colm = eval(self.colm . a:ope[1])

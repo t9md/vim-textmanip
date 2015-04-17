@@ -1,17 +1,5 @@
-let s:u = textmanip#util#get()
-
 " Util:
-function! s:getpos(mode) "{{{1
-  if a:mode ==# 'n'
-    let s = getpos('.')
-    return [s, s]
-  endif
-
-  exe 'normal! gvo' | let s = getpos('.') | exe "normal! \<Esc>"
-  exe 'normal! gvo' | let e = getpos('.') | exe "normal! \<Esc>"
-
-  return [s, e]
-endfunction
+let s:u = textmanip#util#get()
 
 function! s:error(desc, expr) "{{{1
   if a:expr
@@ -30,24 +18,8 @@ function! s:Textmanip.start(env) "{{{1
           \ : &shiftwidth
 
     let options = textmanip#options#replace({'&virtualedit': 'all', '&shiftwidth': shiftwidth })
-
-    let self.env = a:env
-    let [s, e] = s:getpos(a:env.mode)
-    let pos_s  = textmanip#pos#new(s)
-    let pos_e  = textmanip#pos#new(e)
-    let selection  = textmanip#selection#new(pos_s, pos_e, a:env)
-
-    let action = self.env.action
-    " if self.env.mode ==# 'n' || action ==# 'blank'
-          " \ || (action ==# 'dup' && self.env.emode  ==# 'insert' )
-          " \ || self.env.dir =~# 'v\|>'
-      " " return
-    " endif
-    call selection[action]()
-
-    if a:env.mode ==# 'v'
-      execute 'normal! v'
-    endif
+    call textmanip#selection#new(a:env).manip()
+  catch /FINISH/
   catch /CANT_MOVE/
     normal! gv
   finally

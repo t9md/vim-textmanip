@@ -55,7 +55,6 @@ endfunction
 
 function! s:Area.width() "{{{1
   " assume all data have same width, so this function is useless!
-  " FIXME should delete this function?
   return len(self.data()[0])
 endfunction
 
