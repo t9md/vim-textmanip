@@ -7,10 +7,6 @@ let s:sid = s:SID()
 
 function! s:_opposite_init() "{{{1
   let data = [
-      \   [ 'U', 'D' ],
-      \   [ 'L', 'R' ],
-      \   [ 'T', 'B' ],
-      \   [ '-', '+' ],
       \   [ '>', '<' ],
       \   [ '^', 'v' ],
       \ ]

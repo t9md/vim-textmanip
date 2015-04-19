@@ -151,7 +151,7 @@ endif
 "=================================================================
 " Command [FIXME]
 command! -range -nargs=* TextmanipKickout call textmanip#kickout(<q-args>)
-command! -range -nargs=* TextmanipToggleMode call textmanip#toggle_mode()
+command! -range -nargs=* TextmanipToggleMode call textmanip#mode('toggle')
 command! TextmanipToggleIgnoreShiftWidth
       \ let g:textmanip_move_ignore_shiftwidth = ! g:textmanip_move_ignore_shiftwidth
       \ <bar> echo g:textmanip_move_ignore_shiftwidth

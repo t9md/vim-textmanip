@@ -1,13 +1,14 @@
 let s:Register = {}
 
 function! s:Register.use(reg) "{{{1
-  let self.name = a:reg
-  let self._org = {
+  let self.name    = a:reg
+  let self.content = []
+  let self.type    = ''
+  let self._modified = 0
+  let self._org      = {
         \ "content": getreg(a:reg, 1),
         \ "type":    getregtype(a:reg)
         \ }
-  let self.content = []
-  let self.type    = ''
   return copy(self)
 endfunction
 
@@ -27,7 +28,9 @@ function! s:Register.paste() "{{{1
 endfunction
 
 function! s:Register.restore() "{{{1
-  call setreg(self.name, self._org.content, self._org.type)
+  if self._modified
+    call setreg(self.name, self._org.content, self._org.type)
+  endif
   let self._org = {}
 endfunction
 "}}}

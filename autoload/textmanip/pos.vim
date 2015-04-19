@@ -21,8 +21,8 @@ function! s:Pos.set_cursor() "{{{1
 endfunction
 
 function! s:Pos.move(ope) "{{{1
-  let self.line = eval(self.line . a:ope[0])
-  let self.colm = eval(self.colm . a:ope[1])
+  let self.line = max([1, eval(self.line . a:ope[0])])
+  let self.colm = max([1, eval(self.colm . a:ope[1])])
   return self
 endfunction
 
