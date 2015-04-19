@@ -121,10 +121,6 @@ endfunction
 nnoremap <Plug>(textmanip-toggle-mode) :<C-u>call textmanip#mode('toggle')<CR>
 xnoremap <Plug>(textmanip-toggle-mode) :<C-u>call textmanip#mode('toggle')<CR>gv
 
-" Experimental
-nnoremap <silent> <Plug>(textmanip-kickout) :<C-u>call textmanip#kickout(0)<CR>
-xnoremap <silent> <Plug>(textmanip-kickout) :call textmanip#kickout(0)<CR>
-
 if g:textmanip_enable_mappings
   xmap <C-j> <Plug>(textmanip-move-down)
   xmap <C-k> <Plug>(textmanip-move-up)
@@ -150,7 +146,7 @@ endif
 " COMMAND: {{{1
 "=================================================================
 " Command [FIXME]
-command! -range -nargs=* TextmanipKickout call textmanip#kickout(<q-args>)
+" command! -range -nargs=* TextmanipKickout call textmanip#kickout(<q-args>)
 command! -range -nargs=* TextmanipToggleMode call textmanip#mode('toggle')
 command! TextmanipToggleIgnoreShiftWidth
       \ let g:textmanip_move_ignore_shiftwidth = ! g:textmanip_move_ignore_shiftwidth

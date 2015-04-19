@@ -70,7 +70,7 @@ function! s:TM.init(env) "{{{1
 endfunction
 
 function! s:TM.manip() "{{{1
-  let dir = self.env.dir
+  let [dir, action, emode] = [self.env.dir, self.env.action, self.env.emode]
 
   if dir ==# '^' && self.pos['^'].line ==# 1
     throw 'NOTHING_TODO Topmost line'
@@ -86,6 +86,19 @@ function! s:TM.manip() "{{{1
     else
       if self.pos['<'].colm ==# 1
         throw 'NOTHING_TODO Leftmost cursor'
+      endif
+    endif
+  endif
+
+  if action ==# 'duplicate' && emode ==# 'replace'
+    if dir ==# '^'
+      if self.pos['^'].line -1 < self.height
+        throw 'NOTHING_TODO No enough space to duplicate to "^"'
+      endif
+    endif
+    if dir ==# '<'
+      if self.pos['<'].colm - 1 < self.width
+        throw 'NOTHING_TODO No enough space to duplicate to "<"'
       endif
     endif
   endif

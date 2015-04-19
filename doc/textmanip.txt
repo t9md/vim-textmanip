@@ -201,10 +201,6 @@ COMMAND							    *textmanip-command*
 *:TextmanipToggleIgnoreShiftWidth*
 	Toggle whether line move right/left ignore |'shiwftwidth'| or not.
 
-*:TextmanipKickout*
-	Split text in two part and aling to each side(right/left).
-	To judge side wall, this command use use |'textwidth'|.
-
 ==============================================================================
 CONFIGURATION EXAMPLE					   *textmanip-example*
 
@@ -405,12 +401,12 @@ DONE
 - duplicate right/left
 - duplicate up/down replacemode
 - refactoring( file separate, further oop style), 90% done
+- deleted stabilize, kickout action or delete this action?
 
 STACK
 - Corner case handling in replace mode( I know its include bug )
 - ?? option to automatically delete trailing space?
 - ?? option to automatically indent( I'm not in mood )
-- stabilize, kickout action or delete this action?
 - ?? move block or line to ^,$ with one command. I'm not in mood.
 
 ==============================================================================
@@ -424,6 +420,12 @@ layout.
 
 ==============================================================================
 CHANGELOG						 *textmanip-changelog*
+2015-04-19:
+	- [breaking]
+	  remove kickout related command, vertual keymap.
+	   - <Plug>(textmanip-kickout)
+	   - :TextmanipKickout
+
 2015-04-12:
 	- [caution]
 	  rename <Plug>(textmanip-move-*-1col) to <Plug>(textmanip-move1-*)
