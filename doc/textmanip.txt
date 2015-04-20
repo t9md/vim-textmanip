@@ -7,7 +7,7 @@
 	    `' `-' ' ` `' ' ' ' `-^ ' ' ' |-'
 					  |   < easy manupilation >
 
-Version: 2.0
+Version: 2.5
 Author : t9md <taqumd@gmail.com>
 
 ==============================================================================
@@ -445,6 +445,10 @@ layout.
 
 ==============================================================================
 CHANGELOG						 *textmanip-changelog*
+2015-04-19: v2.5
+	- [new]
+	  Experimental hook support.
+
 2015-04-20:
 	- [refactoring]
 	  rewrite almost all code for readabilty.
