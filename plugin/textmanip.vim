@@ -1,5 +1,4 @@
 " GUARD: {{{1
-"============================================================
 if expand("%:p") ==# expand("<sfile>:p")
   unlet! g:loaded_textmanip
 endif
@@ -9,9 +8,9 @@ endif
 let g:loaded_textmanip = 1
 let s:old_cpo = &cpo
 set cpo&vim
+"}}}
 
 " VARIABLES: {{{1
-"=================================================================
 let g:textmanip_debug = 0
 let s:global_variables = {
       \ "textmanip_enable_mappings" : 0,
@@ -19,6 +18,7 @@ let s:global_variables = {
       \ "textmanip_move_ignore_shiftwidth" : 0,
       \ "textmanip_move_shiftwidth" : 1,
       \ }
+"}}}
 
 function! s:set_default(dict) "{{{
   for [name, val] in items(a:dict)
@@ -31,7 +31,6 @@ call s:set_default(s:global_variables)
 let g:textmanip_current_mode = g:textmanip_startup_mode
 
 " KEYMAP: {{{1
-"=================================================================
 let s:plug_suffix = {
       \ "auto":    '',
       \ "insert":  '-i',
@@ -77,8 +76,8 @@ call s:keymap('n', 'move',      'v')
 call s:keymap('n', 'move',      '<') " new
 call s:keymap('n', 'move',      '>') " new
 
-call s:keymap('n', 'blank',      '^')
-call s:keymap('n', 'blank',      'v')
+call s:keymap('n', 'blank',     '^')
+call s:keymap('n', 'blank',     'v')
 
 " Visual:
 call s:keymap('x', 'duplicate', '^')
@@ -94,22 +93,14 @@ call s:keymap('x', 'move',      '>')
 call s:keymap('x', 'move1',     '<')
 call s:keymap('x', 'move1',     '>')
 
-call s:keymap('x', 'blank',      '^')
-call s:keymap('x', 'blank',      'v')
+call s:keymap('x', 'blank',     '^')
+call s:keymap('x', 'blank',     'v')
 
-" FIXME
-function! s:setup_keymap() "{{{
-  for [emode, suffix] in items(s:plug_suffix)
-    let R = 'textmanip-move-right-1col' . suffix
-    let L = 'textmanip-move-left-1col'  . suffix
+nnoremap <Plug>(textmanip-toggle-mode) :<C-u>call textmanip#mode('toggle')<CR>
+xnoremap <Plug>(textmanip-toggle-mode) :<C-u>call textmanip#mode('toggle')<CR>gv
 
-    exe "xnoremap <silent> <Plug>(".R.") :<C-u>call <SID>obsolete('1col')<CR>"
-    exe "xnoremap <silent> <Plug>(".L.") :<C-u>call <SID>obsolete('1col')<CR>"
-  endfor
-endfunction "}}}
-call s:setup_keymap()
-
-function! s:obsolete(what)
+" Obsolete:
+function! s:obsolete(what) "{{{1
   let msg = "[Obsolete]\n"
   if a:what ==# '1col'
     let msg .= "  '<Plug>(textmanip-move-*-1col)' is obsolete\n"
@@ -119,9 +110,14 @@ function! s:obsolete(what)
     echohl None
   endif
 endfunction
+"}}}
 
-nnoremap <Plug>(textmanip-toggle-mode) :<C-u>call textmanip#mode('toggle')<CR>
-xnoremap <Plug>(textmanip-toggle-mode) :<C-u>call textmanip#mode('toggle')<CR>gv
+xnoremap <silent> <Plug>(textmanip-move-right-1col)   :<C-u>call <SID>obsolete('1col')<CR>
+xnoremap <silent> <Plug>(textmanip-move-right-1col-i) :<C-u>call <SID>obsolete('1col')<CR>
+xnoremap <silent> <Plug>(textmanip-move-right-1col-r) :<C-u>call <SID>obsolete('1col')<CR>
+xnoremap <silent> <Plug>(textmanip-move-left-1col)    :<C-u>call <SID>obsolete('1col')<CR>
+xnoremap <silent> <Plug>(textmanip-move-left-1col-i)  :<C-u>call <SID>obsolete('1col')<CR>
+xnoremap <silent> <Plug>(textmanip-move-left-1col-r)  :<C-u>call <SID>obsolete('1col')<CR>
 
 if g:textmanip_enable_mappings
   xmap <C-j> <Plug>(textmanip-move-down)
@@ -129,31 +125,19 @@ if g:textmanip_enable_mappings
   xmap <C-h> <Plug>(textmanip-move-left)
   xmap <C-l> <Plug>(textmanip-move-right)
 
-  if has('gui_macvim')
-    " '<D-' Command key
-    nmap <D-d> <Plug>(textmanip-duplicate-down)
-    nmap <D-D> <Plug>(textmanip-duplicate-up)
-    xmap <D-d> <Plug>(textmanip-duplicate-down)
-    xmap <D-D> <Plug>(textmanip-duplicate-up)
-
-  elseif ( has('win16') || has('win32') || has('win64') )
-    " '<M->' Alt key
-    nmap <M-d> <Plug>(textmanip-duplicate-down)
-    nmap <M-D> <Plug>(textmanip-duplicate-up)
-    xmap <M-d> <Plug>(textmanip-duplicate-down)
-    xmap <M-D> <Plug>(textmanip-duplicate-up)
-  endif
+  let prefix = has('gui_macvim') ? "D" : "M"
+  execute printf("nmap \<%s-d> <Plug>(textmanip-duplicate-down)", prefix)
+  execute printf("nmap \<%s-D> <Plug>(textmanip-duplicate-up)",   prefix)
+  execute printf("xmap \<%s-d> <Plug>(textmanip-duplicate-down)", prefix)
+  execute printf("xmap \<%s-D> <Plug>(textmanip-duplicate-up)",   prefix)
 endif
 
 " COMMAND: {{{1
-"=================================================================
-" Command [FIXME]
-" command! -range -nargs=* TextmanipKickout call textmanip#kickout(<q-args>)
 command! -range -nargs=* TextmanipToggleMode call textmanip#mode('toggle')
 command! TextmanipToggleIgnoreShiftWidth
       \ let g:textmanip_move_ignore_shiftwidth = ! g:textmanip_move_ignore_shiftwidth
       \ <bar> echo g:textmanip_move_ignore_shiftwidth
+"}}}
 
-" FINISH: {{{1
 let &cpo = s:old_cpo
 " vim: foldmethod=marker

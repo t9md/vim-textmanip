@@ -31,9 +31,8 @@ function! s:TM.start(env) "{{{1
 
   catch /STOP/
     if g:textmanip_debug
-      call Plog(v:exception)
+      " call Plog(v:exception)
     endif
-    " normal! gv
   catch /FINISH/
   finally
     call self.register.restore()
@@ -201,24 +200,22 @@ endfunction
 function! s:TM.move() "{{{1
   let [dir, c, emode] = [self.env.dir, self.env.count, self.env.emode]
 
-  call self.stop('Topmost line', dir ==# '^' && self.pos['^'].line ==# 1)
-
+  if dir ==# '^'
+    call self.stop('Topmost line', self.pos['^'].line ==# 1)
+    let self.env.count = min([self.pos['^'].line - 1 , c])
+  endif
   if dir ==# '<'
-    call self.stop('No empty space to <',
-          \ self.linewise && empty(filter(self.yank().register.content, "v:val =~# '^\\s'")))
-    call self.stop('Leftmost cursor',
-          \ !self.linewise && self.pos['<'].colm ==# 1)
+    if self.linewise
+      let content = self.yank().register.content
+      call self.stop('No empty space to <', empty(filter(content, "v:val =~# '^\\s'")))
+    else
+      call self.stop('Leftmost cursor', self.pos['<'].colm ==# 1)
+      let self.env.count = min([self.pos['<'].colm - 1 , c])
+    endif
   endif
 
   if self.continuous
     silent! undojoin
-  endif
-
-  if dir ==# '^' || (dir ==# '<' && !self.linewise)
-    let limit = dir ==# '^'
-          \ ? self.pos['^'].line - 1
-          \ : self.pos['<'].colm - 1
-    let self.env.count = min([limit, c])
   endif
 
   if self.toward ==# '<>' && self.linewise
@@ -260,9 +257,6 @@ function! s:TM.duplicate() "{{{1
 
   if emode ==# 'insert'
     call self.insert_blank(dir, self[self.toward ==# '^v' ? 'height' : 'width'] * c)
-  endif
-
-  if emode ==# 'insert'
     let _paste = {
           \ "^": ['v +h*(c-1):        '                   ],
           \ "v": ['^ +h      :        ', 'v +(h*c):      '],
@@ -271,17 +265,14 @@ function! s:TM.duplicate() "{{{1
           \ }[dir]
   else
     " replace
-    call self.stop('No enough space to duplicate to ^',
-          \ dir ==# '^' && (self.pos['^'].line -1 < self.height))
-    call self.stop('No enough space to duplicate to <',
-          \ dir ==# '<' && (self.pos['<'].colm - 1 < self.width))
-
-    if dir =~# '\v\^|\<'
-      let limit = dir ==# '^'
-            \ ? self.pos['^'].line - 1
-            \ : self.pos['<'].colm - 1
-      let self.env.count = min([ limit/self[ dir ==# '^' ? 'height' : 'width' ], c ])
+    if dir ==# '^'
+      call self.stop('No enough space to duplicate to ^', self.pos['^'].line - 1 < self.height)
+      let self.env.count = min([ (self.pos['^'].line - 1) / self.height, c ])
+    elseif dir ==# '<'
+      call self.stop('No enough space to duplicate to <', self.pos['<'].colm - 1 < self.width)
+      let self.env.count = min([ (self.pos['<'].colm - 1) / self.width, c ])
     endif
+
     let _paste = {
           \ "^": ['^ -(h*c):  ', 'v -h    :      '],
           \ "v": ['^ +h    :  ', 'v +(h*c):      '],
