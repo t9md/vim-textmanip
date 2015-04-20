@@ -12,7 +12,7 @@
 "                |             |
 "                +<-- width -->+
 
-let s:u = textmanip#util#get()
+let s:_ = textmanip#util#get()
 
 function! s:height(val) "{{{1
   return len(a:val)
@@ -126,7 +126,7 @@ endfunction
 
 " swap
 function! s:Area.swap(dir, val) "{{{1
-  let n = s:u.toward(a:dir) ==# '^v' ? s:height(a:val) : s:width(a:val)
+  let n = s:_.toward(a:dir) ==# '^v' ? s:height(a:val) : s:width(a:val)
   let R = self.cut(a:dir, n)
   call self.add(a:dir, a:val)
   return R
@@ -134,9 +134,9 @@ endfunction
 
 " pushout
 function! s:Area.pushout(dir, val) "{{{1
-  let n = s:u.toward(a:dir) ==# '^v' ? s:height(a:val) : s:width(a:val)
+  let n = s:_.toward(a:dir) ==# '^v' ? s:height(a:val) : s:width(a:val)
   call self.add(a:dir, a:val)
-  return self.cut(s:u.opposite(a:dir), n)
+  return self.cut(s:_.opposite(a:dir), n)
 endfunction
 
 " rotate
@@ -147,7 +147,7 @@ function! s:Area.rotate(dir, n)
     let _cut = self._overlapped.pushout(a:dir, _cut)
   endif
 
-  call self.add( s:u.opposite(a:dir), _cut)
+  call self.add(s:_.opposite(a:dir), _cut)
   return self
 endfunction
 

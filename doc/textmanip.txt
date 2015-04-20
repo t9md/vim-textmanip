@@ -420,6 +420,10 @@ layout.
 
 ==============================================================================
 CHANGELOG						 *textmanip-changelog*
+2015-04-20:
+	- [refactoring]
+	  rewrite almost all code for readabilty.
+
 2015-04-19:
 	- [breaking]
 	  remove kickout related command, vertual keymap.

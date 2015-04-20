@@ -1,5 +1,5 @@
 " Util:
-let s:u = textmanip#util#get()
+let s:_ = textmanip#util#get()
 
 function! s:getpos(mode) "{{{1
   if a:mode ==# 'n'
@@ -29,8 +29,11 @@ function! s:TM.start(env) "{{{1
     call self.init(a:env)
     call self.manip()
 
-  catch /NOTHING_TODO/
-    normal! gv
+  catch /STOP/
+    if g:textmanip_debug
+      call Plog(v:exception)
+    endif
+    " normal! gv
   catch /FINISH/
   finally
     call self.register.restore()
@@ -43,7 +46,7 @@ function! s:TM.init(env) "{{{1
   let s             = textmanip#pos#new(_s)
   let e             = textmanip#pos#new(_e)
   let self.env      = a:env
-  let self.toward   = s:u.toward(self.env.dir)
+  let self.toward   = s:_.toward(self.env.dir)
   let self.register = textmanip#register#use('x')
 
   "     [   1   ]    [   2   ]    [   3   ]    [   4   ]
@@ -70,39 +73,6 @@ function! s:TM.init(env) "{{{1
 endfunction
 
 function! s:TM.manip() "{{{1
-  let [dir, action, emode] = [self.env.dir, self.env.action, self.env.emode]
-
-  if dir ==# '^' && self.pos['^'].line ==# 1
-    throw 'NOTHING_TODO Topmost line'
-  endif
-
-  if dir ==# '<'
-    if self.linewise
-      call self.yank()
-      if empty(filter(self.register.content, "v:val =~# '^\\s'"))
-        " No empty space to move '<'
-        throw 'NOTHING_TODO No empty space to "<"'
-      endif
-    else
-      if self.pos['<'].colm ==# 1
-        throw 'NOTHING_TODO Leftmost cursor'
-      endif
-    endif
-  endif
-
-  if action ==# 'duplicate' && emode ==# 'replace'
-    if dir ==# '^'
-      if self.pos['^'].line -1 < self.height
-        throw 'NOTHING_TODO No enough space to duplicate to "^"'
-      endif
-    endif
-    if dir ==# '<'
-      if self.pos['<'].colm - 1 < self.width
-        throw 'NOTHING_TODO No enough space to duplicate to "<"'
-      endif
-    endif
-  endif
-
   call self[self.env.action]()
 endfunction
 
@@ -133,6 +103,16 @@ function! s:TM.finish(...) "{{{1
   endif
 
   throw 'FINISH'
+endfunction
+
+function! s:TM.stop(desc, expr) "{{{1
+  if !a:expr
+    return
+  endif
+  if self.env.mode !=# 'n'
+    normal! gv
+  endif
+  throw 'STOP: ' . a:desc
 endfunction
 
 function! s:TM.select(...) "{{{1
@@ -176,10 +156,10 @@ endfunction
 
 function! s:TM.move_pos(opes) "{{{1
   let vars = { 'c': self.env.count, 'h': self.height, 'w': self.width, 'SW': &sw }
-  for ope in s:u.toList(a:opes)
+  for ope in s:_.toList(a:opes)
     let pos = ope[0]
     let _ope = split(ope[1:], '\v\s*:\s*', 1)
-    call map(_ope, 's:u.template(v:val, vars)')
+    call map(_ope, 's:_.template(v:val, vars)')
     call self.pos[pos].move(_ope)
   endfor
   return self
@@ -220,6 +200,16 @@ endfunction
 " Action:
 function! s:TM.move() "{{{1
   let [dir, c, emode] = [self.env.dir, self.env.count, self.env.emode]
+
+  call self.stop('Topmost line', dir ==# '^' && self.pos['^'].line ==# 1)
+
+  if dir ==# '<'
+    call self.stop('No empty space to <',
+          \ self.linewise && empty(filter(self.yank().register.content, "v:val =~# '^\\s'")))
+    call self.stop('Leftmost cursor',
+          \ !self.linewise && self.pos['<'].colm ==# 1)
+  endif
+
   if self.continuous
     silent! undojoin
   endif
@@ -233,7 +223,7 @@ function! s:TM.move() "{{{1
 
   if self.toward ==# '<>' && self.linewise
     " a:dir is '<' or '>', yes its valid Vim operator! so I can pass as-is
-    execute "'<,'>" . repeat(dir, c)
+    execute self.pos['^'].line . ',' . self.pos['v'].line . repeat(dir,c)
     let _last = {
           \ '>': ['^ :+(SW * c)', 'v :+(SW * c)'],
           \ '<': ['^ :-(SW * c)', 'v :-(SW * c)'],
@@ -281,6 +271,11 @@ function! s:TM.duplicate() "{{{1
           \ }[dir]
   else
     " replace
+    call self.stop('No enough space to duplicate to ^',
+          \ dir ==# '^' && (self.pos['^'].line -1 < self.height))
+    call self.stop('No enough space to duplicate to <',
+          \ dir ==# '<' && (self.pos['<'].colm - 1 < self.width))
+
     if dir =~# '\v\^|\<'
       let limit = dir ==# '^'
             \ ? self.pos['^'].line - 1

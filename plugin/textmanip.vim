@@ -63,35 +63,37 @@ function! s:keymap(mode, action, dir) "{{{1
     let key = printf('%snoremap <silent> %s', a:mode, plug)
     let cmd = printf(':<C-u>call textmanip#start("%s", "%s", "%s", "%s")<CR>',
           \ a:action, a:dir, a:mode, emode)
+    " echo key cmd
     execute key cmd
   endfor
 endfunction "}}}
 
 " Normal:
-call s:keymap('n', 'duplicate', 'v')
 call s:keymap('n', 'duplicate', '^')
-call s:keymap('n', 'move',      'v')
+call s:keymap('n', 'duplicate', 'v')
+
 call s:keymap('n', 'move',      '^')
-
-" [TODO]
-" call s:keymap('n', 'move',      '>')
-" call s:keymap('n', 'move',      '<')
-
-" Visual:
-call s:keymap('x', 'duplicate', 'v')
-call s:keymap('x', 'duplicate', '^')
-call s:keymap('x', 'duplicate', '>')
-call s:keymap('x', 'duplicate', '<')
-
-call s:keymap('x', 'move',      'v')
-call s:keymap('x', 'move',      '^')
-call s:keymap('x', 'move',      '>')
-call s:keymap('x', 'move',      '<')
-call s:keymap('x', 'move1',     '>')
-call s:keymap('x', 'move1',     '<')
+call s:keymap('n', 'move',      'v')
+call s:keymap('n', 'move',      '<') " new
+call s:keymap('n', 'move',      '>') " new
 
 call s:keymap('n', 'blank',      '^')
 call s:keymap('n', 'blank',      'v')
+
+" Visual:
+call s:keymap('x', 'duplicate', '^')
+call s:keymap('x', 'duplicate', 'v')
+call s:keymap('x', 'duplicate', '<')
+call s:keymap('x', 'duplicate', '>')
+
+call s:keymap('x', 'move',      '^')
+call s:keymap('x', 'move',      'v')
+call s:keymap('x', 'move',      '<')
+call s:keymap('x', 'move',      '>')
+
+call s:keymap('x', 'move1',     '<')
+call s:keymap('x', 'move1',     '>')
+
 call s:keymap('x', 'blank',      '^')
 call s:keymap('x', 'blank',      'v')
 
