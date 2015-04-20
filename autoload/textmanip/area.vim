@@ -1,17 +1,3 @@
-" Memo:
-"         l_cut/add           r_cut/add
-"                 |           |
-"                 V           V        _.data index
-"                +-+---------+-+----      0
-"   u_cut/add -> +-+         +-+   ^      |
-"                |             |   |      |
-"                |             |  height  |
-"                |             |   |      |
-"                +-+         +-+   V      N
-"   d_cut/add -> +-+---------+-+ ---   len(_.data)
-"                |             |
-"                +<-- width -->+
-
 let s:_ = textmanip#util#get()
 
 function! s:height(val) "{{{1
