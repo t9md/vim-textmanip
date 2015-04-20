@@ -17,6 +17,7 @@ let s:global_variables = {
       \ "textmanip_startup_mode"    : "insert",
       \ "textmanip_move_ignore_shiftwidth" : 0,
       \ "textmanip_move_shiftwidth" : 1,
+      \ "textmanip_hooks" : {},
       \ }
 "}}}
 

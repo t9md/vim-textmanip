@@ -91,6 +91,10 @@ endfunction
 function! s:TM.finish(...) "{{{1
   call call(self.select, a:000, self)
 
+  if exists('*g:textmanip_hooks.finish')
+    call g:textmanip_hooks['finish'](self)
+  endif
+
   if self.env.action ==# 'move'
     let b:textmanip_status = self.state()
   endif

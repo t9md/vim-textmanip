@@ -85,6 +85,31 @@ VARIABLES						*textmanip-variables*
 	When you set non zero value to |g:textmanip_move_ignore_shiftwidth|,
 	this value is used how much right/left shifted when move right/left.
 
+*g:textmanip_hooks*
+	[Experimental]
+	Default: {}
+
+	{key}:	 Name of hook point. currently only 'finish' is available.
+	{value}: |Funcref|
+
+	example~
+>
+	let g:textmanip_hooks = {}
+	function! g:textmanip_hooks.finish(tm)
+	  let tm = a:tm
+	  let helper = textmanip#helper#get()
+	  if tm.linewise
+	    if &ft ==# 'html'
+	      call helper.indent(tm)
+	    endif
+	  else
+	    " When blockwise move/duplicate, remove trailing white space.
+	    " To use this feature without feeling counterintuitive,
+	    " I recommend you to ':set virtualedit=block',
+	    call helper.remove_trailing_WS(tm)
+	  endif
+	endfunction
+<
 ==============================================================================
 MAPPINGS						    *textmanip-mappings*
 
