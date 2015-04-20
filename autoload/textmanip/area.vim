@@ -153,8 +153,9 @@ function! s:Area.duplicate(dir, n) "{{{1
 endfunction
 "}}}
 
-" Public:
+" API:
 function! textmanip#area#new(...) "{{{1
   return call(s:Area.new, a:000, s:Area)
 endfunction
+"}}}
 " vim: foldmethod=marker

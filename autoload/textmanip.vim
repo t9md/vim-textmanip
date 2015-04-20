@@ -15,18 +15,24 @@ endfunction
 " Main:
 let s:TM = {} 
 
-function! s:TM.start(env) "{{{1
+function! s:TM.start(action, dir, mode, emode) "{{{1
   try
-    let shiftwidth = g:textmanip_move_ignore_shiftwidth
-          \ ? g:textmanip_move_shiftwidth
-          \ : &shiftwidth
+    let opts = { '&virtualedit': 'all' }
+    if a:action ==# 'move1'
+      let opts['&shiftwidth'] = 1
+    elseif g:textmanip_move_ignore_shiftwidth
+      let opts['&shiftwidth'] = g:textmanip_move_shiftwidth
+    endif
+    let options = textmanip#options#replace(opts)
 
-    let options = textmanip#options#replace({
-          \ '&virtualedit': 'all',
-          \ '&shiftwidth': shiftwidth,
-          \ })
-
-    call self.init(a:env)
+    let env = {
+          \ "action": a:action ==# 'move1' ? 'move' : a:action,
+          \ "dir":    a:dir,
+          \ "mode":   a:mode ==# 'x' ? visualmode() : a:mode,
+          \ "emode":  (a:emode ==# 'auto') ? g:textmanip_current_mode : a:emode,
+          \ "count":  v:count1,
+          \ }
+    call self.init(env)
     call self.manip()
 
   catch /STOP/
@@ -297,32 +303,8 @@ endfunction
 "}}}
 
 " API:
-function! textmanip#start(action, dir, mode, emode) "{{{1
-  let action = a:action ==# 'move1' ? 'move' : a:action
-
-  try
-    if a:action ==# 'move1'
-      let _ignore_shiftwidth  = g:textmanip_move_ignore_shiftwidth
-      let _shiftwidth         = g:textmanip_move_shiftwidth
-      let g:textmanip_move_ignore_shiftwidth = 1
-      let g:textmanip_move_shiftwidth        = 1
-    endif
-
-    let env = {
-          \ "action": action,
-          \ "dir": a:dir,
-          \ "mode": a:mode ==# 'x' ? visualmode() : a:mode,
-          \ "emode": (a:emode ==# 'auto') ? g:textmanip_current_mode : a:emode,
-          \ "count": v:count1,
-          \ }
-    call s:TM.start(env)
-
-  finally
-    if a:action ==# 'move1'
-      let g:textmanip_move_ignore_shiftwidth = _ignore_shiftwidth
-      let g:textmanip_move_shiftwidth        = _shiftwidth
-    endif
-  endtry
+function! textmanip#start(...) "{{{1
+  return call(s:TM.start, a:000, s:TM)
 endfunction
 
 function! textmanip#mode(...) "{{{1
