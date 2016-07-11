@@ -13,9 +13,12 @@ endfunction
 "}}}
 
 " Main:
-let s:TM = {} 
+let s:TM = {}
 
 function! s:TM.start(action, dir, mode, emode) "{{{1
+  if &modifiable == 0
+      return
+  endif
   try
     let opts = { '&virtualedit': 'all' }
     if a:action ==# 'move1'
@@ -82,7 +85,7 @@ function! s:TM.manip() "{{{1
 endfunction
 
 function! s:TM.is_linewise() "{{{1
-  return 
+  return
         \ (self.env.mode ==# 'V' ) ||
         \ (self.env.mode ==# 'n' ) ||
         \ (self.env.mode ==# 'v' && self.height > 1)
@@ -178,7 +181,7 @@ function! s:TM.insert_blank(dir, num) "{{{1
   let where = {
         \ '^': self.pos['^'].line-1, 'v': self.pos['v'].line,
         \ '<': self.pos['<'].colm-1, '>': self.pos['>'].colm,
-        \ }[a:dir]                            
+        \ }[a:dir]
   if self.toward ==# '^v'
     call append(where, map(range(a:num), '""'))
   else
