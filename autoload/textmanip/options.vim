@@ -6,7 +6,7 @@ function! s:Options.new() "{{{1
 endfunction 
 
 function! s:Options.replace(opts) "{{{1
-  let curbuf = bufname('')
+  let curbuf = fnameescape(bufname(''))
   for [name, val] in items(a:opts)
     let self._opts[name] = getbufvar(curbuf, name)
     call setbufvar(curbuf, name, val)
@@ -16,7 +16,7 @@ endfunction
 
 function! s:Options.restore() "{{{1
   for [name, val] in items(self._opts)
-    call setbufvar(bufname(''), name, val)
+    call setbufvar(fnameescape(bufname('')), name, val)
   endfor
   let self._opts = {}
   return self
